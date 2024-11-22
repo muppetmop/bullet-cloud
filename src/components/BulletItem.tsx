@@ -27,43 +27,64 @@ const BulletItem: React.FC<BulletItemProps> = ({
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const saveContent = () => {
-    const content = contentRef.current?.textContent || "";
-    onUpdate(bullet.id, content);
-    return content;
+  const saveSelection = () => {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount) return null;
+    return selection.getRangeAt(0);
+  };
+
+  const restoreSelection = (range: Range) => {
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      saveContent();
+      const content = contentRef.current?.textContent || "";
+      onUpdate(bullet.id, content);
       onNewBullet(bullet.id);
     } else if (e.key === "Tab") {
       e.preventDefault();
-      saveContent();
+      const savedRange = saveSelection();
+      const content = contentRef.current?.textContent || "";
+      onUpdate(bullet.id, content);
+      
       if (e.shiftKey) {
         onOutdent(bullet.id);
       } else {
         onIndent(bullet.id);
       }
-      requestAnimationFrame(() => {
-        const element = document.querySelector(`[data-id="${bullet.id}"] .bullet-content`) as HTMLElement;
-        if (element) {
-          element.focus();
-        }
-      });
+
+      if (savedRange) {
+        requestAnimationFrame(() => {
+          const element = document.querySelector(`[data-id="${bullet.id}"] .bullet-content`);
+          if (element) {
+            element.focus();
+            restoreSelection(savedRange);
+          }
+        });
+      }
     } else if (e.key === "Backspace" && !contentRef.current?.textContent && !bullet.children.length) {
       e.preventDefault();
       onDelete(bullet.id);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      saveContent();
+      const content = contentRef.current?.textContent || "";
+      onUpdate(bullet.id, content);
       onNavigate("up", bullet.id);
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      saveContent();
+      const content = contentRef.current?.textContent || "";
+      onUpdate(bullet.id, content);
       onNavigate("down", bullet.id);
     }
+  };
+
+  const handleBlur = () => {
+    const content = contentRef.current?.textContent || "";
+    onUpdate(bullet.id, content);
   };
 
   return (
@@ -87,8 +108,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
           ref={contentRef}
           className="bullet-content py-1"
           contentEditable
-          onInput={saveContent}
-          onBlur={saveContent}
+          onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           suppressContentEditableWarning
         >
