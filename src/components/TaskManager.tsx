@@ -15,6 +15,7 @@ const BulletItem = ({
   onDelete,
   onIndent,
   onOutdent,
+  onNewBullet,
 }: {
   bullet: BulletPoint;
   level: number;
@@ -22,16 +23,14 @@ const BulletItem = ({
   onDelete: (id: string) => void;
   onIndent: (id: string) => void;
   onOutdent: (id: string) => void;
+  onNewBullet: (id: string) => void;
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      const newBullet = { id: crypto.randomUUID(), content: "", children: [], isCollapsed: false };
-      const parent = bullet.children;
-      parent.push(newBullet);
-      onUpdate(bullet.id, bullet.content);
+      onNewBullet(bullet.id);
     } else if (e.key === "Tab") {
       e.preventDefault();
       if (e.shiftKey) {
@@ -87,6 +86,7 @@ const BulletItem = ({
               onDelete={onDelete}
               onIndent={onIndent}
               onOutdent={onOutdent}
+              onNewBullet={onNewBullet}
             />
           ))}
         </div>
@@ -99,6 +99,31 @@ const TaskManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([
     { id: crypto.randomUUID(), content: "", children: [], isCollapsed: false },
   ]);
+
+  const findBulletAndParent = (
+    id: string,
+    bullets: BulletPoint[],
+    parent: BulletPoint[] | null = null
+  ): [BulletPoint | null, BulletPoint[] | null] => {
+    for (let i = 0; i < bullets.length; i++) {
+      if (bullets[i].id === id) {
+        return [bullets[i], parent || bullets];
+      }
+      const [found, foundParent] = findBulletAndParent(id, bullets[i].children, bullets[i].children);
+      if (found) return [found, foundParent];
+    }
+    return [null, null];
+  };
+
+  const createNewBullet = (id: string) => {
+    const [bullet, parent] = findBulletAndParent(id, bullets);
+    if (!bullet || !parent) return;
+
+    const newBullet = { id: crypto.randomUUID(), content: "", children: [], isCollapsed: false };
+    const index = parent.indexOf(bullet);
+    parent.splice(index + 1, 0, newBullet);
+    setBullets([...bullets]);
+  };
 
   const updateBullet = (id: string, content: string) => {
     const updateBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
@@ -183,6 +208,7 @@ const TaskManager = () => {
           onDelete={deleteBullet}
           onIndent={indentBullet}
           onOutdent={outdentBullet}
+          onNewBullet={createNewBullet}
         />
       ))}
     </div>
