@@ -41,33 +41,37 @@ const BulletItem: React.FC<BulletItemProps> = ({
   useEffect(() => {
     console.log('Focus effect running', { shouldFocus, selectionState, content: bullet.content });
     if (shouldFocus && contentRef.current && selectionState) {
-      // Small timeout to ensure DOM is ready
-      setTimeout(() => {
-        if (contentRef.current) {
-          console.log('Attempting to restore focus and selection');
-          contentRef.current.focus();
-          
-          const textNode = contentRef.current.firstChild || contentRef.current;
-          const range = document.createRange();
-          const selection = window.getSelection();
+      const focusAndSelect = () => {
+        if (!contentRef.current) return;
+        
+        console.log('Attempting to restore focus and selection');
+        contentRef.current.focus();
+        
+        const textNode = contentRef.current.firstChild || contentRef.current;
+        const range = document.createRange();
+        const selection = window.getSelection();
 
-          try {
-            range.setStart(textNode, selectionState.start);
-            range.setEnd(textNode, selectionState.end);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-            console.log('Focus and selection restored successfully');
-          } catch (err) {
-            console.error('Error restoring selection:', err);
-            contentRef.current.focus();
-          }
-          
-          setShouldFocus(false);
-          setSelectionState(null);
+        try {
+          range.setStart(textNode, selectionState.start);
+          range.setEnd(textNode, selectionState.end);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+          console.log('Focus and selection restored successfully');
+        } catch (err) {
+          console.error('Error restoring selection:', err);
+          contentRef.current.focus();
         }
-      }, 0);
+      };
+
+      // Execute focus restoration after a brief delay
+      requestAnimationFrame(() => {
+        focusAndSelect();
+        // Only reset states after successful focus
+        setShouldFocus(false);
+        setSelectionState(null);
+      });
     }
-  }, [shouldFocus, selectionState, bullet.content]); // Added bullet.content as dependency
+  }, [shouldFocus, selectionState, bullet.content]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     const content = contentRef.current?.textContent || "";
@@ -91,18 +95,25 @@ const BulletItem: React.FC<BulletItemProps> = ({
     } else if (e.key === "Tab") {
       e.preventDefault();
       console.log('Tab pressed, saving selection state');
-      setSelectionState({
+      
+      // Save selection state before any content updates
+      const newSelectionState = {
         start: range?.startOffset || 0,
         end: range?.endOffset || 0
-      });
+      };
       
+      // Update content first
       onUpdate(bullet.id, content);
+      
+      // Then handle indentation
       if (e.shiftKey && onOutdent) {
         onOutdent(bullet.id);
       } else if (!e.shiftKey && onIndent) {
         onIndent(bullet.id);
       }
       
+      // Set states after content update and indentation
+      setSelectionState(newSelectionState);
       setShouldFocus(true);
     } else if (e.key === "Backspace" && !content && !bullet.children.length) {
       e.preventDefault();
