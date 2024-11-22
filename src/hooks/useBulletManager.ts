@@ -37,9 +37,9 @@ export const useBulletManager = () => {
     }, []);
   };
 
-  const createNewBullet = (id: string) => {
+  const createNewBullet = (id: string): string | null => {
     const [bullet, parent] = findBulletAndParent(id, bullets);
-    if (!bullet || !parent) return;
+    if (!bullet || !parent) return null;
 
     const newBullet = {
       id: crypto.randomUUID(),
@@ -54,7 +54,7 @@ export const useBulletManager = () => {
     return newBullet.id;
   };
 
-  const createNewRootBullet = () => {
+  const createNewRootBullet = (): string => {
     const newBullet = {
       id: crypto.randomUUID(),
       content: "",
