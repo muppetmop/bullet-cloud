@@ -46,13 +46,12 @@ const BulletItem: React.FC<BulletItemProps> = ({
       } else {
         onIndent(bullet.id);
       }
-      // Maintain focus after indentation without forcing cursor position
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         const element = document.querySelector(`[data-id="${bullet.id}"] .bullet-content`) as HTMLElement;
         if (element) {
           element.focus();
         }
-      }, 0);
+      });
     } else if (e.key === "Backspace" && !contentRef.current?.textContent && !bullet.children.length) {
       e.preventDefault();
       onDelete(bullet.id);
@@ -65,10 +64,6 @@ const BulletItem: React.FC<BulletItemProps> = ({
       saveContent();
       onNavigate("down", bullet.id);
     }
-  };
-
-  const handleInput = () => {
-    saveContent();
   };
 
   return (
@@ -92,7 +87,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
           ref={contentRef}
           className="bullet-content py-1"
           contentEditable
-          onInput={handleInput}
+          onInput={saveContent}
           onBlur={saveContent}
           onKeyDown={handleKeyDown}
           suppressContentEditableWarning
