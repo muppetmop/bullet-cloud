@@ -10,6 +10,8 @@ interface BulletItemProps {
   onNewBullet: (id: string) => string | null;
   onCollapse: (id: string) => void;
   onNavigate: (direction: "up" | "down", id: string) => void;
+  onIndent?: (id: string) => void;
+  onOutdent?: (id: string) => void;
 }
 
 const BulletItem: React.FC<BulletItemProps> = ({
@@ -20,6 +22,8 @@ const BulletItem: React.FC<BulletItemProps> = ({
   onNewBullet,
   onCollapse,
   onNavigate,
+  onIndent,
+  onOutdent,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -49,7 +53,16 @@ const BulletItem: React.FC<BulletItemProps> = ({
     } else if (e.key === "Tab") {
       e.preventDefault();
       onUpdate(bullet.id, content);
-      // The actual indentation logic is handled in useBulletManager
+      if (e.shiftKey && onOutdent) {
+        onOutdent(bullet.id);
+      } else if (!e.shiftKey && onIndent) {
+        onIndent(bullet.id);
+      }
+      setTimeout(() => {
+        if (contentRef.current) {
+          contentRef.current.focus();
+        }
+      }, 0);
     } else if (e.key === "Backspace" && !content && !bullet.children.length) {
       e.preventDefault();
       onDelete(bullet.id);
@@ -109,6 +122,8 @@ const BulletItem: React.FC<BulletItemProps> = ({
               onNewBullet={onNewBullet}
               onCollapse={onCollapse}
               onNavigate={onNavigate}
+              onIndent={onIndent}
+              onOutdent={onOutdent}
             />
           ))}
         </div>

@@ -13,6 +13,8 @@ const TaskManager = () => {
     updateBullet,
     deleteBullet,
     toggleCollapse,
+    indentBullet,
+    outdentBullet,
   } = useBulletManager();
 
   const { handleNavigate } = useBulletNavigation(getAllVisibleBullets, bullets);
@@ -29,6 +31,8 @@ const TaskManager = () => {
           onNewBullet={createNewBullet}
           onCollapse={toggleCollapse}
           onNavigate={handleNavigate}
+          onIndent={indentBullet}
+          onOutdent={outdentBullet}
         />
       ))}
       <button
