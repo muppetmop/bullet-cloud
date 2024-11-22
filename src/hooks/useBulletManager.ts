@@ -1,41 +1,11 @@
 import { useState } from "react";
 import { BulletPoint } from "@/types/bullet";
+import { findBulletAndParent, getAllVisibleBullets, reorderBullets } from "@/utils/bulletOperations";
 
 export const useBulletManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([
     { id: crypto.randomUUID(), content: "", children: [], isCollapsed: false },
   ]);
-
-  const findBulletAndParent = (
-    id: string,
-    bullets: BulletPoint[],
-    parent: BulletPoint[] | null = null
-  ): [BulletPoint | null, BulletPoint[] | null] => {
-    for (let i = 0; i < bullets.length; i++) {
-      if (bullets[i].id === id) {
-        return [bullets[i], parent || bullets];
-      }
-      if (!bullets[i].isCollapsed) {
-        const [found, foundParent] = findBulletAndParent(
-          id,
-          bullets[i].children,
-          bullets[i].children
-        );
-        if (found) return [found, foundParent];
-      }
-    }
-    return [null, null];
-  };
-
-  const getAllVisibleBullets = (bullets: BulletPoint[]): BulletPoint[] => {
-    return bullets.reduce((acc: BulletPoint[], bullet) => {
-      return [
-        ...acc,
-        bullet,
-        ...(bullet.isCollapsed ? [] : getAllVisibleBullets(bullet.children)),
-      ];
-    }, []);
-  };
 
   const createNewBullet = (id: string): string | null => {
     const [bullet, parent] = findBulletAndParent(id, bullets);
@@ -114,7 +84,7 @@ export const useBulletManager = () => {
     if (!bullet || !parent) return;
 
     const index = parent.indexOf(bullet);
-    if (index === 0) return; // Can't indent the first bullet in a list
+    if (index === 0) return;
 
     const previousBullet = parent[index - 1];
     parent.splice(index, 1);
@@ -158,51 +128,8 @@ export const useBulletManager = () => {
     setBullets([...bullets]);
   };
 
-  const reorderBullets = (draggedId: string, targetId: string, position: 'before' | 'after') => {
-    const reorderRecursive = (bullets: BulletPoint[]): [BulletPoint[], BulletPoint | null] => {
-      let draggedBullet: BulletPoint | null = null;
-      
-      // First, remove the dragged bullet
-      const newBullets = bullets.filter(bullet => {
-        if (bullet.id === draggedId) {
-          draggedBullet = { ...bullet };
-          return false;
-        }
-        const [newChildren, found] = reorderRecursive(bullet.children);
-        bullet.children = newChildren;
-        if (found) {
-          draggedBullet = found;
-          return true;
-        }
-        return true;
-      });
-
-      // Then, insert it at the target position
-      if (draggedBullet) {
-        const targetIndex = newBullets.findIndex(b => b.id === targetId);
-        if (targetIndex !== -1) {
-          newBullets.splice(
-            position === 'before' ? targetIndex : targetIndex + 1,
-            0,
-            draggedBullet
-          );
-          return [newBullets, null];
-        }
-        
-        // If target wasn't found at this level, check children
-        for (const bullet of newBullets) {
-          const [newChildren, found] = reorderRecursive(bullet.children);
-          bullet.children = newChildren;
-          if (found === null) {
-            return [newBullets, null];
-          }
-        }
-      }
-      
-      return [newBullets, draggedBullet];
-    };
-
-    const [newBullets] = reorderRecursive(bullets);
+  const handleReorder = (draggedId: string, targetId: string, position: 'before' | 'after') => {
+    const newBullets = reorderBullets(bullets, draggedId, targetId, position);
     setBullets(newBullets);
   };
 
@@ -217,6 +144,6 @@ export const useBulletManager = () => {
     toggleCollapse,
     indentBullet,
     outdentBullet,
-    reorderBullets,
+    handleReorder,
   };
 };

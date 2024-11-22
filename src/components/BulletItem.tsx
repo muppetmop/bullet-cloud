@@ -12,6 +12,7 @@ interface BulletItemProps {
   onNavigate: (direction: "up" | "down", id: string) => void;
   onIndent?: (id: string) => void;
   onOutdent?: (id: string) => void;
+  onReorder: (draggedId: string, targetId: string, position: 'before' | 'after') => void;
 }
 
 const BulletItem: React.FC<BulletItemProps> = ({
@@ -24,6 +25,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
   onNavigate,
   onIndent,
   onOutdent,
+  onReorder,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [cursorPosition, setCursorPosition] = useState<number | null>(null);
@@ -42,7 +44,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
         dragRef.current.draggable = true;
         setIsDragging(true);
       }
-    }, 300); // Reduced from 500ms to 300ms
+    }, 300);
   };
 
   const handleMouseUp = () => {
@@ -67,11 +69,10 @@ const BulletItem: React.FC<BulletItemProps> = ({
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     const target = e.currentTarget as HTMLElement;
-    
-    // Add visual feedback for drag position
+
     const rect = target.getBoundingClientRect();
     const midPoint = rect.top + rect.height / 2;
-    
+
     if (e.clientY < midPoint) {
       target.classList.add('drag-over-top');
       target.classList.remove('drag-over-bottom');
@@ -92,10 +93,13 @@ const BulletItem: React.FC<BulletItemProps> = ({
     target.classList.remove('drag-over-top', 'drag-over-bottom');
     
     const draggedId = e.dataTransfer.getData('text/plain');
-    if (draggedId === bullet.id) return; // Can't drop on itself
+    if (draggedId === bullet.id) return; 
     
-    // TODO: Implement the actual reordering logic in useBulletManager
-    console.log('Dropped', draggedId, 'onto', bullet.id);
+    const rect = target.getBoundingClientRect();
+    const midPoint = rect.top + rect.height / 2;
+    const position = e.clientY < midPoint ? 'before' : 'after';
+    
+    onReorder(draggedId, bullet.id, position);
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -242,6 +246,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
               onNavigate={onNavigate}
               onIndent={onIndent}
               onOutdent={onOutdent}
+              onReorder={onReorder}
             />
           ))}
         </div>

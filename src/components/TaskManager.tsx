@@ -15,6 +15,7 @@ const TaskManager = () => {
     toggleCollapse,
     indentBullet,
     outdentBullet,
+    handleReorder,
   } = useBulletManager();
 
   const { handleNavigate } = useBulletNavigation(getAllVisibleBullets, bullets);
@@ -33,6 +34,7 @@ const TaskManager = () => {
           onNavigate={handleNavigate}
           onIndent={indentBullet}
           onOutdent={outdentBullet}
+          onReorder={handleReorder}
         />
       ))}
       <button
