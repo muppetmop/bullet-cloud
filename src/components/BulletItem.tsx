@@ -1,4 +1,4 @@
-import React, { useRef, KeyboardEvent } from "react";
+import React, { useRef, KeyboardEvent, useEffect } from "react";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { BulletPoint } from "@/types/bullet";
 
@@ -7,8 +7,6 @@ interface BulletItemProps {
   level: number;
   onUpdate: (id: string, content: string) => void;
   onDelete: (id: string) => void;
-  onIndent: (id: string) => void;
-  onOutdent: (id: string) => void;
   onNewBullet: (id: string) => void;
   onCollapse: (id: string) => void;
   onNavigate: (direction: "up" | "down", id: string) => void;
@@ -19,70 +17,43 @@ const BulletItem: React.FC<BulletItemProps> = ({
   level,
   onUpdate,
   onDelete,
-  onIndent,
-  onOutdent,
   onNewBullet,
   onCollapse,
   onNavigate,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const saveSelection = () => {
-    const selection = window.getSelection();
-    if (!selection?.rangeCount) return null;
-    return selection.getRangeAt(0);
-  };
-
-  const restoreSelection = (range: Range) => {
-    const selection = window.getSelection();
-    selection?.removeAllRanges();
-    selection?.addRange(range);
-  };
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.textContent = bullet.content;
+    }
+  }, [bullet.content]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
+    const content = contentRef.current?.textContent || "";
+
     if (e.key === "Enter") {
       e.preventDefault();
-      const content = contentRef.current?.textContent || "";
       onUpdate(bullet.id, content);
       onNewBullet(bullet.id);
     } else if (e.key === "Tab") {
       e.preventDefault();
-      const savedRange = saveSelection();
-      const content = contentRef.current?.textContent || "";
       onUpdate(bullet.id, content);
-      
-      if (e.shiftKey) {
-        onOutdent(bullet.id);
-      } else {
-        onIndent(bullet.id);
-      }
-
-      if (savedRange) {
-        requestAnimationFrame(() => {
-          const element = document.querySelector(`[data-id="${bullet.id}"] .bullet-content`) as HTMLElement;
-          if (element) {
-            element.focus();
-            restoreSelection(savedRange);
-          }
-        });
-      }
-    } else if (e.key === "Backspace" && !contentRef.current?.textContent && !bullet.children.length) {
+    } else if (e.key === "Backspace" && !content && !bullet.children.length) {
       e.preventDefault();
       onDelete(bullet.id);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      const content = contentRef.current?.textContent || "";
       onUpdate(bullet.id, content);
       onNavigate("up", bullet.id);
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      const content = contentRef.current?.textContent || "";
       onUpdate(bullet.id, content);
       onNavigate("down", bullet.id);
     }
   };
 
-  const handleBlur = () => {
+  const handleInput = () => {
     const content = contentRef.current?.textContent || "";
     onUpdate(bullet.id, content);
   };
@@ -102,18 +73,18 @@ const BulletItem: React.FC<BulletItemProps> = ({
             )}
           </button>
         ) : (
-          <span className="w-4 h-4 inline-flex items-center justify-center mt-1">•</span>
+          <span className="w-4 h-4 inline-flex items-center justify-center mt-1">
+            •
+          </span>
         )}
         <div
           ref={contentRef}
           className="bullet-content py-1"
           contentEditable
-          onBlur={handleBlur}
+          onInput={handleInput}
           onKeyDown={handleKeyDown}
           suppressContentEditableWarning
-        >
-          {bullet.content}
-        </div>
+        />
       </div>
       {!bullet.isCollapsed && bullet.children.length > 0 && (
         <div className="bullet-children">
@@ -124,8 +95,6 @@ const BulletItem: React.FC<BulletItemProps> = ({
               level={level + 1}
               onUpdate={onUpdate}
               onDelete={onDelete}
-              onIndent={onIndent}
-              onOutdent={onOutdent}
               onNewBullet={onNewBullet}
               onCollapse={onCollapse}
               onNavigate={onNavigate}
