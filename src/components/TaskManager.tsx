@@ -1,99 +1,6 @@
-import React, { useState, useRef, KeyboardEvent } from "react";
-import { ChevronRight, ChevronDown } from "lucide-react";
-
-interface BulletPoint {
-  id: string;
-  content: string;
-  children: BulletPoint[];
-  isCollapsed: boolean;
-}
-
-const BulletItem = ({
-  bullet,
-  level,
-  onUpdate,
-  onDelete,
-  onIndent,
-  onOutdent,
-  onNewBullet,
-}: {
-  bullet: BulletPoint;
-  level: number;
-  onUpdate: (id: string, content: string) => void;
-  onDelete: (id: string) => void;
-  onIndent: (id: string) => void;
-  onOutdent: (id: string) => void;
-  onNewBullet: (id: string) => void;
-}) => {
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      onNewBullet(bullet.id);
-    } else if (e.key === "Tab") {
-      e.preventDefault();
-      if (e.shiftKey) {
-        onOutdent(bullet.id);
-      } else {
-        onIndent(bullet.id);
-      }
-    } else if (e.key === "Backspace" && !bullet.content && !bullet.children.length) {
-      e.preventDefault();
-      onDelete(bullet.id);
-    }
-  };
-
-  return (
-    <div className="bullet-item">
-      <div className="flex items-start gap-1">
-        {bullet.children.length > 0 ? (
-          <button
-            className="collapse-button mt-1"
-            onClick={() => {
-              bullet.isCollapsed = !bullet.isCollapsed;
-              onUpdate(bullet.id, bullet.content);
-            }}
-          >
-            {bullet.isCollapsed ? (
-              <ChevronRight className="w-3 h-3" />
-            ) : (
-              <ChevronDown className="w-3 h-3" />
-            )}
-          </button>
-        ) : (
-          <span className="w-4 h-4 inline-flex items-center justify-center mt-1">•</span>
-        )}
-        <div
-          ref={contentRef}
-          className="bullet-content py-1"
-          contentEditable
-          onBlur={(e) => onUpdate(bullet.id, e.currentTarget.textContent || "")}
-          onKeyDown={handleKeyDown}
-          suppressContentEditableWarning
-        >
-          {bullet.content}
-        </div>
-      </div>
-      {!bullet.isCollapsed && bullet.children.length > 0 && (
-        <div className="bullet-children">
-          {bullet.children.map((child) => (
-            <BulletItem
-              key={child.id}
-              bullet={child}
-              level={level + 1}
-              onUpdate={onUpdate}
-              onDelete={onDelete}
-              onIndent={onIndent}
-              onOutdent={onOutdent}
-              onNewBullet={onNewBullet}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+import React, { useState, useEffect } from "react";
+import BulletItem from "./BulletItem";
+import { BulletPoint } from "@/types/bullet";
 
 const TaskManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([
@@ -115,6 +22,12 @@ const TaskManager = () => {
     return [null, null];
   };
 
+  const getAllBullets = (bullets: BulletPoint[]): BulletPoint[] => {
+    return bullets.reduce((acc: BulletPoint[], bullet) => {
+      return [...acc, bullet, ...getAllBullets(bullet.isCollapsed ? [] : bullet.children)];
+    }, []);
+  };
+
   const createNewBullet = (id: string) => {
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return;
@@ -123,6 +36,14 @@ const TaskManager = () => {
     const index = parent.indexOf(bullet);
     parent.splice(index + 1, 0, newBullet);
     setBullets([...bullets]);
+
+    // Focus the new bullet after render
+    setTimeout(() => {
+      const newBulletElement = document.querySelector(`[data-id="${newBullet.id}"]`) as HTMLElement;
+      if (newBulletElement) {
+        newBulletElement.focus();
+      }
+    }, 0);
   };
 
   const updateBullet = (id: string, content: string) => {
@@ -197,6 +118,53 @@ const TaskManager = () => {
     });
   };
 
+  const toggleCollapse = (id: string) => {
+    const toggleCollapseRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
+      return bullets.map((bullet) => {
+        if (bullet.id === id) {
+          return { ...bullet, isCollapsed: !bullet.isCollapsed };
+        }
+        return {
+          ...bullet,
+          children: toggleCollapseRecursive(bullet.children),
+        };
+      });
+    };
+
+    setBullets(toggleCollapseRecursive(bullets));
+  };
+
+  const handleNavigate = (direction: "up" | "down" | "left" | "right", currentId: string) => {
+    const allBullets = getAllBullets(bullets);
+    const currentIndex = allBullets.findIndex((b) => b.id === currentId);
+    
+    let nextBullet: BulletPoint | undefined;
+    
+    if (direction === "up") {
+      nextBullet = allBullets[currentIndex - 1];
+    } else if (direction === "down") {
+      nextBullet = allBullets[currentIndex + 1];
+    } else if (direction === "left") {
+      const [current, parent] = findBulletAndParent(currentId, bullets);
+      if (parent && parent !== bullets) {
+        const parentBullet = allBullets.find((b) => b.children.includes(current!));
+        nextBullet = parentBullet;
+      }
+    } else if (direction === "right") {
+      const [current] = findBulletAndParent(currentId, bullets);
+      if (current && current.children.length > 0 && !current.isCollapsed) {
+        nextBullet = current.children[0];
+      }
+    }
+
+    if (nextBullet) {
+      const nextElement = document.querySelector(`[data-id="${nextBullet.id}"]`) as HTMLElement;
+      if (nextElement) {
+        nextElement.focus();
+      }
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto p-8">
       {bullets.map((bullet) => (
@@ -209,6 +177,8 @@ const TaskManager = () => {
           onIndent={indentBullet}
           onOutdent={outdentBullet}
           onNewBullet={createNewBullet}
+          onCollapse={toggleCollapse}
+          onNavigate={handleNavigate}
         />
       ))}
     </div>
