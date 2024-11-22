@@ -31,6 +31,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
 
   // First useEffect to update content
   useEffect(() => {
+    console.log('Content update effect running', { content: bullet.content });
     if (contentRef.current) {
       contentRef.current.textContent = bullet.content;
     }
@@ -38,10 +39,12 @@ const BulletItem: React.FC<BulletItemProps> = ({
 
   // Second useEffect to handle focus and selection
   useEffect(() => {
+    console.log('Focus effect running', { shouldFocus, selectionState, content: bullet.content });
     if (shouldFocus && contentRef.current && selectionState) {
       // Small timeout to ensure DOM is ready
       setTimeout(() => {
         if (contentRef.current) {
+          console.log('Attempting to restore focus and selection');
           contentRef.current.focus();
           
           const textNode = contentRef.current.firstChild || contentRef.current;
@@ -53,6 +56,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
             range.setEnd(textNode, selectionState.end);
             selection?.removeAllRanges();
             selection?.addRange(range);
+            console.log('Focus and selection restored successfully');
           } catch (err) {
             console.error('Error restoring selection:', err);
             contentRef.current.focus();
@@ -86,7 +90,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
       }
     } else if (e.key === "Tab") {
       e.preventDefault();
-      
+      console.log('Tab pressed, saving selection state');
       setSelectionState({
         start: range?.startOffset || 0,
         end: range?.endOffset || 0
