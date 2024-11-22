@@ -1,5 +1,5 @@
 import React, { useRef, KeyboardEvent, useEffect, useState } from "react";
-import { ChevronRight, ChevronDown } from "lucide-react";
+import { ChevronRight, ChevronDown, GripVertical } from "lucide-react";
 import { BulletPoint } from "@/types/bullet";
 
 interface BulletItemProps {
@@ -27,11 +27,76 @@ const BulletItem: React.FC<BulletItemProps> = ({
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [cursorPosition, setCursorPosition] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const longPressTimer = useRef<NodeJS.Timeout>();
+  const dragRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!contentRef.current) return;
     contentRef.current.textContent = bullet.content;
   }, [bullet.content]);
+
+  const handleMouseDown = () => {
+    longPressTimer.current = setTimeout(() => {
+      if (dragRef.current) {
+        dragRef.current.draggable = true;
+        setIsDragging(true);
+      }
+    }, 500); // 500ms for long press
+  };
+
+  const handleMouseUp = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('text/plain', bullet.id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnd = () => {
+    if (dragRef.current) {
+      dragRef.current.draggable = false;
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const target = e.currentTarget as HTMLElement;
+    
+    // Add visual feedback for drag position
+    const rect = target.getBoundingClientRect();
+    const midPoint = rect.top + rect.height / 2;
+    
+    if (e.clientY < midPoint) {
+      target.classList.add('drag-over-top');
+      target.classList.remove('drag-over-bottom');
+    } else {
+      target.classList.add('drag-over-bottom');
+      target.classList.remove('drag-over-top');
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    const target = e.currentTarget as HTMLElement;
+    target.classList.remove('drag-over-top', 'drag-over-bottom');
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const target = e.currentTarget as HTMLElement;
+    target.classList.remove('drag-over-top', 'drag-over-bottom');
+    
+    const draggedId = e.dataTransfer.getData('text/plain');
+    if (draggedId === bullet.id) return; // Can't drop on itself
+    
+    // TODO: Implement the actual reordering logic in useBulletManager
+    console.log('Dropped', draggedId, 'onto', bullet.id);
+  };
 
   const handleKeyDown = (e: KeyboardEvent) => {
     const content = contentRef.current?.textContent || "";
@@ -120,7 +185,20 @@ const BulletItem: React.FC<BulletItemProps> = ({
   };
 
   return (
-    <div className="bullet-item" data-id={bullet.id}>
+    <div 
+      className="bullet-item" 
+      data-id={bullet.id}
+      ref={dragRef}
+      draggable={isDragging}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <div className="flex items-start gap-1">
         {bullet.children.length > 0 ? (
           <button
@@ -146,6 +224,9 @@ const BulletItem: React.FC<BulletItemProps> = ({
           onKeyDown={handleKeyDown}
           suppressContentEditableWarning
         />
+        {isDragging && (
+          <GripVertical className="w-4 h-4 text-gray-400 ml-2" />
+        )}
       </div>
       {!bullet.isCollapsed && bullet.children.length > 0 && (
         <div className="bullet-children">
