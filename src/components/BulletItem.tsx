@@ -29,33 +29,41 @@ const BulletItem: React.FC<BulletItemProps> = ({
   const [shouldFocus, setShouldFocus] = useState(false);
   const [selectionState, setSelectionState] = useState<{start: number, end: number} | null>(null);
 
+  // First useEffect to update content
   useEffect(() => {
     if (contentRef.current) {
       contentRef.current.textContent = bullet.content;
     }
   }, [bullet.content]);
 
+  // Second useEffect to handle focus and selection
   useEffect(() => {
     if (shouldFocus && contentRef.current && selectionState) {
-      contentRef.current.focus();
-      
-      const textNode = contentRef.current.firstChild || contentRef.current;
-      const range = document.createRange();
-      const selection = window.getSelection();
+      // Small timeout to ensure DOM is ready
+      setTimeout(() => {
+        if (contentRef.current) {
+          contentRef.current.focus();
+          
+          const textNode = contentRef.current.firstChild || contentRef.current;
+          const range = document.createRange();
+          const selection = window.getSelection();
 
-      try {
-        range.setStart(textNode, selectionState.start);
-        range.setEnd(textNode, selectionState.end);
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-      } catch (err) {
-        contentRef.current.focus();
-      }
-      
-      setShouldFocus(false);
-      setSelectionState(null);
+          try {
+            range.setStart(textNode, selectionState.start);
+            range.setEnd(textNode, selectionState.end);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          } catch (err) {
+            console.error('Error restoring selection:', err);
+            contentRef.current.focus();
+          }
+          
+          setShouldFocus(false);
+          setSelectionState(null);
+        }
+      }, 0);
     }
-  }, [shouldFocus, selectionState]);
+  }, [shouldFocus, selectionState, bullet.content]); // Added bullet.content as dependency
 
   const handleKeyDown = (e: KeyboardEvent) => {
     const content = contentRef.current?.textContent || "";
