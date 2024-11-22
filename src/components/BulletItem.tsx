@@ -35,10 +35,21 @@ const BulletItem: React.FC<BulletItemProps> = ({
     if (e.key === "Enter") {
       e.preventDefault();
       onUpdate(bullet.id, content);
-      onNewBullet(bullet.id);
+      const newBulletId = onNewBullet(bullet.id);
+      if (newBulletId) {
+        setTimeout(() => {
+          const newElement = document.querySelector(
+            `[data-id="${newBulletId}"] .bullet-content`
+          ) as HTMLElement;
+          if (newElement) {
+            newElement.focus();
+          }
+        }, 0);
+      }
     } else if (e.key === "Tab") {
       e.preventDefault();
       onUpdate(bullet.id, content);
+      // The actual indentation logic is handled in useBulletManager
     } else if (e.key === "Backspace" && !content && !bullet.children.length) {
       e.preventDefault();
       onDelete(bullet.id);
