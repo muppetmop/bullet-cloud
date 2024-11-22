@@ -27,27 +27,35 @@ const BulletItem: React.FC<BulletItemProps> = ({
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
 
+  const saveContent = () => {
+    const content = contentRef.current?.textContent || "";
+    onUpdate(bullet.id, content);
+    return content;
+  };
+
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      onUpdate(bullet.id, contentRef.current?.textContent || "");
+      saveContent();
       onNewBullet(bullet.id);
     } else if (e.key === "Tab") {
       e.preventDefault();
-      onUpdate(bullet.id, contentRef.current?.textContent || "");
+      saveContent();
       if (e.shiftKey) {
         onOutdent(bullet.id);
       } else {
         onIndent(bullet.id);
       }
-    } else if (e.key === "Backspace" && !bullet.content && !bullet.children.length) {
+    } else if (e.key === "Backspace" && !contentRef.current?.textContent && !bullet.children.length) {
       e.preventDefault();
       onDelete(bullet.id);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
+      saveContent();
       onNavigate("up", bullet.id);
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
+      saveContent();
       onNavigate("down", bullet.id);
     }
   };
@@ -73,7 +81,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
           ref={contentRef}
           className="bullet-content py-1"
           contentEditable
-          onBlur={(e) => onUpdate(bullet.id, e.currentTarget.textContent || "")}
+          onBlur={saveContent}
           onKeyDown={handleKeyDown}
           suppressContentEditableWarning
         >

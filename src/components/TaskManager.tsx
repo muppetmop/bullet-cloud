@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import BulletItem from "./BulletItem";
 import { BulletPoint } from "@/types/bullet";
+import { Plus } from "lucide-react";
 
 const TaskManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([
@@ -43,7 +44,18 @@ const TaskManager = () => {
     parent.splice(index + 1, 0, newBullet);
     setBullets([...bullets]);
 
-    // Focus the new bullet after render
+    setTimeout(() => {
+      const newBulletElement = document.querySelector(`[data-id="${newBullet.id}"] .bullet-content`) as HTMLElement;
+      if (newBulletElement) {
+        newBulletElement.focus();
+      }
+    }, 0);
+  };
+
+  const createNewRootBullet = () => {
+    const newBullet = { id: crypto.randomUUID(), content: "", children: [], isCollapsed: false };
+    setBullets([...bullets, newBullet]);
+
     setTimeout(() => {
       const newBulletElement = document.querySelector(`[data-id="${newBullet.id}"] .bullet-content`) as HTMLElement;
       if (newBulletElement) {
@@ -149,6 +161,14 @@ const TaskManager = () => {
     if (direction === "up") {
       nextBullet = visibleBullets[currentIndex - 1];
     } else if (direction === "down") {
+      if (currentIndex === visibleBullets.length - 1) {
+        // If we're at the last bullet, focus the plus button
+        const plusButton = document.querySelector(".new-bullet-button") as HTMLElement;
+        if (plusButton) {
+          plusButton.focus();
+          return;
+        }
+      }
       nextBullet = visibleBullets[currentIndex + 1];
     }
 
@@ -183,6 +203,27 @@ const TaskManager = () => {
           onNavigate={handleNavigate}
         />
       ))}
+      <button
+        onClick={createNewRootBullet}
+        className="new-bullet-button w-full flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 transition-colors"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            createNewRootBullet();
+          } else if (e.key === "ArrowUp" && bullets.length > 0) {
+            const lastBullet = getAllVisibleBullets(bullets).pop();
+            if (lastBullet) {
+              const lastElement = document.querySelector(`[data-id="${lastBullet.id}"] .bullet-content`) as HTMLElement;
+              if (lastElement) {
+                lastElement.focus();
+              }
+            }
+          }
+        }}
+      >
+        <Plus className="w-4 h-4" />
+        <span className="text-sm">Add new bullet</span>
+      </button>
     </div>
   );
 };
