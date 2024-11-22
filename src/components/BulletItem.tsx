@@ -63,7 +63,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
       }
 
       // Restore focus and cursor position after the state update
-      requestAnimationFrame(() => {
+      setTimeout(() => {
         if (contentRef.current) {
           contentRef.current.focus();
           if (selection && range) {
