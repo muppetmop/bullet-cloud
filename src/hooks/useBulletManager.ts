@@ -158,6 +158,54 @@ export const useBulletManager = () => {
     setBullets([...bullets]);
   };
 
+  const reorderBullets = (draggedId: string, targetId: string, position: 'before' | 'after') => {
+    const reorderRecursive = (bullets: BulletPoint[]): [BulletPoint[], BulletPoint | null] => {
+      let draggedBullet: BulletPoint | null = null;
+      
+      // First, remove the dragged bullet
+      const newBullets = bullets.filter(bullet => {
+        if (bullet.id === draggedId) {
+          draggedBullet = { ...bullet };
+          return false;
+        }
+        const [newChildren, found] = reorderRecursive(bullet.children);
+        bullet.children = newChildren;
+        if (found) {
+          draggedBullet = found;
+          return true;
+        }
+        return true;
+      });
+
+      // Then, insert it at the target position
+      if (draggedBullet) {
+        const targetIndex = newBullets.findIndex(b => b.id === targetId);
+        if (targetIndex !== -1) {
+          newBullets.splice(
+            position === 'before' ? targetIndex : targetIndex + 1,
+            0,
+            draggedBullet
+          );
+          return [newBullets, null];
+        }
+        
+        // If target wasn't found at this level, check children
+        for (const bullet of newBullets) {
+          const [newChildren, found] = reorderRecursive(bullet.children);
+          bullet.children = newChildren;
+          if (found === null) {
+            return [newBullets, null];
+          }
+        }
+      }
+      
+      return [newBullets, draggedBullet];
+    };
+
+    const [newBullets] = reorderRecursive(bullets);
+    setBullets(newBullets);
+  };
+
   return {
     bullets,
     findBulletAndParent,
@@ -169,5 +217,6 @@ export const useBulletManager = () => {
     toggleCollapse,
     indentBullet,
     outdentBullet,
+    reorderBullets,
   };
 };

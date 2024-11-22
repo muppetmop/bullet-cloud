@@ -42,7 +42,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
         dragRef.current.draggable = true;
         setIsDragging(true);
       }
-    }, 500); // 500ms for long press
+    }, 300); // Reduced from 500ms to 300ms
   };
 
   const handleMouseUp = () => {
@@ -225,7 +225,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
           suppressContentEditableWarning
         />
         {isDragging && (
-          <GripVertical className="w-4 h-4 text-gray-400 ml-2" />
+          <GripVertical className="w-6 h-6 text-gray-400 ml-2" /> {/* Increased from w-4 h-4 to w-6 h-6 */}
         )}
       </div>
       {!bullet.isCollapsed && bullet.children.length > 0 && (
