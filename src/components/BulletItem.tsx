@@ -1,4 +1,4 @@
-import React, { useRef, KeyboardEvent, useEffect } from "react";
+import React, { useRef, KeyboardEvent, useEffect, useState } from "react";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { BulletPoint } from "@/types/bullet";
 
@@ -26,12 +26,36 @@ const BulletItem: React.FC<BulletItemProps> = ({
   onOutdent,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
+  const [shouldFocus, setShouldFocus] = useState(false);
+  const [selectionState, setSelectionState] = useState<{start: number, end: number} | null>(null);
 
   useEffect(() => {
     if (contentRef.current) {
       contentRef.current.textContent = bullet.content;
     }
   }, [bullet.content]);
+
+  useEffect(() => {
+    if (shouldFocus && contentRef.current && selectionState) {
+      contentRef.current.focus();
+      
+      const textNode = contentRef.current.firstChild || contentRef.current;
+      const range = document.createRange();
+      const selection = window.getSelection();
+
+      try {
+        range.setStart(textNode, selectionState.start);
+        range.setEnd(textNode, selectionState.end);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      } catch (err) {
+        contentRef.current.focus();
+      }
+      
+      setShouldFocus(false);
+      setSelectionState(null);
+    }
+  }, [shouldFocus, selectionState]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     const content = contentRef.current?.textContent || "";
@@ -55,37 +79,19 @@ const BulletItem: React.FC<BulletItemProps> = ({
     } else if (e.key === "Tab") {
       e.preventDefault();
       
-      // Store current selection state
-      const selectionStart = range?.startOffset || 0;
-      const selectionEnd = range?.endOffset || 0;
+      setSelectionState({
+        start: range?.startOffset || 0,
+        end: range?.endOffset || 0
+      });
       
-      // Update content and handle indentation
       onUpdate(bullet.id, content);
       if (e.shiftKey && onOutdent) {
         onOutdent(bullet.id);
       } else if (!e.shiftKey && onIndent) {
         onIndent(bullet.id);
       }
-
-      // Immediately try to restore focus and selection
-      if (contentRef.current) {
-        contentRef.current.focus();
-        
-        // Create a new range and set the selection
-        const newRange = document.createRange();
-        const textNode = contentRef.current.firstChild || contentRef.current;
-        
-        try {
-          newRange.setStart(textNode, selectionStart);
-          newRange.setEnd(textNode, selectionEnd);
-          
-          selection?.removeAllRanges();
-          selection?.addRange(newRange);
-        } catch (err) {
-          // If setting exact position fails, just focus the element
-          contentRef.current.focus();
-        }
-      }
+      
+      setShouldFocus(true);
     } else if (e.key === "Backspace" && !content && !bullet.children.length) {
       e.preventDefault();
       onDelete(bullet.id);
