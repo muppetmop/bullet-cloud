@@ -26,40 +26,12 @@ const BulletItem: React.FC<BulletItemProps> = ({
   onOutdent,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const [needsFocus, setNeedsFocus] = useState(false);
   const [cursorPosition, setCursorPosition] = useState<number | null>(null);
 
   useEffect(() => {
     if (!contentRef.current) return;
-
-    // Always ensure content is up to date
     contentRef.current.textContent = bullet.content;
-
-    // Handle focus restoration if needed
-    if (needsFocus) {
-      const element = contentRef.current;
-      element.focus();
-
-      if (cursorPosition !== null) {
-        try {
-          const range = document.createRange();
-          const selection = window.getSelection();
-          const textNode = element.firstChild || element;
-          
-          range.setStart(textNode, cursorPosition);
-          range.setEnd(textNode, cursorPosition);
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-          console.log('Focus restored at position:', cursorPosition);
-        } catch (err) {
-          console.error('Failed to restore cursor position:', err);
-        }
-      }
-
-      setNeedsFocus(false);
-      setCursorPosition(null);
-    }
-  }, [bullet.content, needsFocus, cursorPosition]);
+  }, [bullet.content]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     const content = contentRef.current?.textContent || "";
@@ -82,23 +54,52 @@ const BulletItem: React.FC<BulletItemProps> = ({
       }
     } else if (e.key === "Tab") {
       e.preventDefault();
-      
-      // Save cursor position before any updates
       const pos = range?.startOffset || 0;
-      
-      // Update content
       onUpdate(bullet.id, content);
       
-      // Handle indentation
       if (e.shiftKey && onOutdent) {
         onOutdent(bullet.id);
+        setTimeout(() => {
+          const element = document.querySelector(
+            `[data-id="${bullet.id}"] .bullet-content`
+          ) as HTMLElement;
+          if (element) {
+            element.focus();
+            try {
+              const range = document.createRange();
+              const selection = window.getSelection();
+              const textNode = element.firstChild || element;
+              range.setStart(textNode, pos);
+              range.setEnd(textNode, pos);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            } catch (err) {
+              console.error('Failed to restore cursor position:', err);
+            }
+          }
+        }, 0);
       } else if (!e.shiftKey && onIndent) {
         onIndent(bullet.id);
+        setTimeout(() => {
+          const element = document.querySelector(
+            `[data-id="${bullet.id}"] .bullet-content`
+          ) as HTMLElement;
+          if (element) {
+            element.focus();
+            try {
+              const range = document.createRange();
+              const selection = window.getSelection();
+              const textNode = element.firstChild || element;
+              range.setStart(textNode, pos);
+              range.setEnd(textNode, pos);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            } catch (err) {
+              console.error('Failed to restore cursor position:', err);
+            }
+          }
+        }, 0);
       }
-      
-      // Request focus restoration
-      setNeedsFocus(true);
-      setCursorPosition(pos);
     } else if (e.key === "Backspace" && !content && !bullet.children.length) {
       e.preventDefault();
       onDelete(bullet.id);
