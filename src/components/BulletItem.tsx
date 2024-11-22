@@ -35,6 +35,8 @@ const BulletItem: React.FC<BulletItemProps> = ({
 
   const handleKeyDown = (e: KeyboardEvent) => {
     const content = contentRef.current?.textContent || "";
+    const selection = window.getSelection();
+    const range = selection?.getRangeAt(0);
 
     if (e.key === "Enter") {
       e.preventDefault();
@@ -52,9 +54,12 @@ const BulletItem: React.FC<BulletItemProps> = ({
       }
     } else if (e.key === "Tab") {
       e.preventDefault();
-      const selection = window.getSelection();
-      const range = selection?.getRangeAt(0);
       
+      // Store current selection state
+      const selectionStart = range?.startOffset || 0;
+      const selectionEnd = range?.endOffset || 0;
+      
+      // Update content and handle indentation
       onUpdate(bullet.id, content);
       if (e.shiftKey && onOutdent) {
         onOutdent(bullet.id);
@@ -62,16 +67,25 @@ const BulletItem: React.FC<BulletItemProps> = ({
         onIndent(bullet.id);
       }
 
-      // Restore focus and cursor position after the state update
-      setTimeout(() => {
-        if (contentRef.current) {
+      // Immediately try to restore focus and selection
+      if (contentRef.current) {
+        contentRef.current.focus();
+        
+        // Create a new range and set the selection
+        const newRange = document.createRange();
+        const textNode = contentRef.current.firstChild || contentRef.current;
+        
+        try {
+          newRange.setStart(textNode, selectionStart);
+          newRange.setEnd(textNode, selectionEnd);
+          
+          selection?.removeAllRanges();
+          selection?.addRange(newRange);
+        } catch (err) {
+          // If setting exact position fails, just focus the element
           contentRef.current.focus();
-          if (selection && range) {
-            selection.removeAllRanges();
-            selection.addRange(range);
-          }
         }
-      });
+      }
     } else if (e.key === "Backspace" && !content && !bullet.children.length) {
       e.preventDefault();
       onDelete(bullet.id);
