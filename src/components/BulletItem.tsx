@@ -59,7 +59,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
 
       if (savedRange) {
         requestAnimationFrame(() => {
-          const element = document.querySelector(`[data-id="${bullet.id}"] .bullet-content`);
+          const element = document.querySelector(`[data-id="${bullet.id}"] .bullet-content`) as HTMLElement;
           if (element) {
             element.focus();
             restoreSelection(savedRange);
