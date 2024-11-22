@@ -52,17 +52,26 @@ const BulletItem: React.FC<BulletItemProps> = ({
       }
     } else if (e.key === "Tab") {
       e.preventDefault();
+      const selection = window.getSelection();
+      const range = selection?.getRangeAt(0);
+      
       onUpdate(bullet.id, content);
       if (e.shiftKey && onOutdent) {
         onOutdent(bullet.id);
       } else if (!e.shiftKey && onIndent) {
         onIndent(bullet.id);
       }
-      setTimeout(() => {
+
+      // Restore focus and cursor position after the state update
+      requestAnimationFrame(() => {
         if (contentRef.current) {
           contentRef.current.focus();
+          if (selection && range) {
+            selection.removeAllRanges();
+            selection.addRange(range);
+          }
         }
-      }, 0);
+      });
     } else if (e.key === "Backspace" && !content && !bullet.children.length) {
       e.preventDefault();
       onDelete(bullet.id);
