@@ -11,7 +11,7 @@ interface BulletItemProps {
   onOutdent: (id: string) => void;
   onNewBullet: (id: string) => void;
   onCollapse: (id: string) => void;
-  onNavigate: (direction: "up" | "down" | "left" | "right", id: string) => void;
+  onNavigate: (direction: "up" | "down", id: string) => void;
 }
 
 const BulletItem: React.FC<BulletItemProps> = ({
@@ -47,23 +47,11 @@ const BulletItem: React.FC<BulletItemProps> = ({
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       onNavigate("down", bullet.id);
-    } else if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      if (bullet.children.length > 0) {
-        onCollapse(bullet.id);
-      }
-      onNavigate("left", bullet.id);
-    } else if (e.key === "ArrowRight") {
-      e.preventDefault();
-      if (bullet.children.length > 0) {
-        onCollapse(bullet.id);
-      }
-      onNavigate("right", bullet.id);
     }
   };
 
   return (
-    <div className="bullet-item">
+    <div className="bullet-item" data-id={bullet.id}>
       <div className="flex items-start gap-1">
         {bullet.children.length > 0 ? (
           <button

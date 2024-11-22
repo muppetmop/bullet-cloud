@@ -16,15 +16,21 @@ const TaskManager = () => {
       if (bullets[i].id === id) {
         return [bullets[i], parent || bullets];
       }
-      const [found, foundParent] = findBulletAndParent(id, bullets[i].children, bullets[i].children);
-      if (found) return [found, foundParent];
+      if (!bullets[i].isCollapsed) {
+        const [found, foundParent] = findBulletAndParent(id, bullets[i].children, bullets[i].children);
+        if (found) return [found, foundParent];
+      }
     }
     return [null, null];
   };
 
-  const getAllBullets = (bullets: BulletPoint[]): BulletPoint[] => {
+  const getAllVisibleBullets = (bullets: BulletPoint[]): BulletPoint[] => {
     return bullets.reduce((acc: BulletPoint[], bullet) => {
-      return [...acc, bullet, ...getAllBullets(bullet.isCollapsed ? [] : bullet.children)];
+      return [
+        ...acc,
+        bullet,
+        ...(bullet.isCollapsed ? [] : getAllVisibleBullets(bullet.children)),
+      ];
     }, []);
   };
 
@@ -39,7 +45,7 @@ const TaskManager = () => {
 
     // Focus the new bullet after render
     setTimeout(() => {
-      const newBulletElement = document.querySelector(`[data-id="${newBullet.id}"]`) as HTMLElement;
+      const newBulletElement = document.querySelector(`[data-id="${newBullet.id}"] .bullet-content`) as HTMLElement;
       if (newBulletElement) {
         newBulletElement.focus();
       }
@@ -134,33 +140,29 @@ const TaskManager = () => {
     setBullets(toggleCollapseRecursive(bullets));
   };
 
-  const handleNavigate = (direction: "up" | "down" | "left" | "right", currentId: string) => {
-    const allBullets = getAllBullets(bullets);
-    const currentIndex = allBullets.findIndex((b) => b.id === currentId);
+  const handleNavigate = (direction: "up" | "down", currentId: string) => {
+    const visibleBullets = getAllVisibleBullets(bullets);
+    const currentIndex = visibleBullets.findIndex((b) => b.id === currentId);
     
     let nextBullet: BulletPoint | undefined;
     
     if (direction === "up") {
-      nextBullet = allBullets[currentIndex - 1];
+      nextBullet = visibleBullets[currentIndex - 1];
     } else if (direction === "down") {
-      nextBullet = allBullets[currentIndex + 1];
-    } else if (direction === "left") {
-      const [current, parent] = findBulletAndParent(currentId, bullets);
-      if (parent && parent !== bullets) {
-        const parentBullet = allBullets.find((b) => b.children.includes(current!));
-        nextBullet = parentBullet;
-      }
-    } else if (direction === "right") {
-      const [current] = findBulletAndParent(currentId, bullets);
-      if (current && current.children.length > 0 && !current.isCollapsed) {
-        nextBullet = current.children[0];
-      }
+      nextBullet = visibleBullets[currentIndex + 1];
     }
 
     if (nextBullet) {
-      const nextElement = document.querySelector(`[data-id="${nextBullet.id}"]`) as HTMLElement;
+      const nextElement = document.querySelector(`[data-id="${nextBullet.id}"] .bullet-content`) as HTMLElement;
       if (nextElement) {
         nextElement.focus();
+        // Place cursor at the end of the content
+        const range = document.createRange();
+        const selection = window.getSelection();
+        range.selectNodeContents(nextElement);
+        range.collapse(false);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
       }
     }
   };
