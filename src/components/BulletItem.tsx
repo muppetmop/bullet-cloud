@@ -26,45 +26,40 @@ const BulletItem: React.FC<BulletItemProps> = ({
   onOutdent,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const [shouldRestoreFocus, setShouldRestoreFocus] = useState(false);
-  const [savedSelection, setSavedSelection] = useState<{start: number, end: number} | null>(null);
+  const [needsFocus, setNeedsFocus] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState<number | null>(null);
 
-  // Single useEffect to handle both content and focus
   useEffect(() => {
-    // First ensure content is up to date
-    if (contentRef.current) {
-      contentRef.current.textContent = bullet.content;
-    }
+    if (!contentRef.current) return;
 
-    // Then handle focus restoration if needed
-    if (shouldRestoreFocus && contentRef.current && savedSelection) {
+    // Always ensure content is up to date
+    contentRef.current.textContent = bullet.content;
+
+    // Handle focus restoration if needed
+    if (needsFocus) {
       const element = contentRef.current;
-      
-      // Use requestAnimationFrame to ensure DOM is ready
-      requestAnimationFrame(() => {
-        element.focus();
-        
-        const textNode = element.firstChild || element;
-        const selection = window.getSelection();
-        const range = document.createRange();
+      element.focus();
 
+      if (cursorPosition !== null) {
         try {
-          range.setStart(textNode, savedSelection.start);
-          range.setEnd(textNode, savedSelection.end);
+          const range = document.createRange();
+          const selection = window.getSelection();
+          const textNode = element.firstChild || element;
+          
+          range.setStart(textNode, cursorPosition);
+          range.setEnd(textNode, cursorPosition);
           selection?.removeAllRanges();
           selection?.addRange(range);
-          console.log('Focus restored with selection:', savedSelection);
+          console.log('Focus restored at position:', cursorPosition);
         } catch (err) {
-          console.error('Error restoring selection, falling back to simple focus');
-          element.focus();
+          console.error('Failed to restore cursor position:', err);
         }
+      }
 
-        // Clear the focus restoration flags only after attempt
-        setShouldRestoreFocus(false);
-        setSavedSelection(null);
-      });
+      setNeedsFocus(false);
+      setCursorPosition(null);
     }
-  }, [bullet.content, shouldRestoreFocus, savedSelection]);
+  }, [bullet.content, needsFocus, cursorPosition]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     const content = contentRef.current?.textContent || "";
@@ -88,11 +83,8 @@ const BulletItem: React.FC<BulletItemProps> = ({
     } else if (e.key === "Tab") {
       e.preventDefault();
       
-      // Save current selection before any updates
-      const currentSelection = {
-        start: range?.startOffset || 0,
-        end: range?.endOffset || 0
-      };
+      // Save cursor position before any updates
+      const pos = range?.startOffset || 0;
       
       // Update content
       onUpdate(bullet.id, content);
@@ -104,9 +96,9 @@ const BulletItem: React.FC<BulletItemProps> = ({
         onIndent(bullet.id);
       }
       
-      // Set focus restoration data
-      setSavedSelection(currentSelection);
-      setShouldRestoreFocus(true);
+      // Request focus restoration
+      setNeedsFocus(true);
+      setCursorPosition(pos);
     } else if (e.key === "Backspace" && !content && !bullet.children.length) {
       e.preventDefault();
       onDelete(bullet.id);
