@@ -225,7 +225,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
           suppressContentEditableWarning
         />
         {isDragging && (
-          <GripVertical className="w-6 h-6 text-gray-400 ml-2" /> {/* Increased from w-4 h-4 to w-6 h-6 */}
+          <GripVertical className="w-6 h-6 text-gray-400 ml-2" />
         )}
       </div>
       {!bullet.isCollapsed && bullet.children.length > 0 && (
