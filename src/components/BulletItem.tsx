@@ -26,52 +26,45 @@ const BulletItem: React.FC<BulletItemProps> = ({
   onOutdent,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const [shouldFocus, setShouldFocus] = useState(false);
-  const [selectionState, setSelectionState] = useState<{start: number, end: number} | null>(null);
+  const [shouldRestoreFocus, setShouldRestoreFocus] = useState(false);
+  const [savedSelection, setSavedSelection] = useState<{start: number, end: number} | null>(null);
 
-  // First useEffect to update content
+  // Single useEffect to handle both content and focus
   useEffect(() => {
-    console.log('Content update effect running', { content: bullet.content });
+    // First ensure content is up to date
     if (contentRef.current) {
       contentRef.current.textContent = bullet.content;
     }
-  }, [bullet.content]);
 
-  // Second useEffect to handle focus and selection
-  useEffect(() => {
-    console.log('Focus effect running', { shouldFocus, selectionState, content: bullet.content });
-    if (shouldFocus && contentRef.current && selectionState) {
-      const focusAndSelect = () => {
-        if (!contentRef.current) return;
+    // Then handle focus restoration if needed
+    if (shouldRestoreFocus && contentRef.current && savedSelection) {
+      const element = contentRef.current;
+      
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        element.focus();
         
-        console.log('Attempting to restore focus and selection');
-        contentRef.current.focus();
-        
-        const textNode = contentRef.current.firstChild || contentRef.current;
-        const range = document.createRange();
+        const textNode = element.firstChild || element;
         const selection = window.getSelection();
+        const range = document.createRange();
 
         try {
-          range.setStart(textNode, selectionState.start);
-          range.setEnd(textNode, selectionState.end);
+          range.setStart(textNode, savedSelection.start);
+          range.setEnd(textNode, savedSelection.end);
           selection?.removeAllRanges();
           selection?.addRange(range);
-          console.log('Focus and selection restored successfully');
+          console.log('Focus restored with selection:', savedSelection);
         } catch (err) {
-          console.error('Error restoring selection:', err);
-          contentRef.current.focus();
+          console.error('Error restoring selection, falling back to simple focus');
+          element.focus();
         }
-      };
 
-      // Execute focus restoration after a brief delay
-      requestAnimationFrame(() => {
-        focusAndSelect();
-        // Only reset states after successful focus
-        setShouldFocus(false);
-        setSelectionState(null);
+        // Clear the focus restoration flags only after attempt
+        setShouldRestoreFocus(false);
+        setSavedSelection(null);
       });
     }
-  }, [shouldFocus, selectionState, bullet.content]);
+  }, [bullet.content, shouldRestoreFocus, savedSelection]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     const content = contentRef.current?.textContent || "";
@@ -94,27 +87,26 @@ const BulletItem: React.FC<BulletItemProps> = ({
       }
     } else if (e.key === "Tab") {
       e.preventDefault();
-      console.log('Tab pressed, saving selection state');
       
-      // Save selection state before any content updates
-      const newSelectionState = {
+      // Save current selection before any updates
+      const currentSelection = {
         start: range?.startOffset || 0,
         end: range?.endOffset || 0
       };
       
-      // Update content first
+      // Update content
       onUpdate(bullet.id, content);
       
-      // Then handle indentation
+      // Handle indentation
       if (e.shiftKey && onOutdent) {
         onOutdent(bullet.id);
       } else if (!e.shiftKey && onIndent) {
         onIndent(bullet.id);
       }
       
-      // Set states after content update and indentation
-      setSelectionState(newSelectionState);
-      setShouldFocus(true);
+      // Set focus restoration data
+      setSavedSelection(currentSelection);
+      setShouldRestoreFocus(true);
     } else if (e.key === "Backspace" && !content && !bullet.children.length) {
       e.preventDefault();
       onDelete(bullet.id);
