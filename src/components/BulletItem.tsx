@@ -30,9 +30,11 @@ const BulletItem: React.FC<BulletItemProps> = ({
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
+      onUpdate(bullet.id, contentRef.current?.textContent || "");
       onNewBullet(bullet.id);
     } else if (e.key === "Tab") {
       e.preventDefault();
+      onUpdate(bullet.id, contentRef.current?.textContent || "");
       if (e.shiftKey) {
         onOutdent(bullet.id);
       } else {
