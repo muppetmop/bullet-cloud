@@ -48,10 +48,20 @@ export const reorderBullets = (
   const draggedIndex = draggedParent.indexOf(draggedBullet);
   draggedParent.splice(draggedIndex, 1);
 
-  // Insert dragged bullet at new position
+  // Calculate target position
   const targetIndex = targetParent.indexOf(targetBullet);
   const insertIndex = position === 'before' ? targetIndex : targetIndex + 1;
-  targetParent.splice(insertIndex, 0, draggedBullet);
+
+  // If dropping after and target has children and is not collapsed, 
+  // insert as first child instead
+  if (position === 'after' && 
+      targetBullet.children.length > 0 && 
+      !targetBullet.isCollapsed) {
+    targetBullet.children.unshift(draggedBullet);
+  } else {
+    // Insert at the calculated position
+    targetParent.splice(insertIndex, 0, draggedBullet);
+  }
 
   return [...bullets];
 };
