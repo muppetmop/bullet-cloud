@@ -52,6 +52,10 @@ export const useBulletManager = () => {
   };
 
   const deleteBullet = (id: string) => {
+    const visibleBullets = getAllVisibleBullets(bullets);
+    const currentIndex = visibleBullets.findIndex(b => b.id === id);
+    const previousBullet = visibleBullets[currentIndex - 1];
+
     const deleteBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.filter((bullet) => {
         if (bullet.id === id) return false;
@@ -61,6 +65,25 @@ export const useBulletManager = () => {
     };
 
     setBullets(deleteBulletRecursive(bullets));
+
+    // Focus on the previous bullet after deletion
+    if (previousBullet) {
+      setTimeout(() => {
+        const previousElement = document.querySelector(
+          `[data-id="${previousBullet.id}"] .bullet-content`
+        ) as HTMLElement;
+        if (previousElement) {
+          previousElement.focus();
+          // Set cursor at the end of the content
+          const range = document.createRange();
+          const selection = window.getSelection();
+          range.selectNodeContents(previousElement);
+          range.collapse(false);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
+      }, 0);
+    }
   };
 
   const toggleCollapse = (id: string) => {
