@@ -79,9 +79,42 @@ const BulletContent: React.FC<BulletContentProps> = ({
           }
         }
       }, 0);
-    } else if (e.key === "Backspace" && !content && !bullet.children.length) {
-      e.preventDefault();
-      onDelete(bullet.id);
+    } else if (e.key === "Backspace") {
+      if (pos === 0) {
+        e.preventDefault();
+        const remainingContent = content;
+        const visibleBullets = document.querySelectorAll('.bullet-content');
+        const currentIndex = Array.from(visibleBullets).findIndex(
+          el => el === contentRef.current
+        );
+        
+        if (currentIndex > 0) {
+          const previousElement = visibleBullets[currentIndex - 1] as HTMLElement;
+          const previousContent = previousElement.textContent || '';
+          
+          // Update previous bullet with combined content
+          const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
+          if (previousBulletId) {
+            onUpdate(previousBulletId, previousContent + remainingContent);
+            onDelete(bullet.id);
+            
+            // Set cursor position at the join point
+            setTimeout(() => {
+              previousElement.focus();
+              const range = document.createRange();
+              const selection = window.getSelection();
+              const textNode = previousElement.firstChild || previousElement;
+              const position = previousContent.length;
+              range.setStart(textNode, position);
+              range.setEnd(textNode, position);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            }, 0);
+          }
+        } else if (!content) {
+          onDelete(bullet.id);
+        }
+      }
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       onUpdate(bullet.id, content);
