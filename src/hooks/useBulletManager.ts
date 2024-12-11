@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { BulletPoint } from "@/types/bullet";
-import { findBulletAndParent, getAllVisibleBullets, reorderBullets } from "@/utils/bulletOperations";
+import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
 
 export const useBulletManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([
@@ -128,11 +128,6 @@ export const useBulletManager = () => {
     setBullets([...bullets]);
   };
 
-  const handleReorder = (draggedId: string, targetId: string, position: 'before' | 'after') => {
-    const newBullets = reorderBullets(bullets, draggedId, targetId, position);
-    setBullets(newBullets);
-  };
-
   return {
     bullets,
     findBulletAndParent,
@@ -144,6 +139,5 @@ export const useBulletManager = () => {
     toggleCollapse,
     indentBullet,
     outdentBullet,
-    handleReorder,
   };
 };
