@@ -57,19 +57,3 @@
 .bullet-children {
   @apply pl-6;
 }
-
-.drag-over-top {
-  border-top: 2px solid theme('colors.blue.500');
-}
-
-.drag-over-bottom {
-  border-bottom: 2px solid theme('colors.blue.500');
-}
-
-.bullet-item[draggable=true] {
-  @apply cursor-grab bg-accent/20;
-}
-
-.bullet-item[draggable=true]:active {
-  @apply cursor-grabbing;
-}

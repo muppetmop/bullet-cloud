@@ -1,10 +1,9 @@
 import React, { useRef, KeyboardEvent, useEffect } from "react";
 import { BulletPoint } from "@/types/bullet";
-import { ChevronRight, ChevronDown, GripVertical } from "lucide-react";
+import { ChevronRight, ChevronDown } from "lucide-react";
 
 interface BulletContentProps {
   bullet: BulletPoint;
-  isDragging: boolean;
   onUpdate: (id: string, content: string) => void;
   onDelete: (id: string) => void;
   onNewBullet: (id: string) => string | null;
@@ -16,7 +15,6 @@ interface BulletContentProps {
 
 const BulletContent: React.FC<BulletContentProps> = ({
   bullet,
-  isDragging,
   onUpdate,
   onDelete,
   onNewBullet,
@@ -126,9 +124,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
         onKeyDown={handleKeyDown}
         suppressContentEditableWarning
       />
-      {isDragging && (
-        <GripVertical className="w-6 h-6 text-gray-400 ml-2" />
-      )}
     </div>
   );
 };
