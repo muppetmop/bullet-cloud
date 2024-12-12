@@ -94,14 +94,12 @@ export const handleBackspaceKey = (
       
       // Only proceed if we found the previous bullet's ID
       if (previousBulletId) {
-        // If there's content in the current bullet, merge it with the previous bullet
-        if (content) {
-          console.log('Merging content:', { previousContent, content });
-          onUpdate(previousBulletId, previousContent + content);
-        }
+        // Merge content with the previous bullet
+        onUpdate(previousBulletId, previousContent + content);
         
         // Delete the current bullet only if it's not the last remaining bullet
-        if (visibleBullets.length > 1) {
+        // and we're not at the root level
+        if (visibleBullets.length > 1 && bullet.children.length === 0) {
           onDelete(bullet.id);
           
           // Set focus and cursor position after the DOM updates
