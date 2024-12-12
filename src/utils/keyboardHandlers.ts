@@ -111,14 +111,23 @@ export const handleBackspaceKey = (
             });
           }
         } else {
-          // If current bullet has content, merge with previous bullet and then delete current bullet
+          // If current bullet has content, merge with previous bullet
           e.preventDefault();
+          
+          // First update the previous bullet with merged content
           onUpdate(previousBulletId, previousContent + content);
           
-          // Delete the current bullet after merging content
-          if (bullet.children.length === 0) {
-            onDelete(bullet.id);
-          }
+          // Wait for the content to be merged before deleting
+          setTimeout(() => {
+            // Verify the content was merged successfully
+            const updatedPreviousContent = previousElement.textContent || '';
+            if (updatedPreviousContent === previousContent + content) {
+              // Only delete if content was merged successfully
+              if (bullet.children.length === 0) {
+                onDelete(bullet.id);
+              }
+            }
+          }, 50);
           
           requestAnimationFrame(() => {
             previousElement.focus();
