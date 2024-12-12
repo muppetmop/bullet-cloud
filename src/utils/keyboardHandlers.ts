@@ -10,6 +10,7 @@ export const handleEnterKey = (
   e.preventDefault();
   
   console.log('Enter key pressed - Initial content:', content);
+  console.log('Current bullet ID:', bullet.id);
   
   // Get current selection and cursor position
   const selection = window.getSelection();
@@ -23,9 +24,10 @@ export const handleEnterKey = (
   const afterCursor = content.slice(pos);
   
   console.log('Content split:', { beforeCursor, afterCursor });
+  console.log('Updating bullet with ID:', bullet.id);
 
   setTimeout(() => {
-    console.log('Updating original bullet with content:', beforeCursor);
+    console.log('Updating original bullet ID:', bullet.id, 'with content:', beforeCursor);
     onUpdate(bullet.id, beforeCursor);
     
     console.log('Creating new bullet after:', bullet.id);
