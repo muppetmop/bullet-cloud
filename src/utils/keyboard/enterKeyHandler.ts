@@ -9,38 +9,60 @@ export const handleEnterKey = (
 ) => {
   e.preventDefault();
   
-  // First update current bullet with hardcoded content
-  console.log('Updating original bullet:', bullet.id, 'with content: god damn it');
-  onUpdate(bullet.id, "god damn it");
+  // Get cursor position
+  const target = e.target as HTMLDivElement;
+  const cursorPosition = window.getSelection()?.getRangeAt(0).startOffset || 0;
   
-  // Create new bullet and get its ID
-  const newBulletId = onNewBullet(bullet.id);
+  // Create temporary DOM element to verify content splitting
+  const tempDiv = document.createElement('div');
+  tempDiv.textContent = content;
   
-  if (newBulletId !== null) {
-    console.log('Updating new bullet:', newBulletId, 'with content:', content);
-    // Update new bullet with content after cursor
-    onUpdate(newBulletId, content);
+  // Split content at cursor position
+  const beforeCursor = content.substring(0, cursorPosition);
+  const afterCursor = content.substring(cursorPosition);
+  
+  // Verify content splitting in temp element
+  const verifyContentSplit = () => {
+    tempDiv.textContent = beforeCursor;
+    return tempDiv.textContent === beforeCursor;
+  };
+  
+  if (verifyContentSplit()) {
+    // First update the original bullet
+    console.log('Updating original bullet:', bullet.id, 'with content: god damn it');
+    onUpdate(bullet.id, "god damn it");
     
-    // Focus on the new bullet after content update
-    requestAnimationFrame(() => {
-      const newElement = document.querySelector(
-        `[data-id="${newBulletId}"] .bullet-content`
-      ) as HTMLElement;
+    // Create new bullet and get its ID
+    const newBulletId = onNewBullet(bullet.id);
+    
+    if (newBulletId !== null) {
+      console.log('Updating new bullet:', newBulletId, 'with content:', afterCursor);
+      // Update new bullet with content after cursor
+      onUpdate(newBulletId, afterCursor);
       
-      if (newElement) {
-        newElement.focus();
-        try {
-          const textNode = newElement.firstChild || newElement.appendChild(document.createTextNode(content));
-          const range = document.createRange();
-          const selection = window.getSelection();
-          range.setStart(textNode, 0);
-          range.collapse(true);
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-        } catch (err) {
-          console.error('Failed to set cursor position:', err);
+      // Focus on the new bullet after content update
+      requestAnimationFrame(() => {
+        const newElement = document.querySelector(
+          `[data-id="${newBulletId}"] .bullet-content`
+        ) as HTMLElement;
+        
+        if (newElement) {
+          newElement.focus();
+          try {
+            const range = document.createRange();
+            const selection = window.getSelection();
+            const textNode = newElement.firstChild || newElement;
+            range.setStart(textNode, 0);
+            range.collapse(true);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          } catch (err) {
+            console.error('Failed to set cursor position:', err);
+          }
         }
-      }
-    });
+      });
+    }
+  } else {
+    console.error('Failed to verify content split');
   }
 };
