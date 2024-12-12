@@ -43,29 +43,31 @@ export const handleEnterKey = (
     const contentBeforeCursor = content.slice(0, cursorPosition);
     const contentAfterCursor = content.slice(cursorPosition);
     
-    // Update current bullet with content before cursor
+    // First update current bullet with content before cursor
+    console.log('Updating original bullet:', bullet.id, 'with content:', contentBeforeCursor);
     onUpdate(bullet.id, contentBeforeCursor);
     
     // Create new bullet and get its ID
     const newBulletId = onNewBullet(bullet.id);
     
     if (newBulletId !== null) {
+      console.log('Updating new bullet:', newBulletId, 'with content:', contentAfterCursor);
       // Update new bullet with content after cursor
+      onUpdate(newBulletId, contentAfterCursor);
+      
+      // Focus on the new bullet after content update
       requestAnimationFrame(() => {
-        onUpdate(newBulletId, contentAfterCursor);
-        
-        // Focus on the current bullet after content update
-        const currentElement = document.querySelector(
-          `[data-id="${bullet.id}"] .bullet-content`
+        const newElement = document.querySelector(
+          `[data-id="${newBulletId}"] .bullet-content`
         ) as HTMLElement;
         
-        if (currentElement) {
-          currentElement.focus();
+        if (newElement) {
+          newElement.focus();
           try {
-            const textNode = currentElement.firstChild || currentElement.appendChild(document.createTextNode(contentBeforeCursor));
+            const textNode = newElement.firstChild || newElement.appendChild(document.createTextNode(contentAfterCursor));
             const range = document.createRange();
             const selection = window.getSelection();
-            range.setStart(textNode, contentBeforeCursor.length);
+            range.setStart(textNode, 0);
             range.collapse(true);
             selection?.removeAllRanges();
             selection?.addRange(range);
