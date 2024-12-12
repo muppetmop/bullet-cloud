@@ -13,28 +13,41 @@ export const handleEnterKey = (
   const range = selection?.getRangeAt(0);
   const cursorPosition = range?.startOffset || 0;
   
-  // If cursor is at the end, create empty bullet
+  // Case 1: Cursor at the end, create empty bullet
   if (cursorPosition === content.length) {
     onUpdate(bullet.id, content);
     const newBulletId = onNewBullet(bullet.id);
     
     if (newBulletId !== null) {
-      // Focus will be handled by the existing setTimeout in TaskManager
-      return;
+      setTimeout(() => {
+        const newElement = document.querySelector(
+          `[data-id="${newBulletId}"] .bullet-content`
+        ) as HTMLElement;
+        if (newElement) {
+          newElement.focus();
+          // Set cursor at the start of the new bullet
+          const range = document.createRange();
+          const selection = window.getSelection();
+          range.setStart(newElement, 0);
+          range.collapse(true);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
+      }, 0);
     }
   } else {
-    // Split content at cursor position
-    const contentBeforeCursor = content.slice(0, cursorPosition);
+    // Case 2: Split content at cursor position
+    // First, save the content after cursor
     const contentAfterCursor = content.slice(cursorPosition);
     
-    // Update current bullet with content before cursor
-    onUpdate(bullet.id, contentBeforeCursor);
+    // Update current bullet with content before cursor only
+    onUpdate(bullet.id, content.slice(0, cursorPosition));
     
     // Create new bullet and get its ID
     const newBulletId = onNewBullet(bullet.id);
     
     if (newBulletId !== null) {
-      // Update the new bullet with content after cursor
+      // Update the new bullet with saved content after cursor
       onUpdate(newBulletId, contentAfterCursor);
       
       setTimeout(() => {
