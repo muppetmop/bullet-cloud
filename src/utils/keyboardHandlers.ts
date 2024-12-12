@@ -9,7 +9,6 @@ export const handleEnterKey = (
 ) => {
   e.preventDefault();
   
-  // Get current selection and cursor position
   const selection = window.getSelection();
   const range = selection?.getRangeAt(0);
   const pos = range?.startOffset || 0;

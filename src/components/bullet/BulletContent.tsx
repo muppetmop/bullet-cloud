@@ -31,16 +31,41 @@ const BulletContent: React.FC<BulletContentProps> = ({
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Update content when bullet changes
   useEffect(() => {
     if (!contentRef.current) return;
     
-    console.log('Updating content ref:', {
-      bulletId: bullet.id,
-      content: bullet.content
-    });
-    
-    contentRef.current.textContent = bullet.content;
+    // Only update if content has changed
+    if (contentRef.current.textContent !== bullet.content) {
+      console.log('Updating content ref:', {
+        bulletId: bullet.id,
+        content: bullet.content,
+        currentContent: contentRef.current.textContent
+      });
+      
+      contentRef.current.textContent = bullet.content;
+      
+      // Preserve selection if element is focused
+      if (document.activeElement === contentRef.current) {
+        const selection = window.getSelection();
+        const range = selection?.getRangeAt(0);
+        if (range) {
+          const pos = range.startOffset;
+          requestAnimationFrame(() => {
+            try {
+              const newRange = document.createRange();
+              const textNode = contentRef.current?.firstChild || contentRef.current;
+              const newPos = Math.min(pos, bullet.content.length);
+              newRange.setStart(textNode, newPos);
+              newRange.setEnd(textNode, newPos);
+              selection?.removeAllRanges();
+              selection?.addRange(newRange);
+            } catch (err) {
+              console.error('Failed to restore cursor position:', err);
+            }
+          });
+        }
+      }
+    }
   }, [bullet.id, bullet.content]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -89,7 +114,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
       )}
       <div
         ref={contentRef}
-        className="bullet-content py-1"
+        className="bullet-content py-1 min-w-[1ch] outline-none"
         contentEditable
         onInput={handleInput}
         onKeyDown={handleKeyDown}
