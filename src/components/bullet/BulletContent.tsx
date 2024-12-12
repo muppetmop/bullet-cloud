@@ -1,6 +1,12 @@
 import React, { useRef, KeyboardEvent, useEffect } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { ChevronRight, ChevronDown } from "lucide-react";
+import {
+  handleEnterKey,
+  handleTabKey,
+  handleBackspaceKey,
+  handleArrowKeys,
+} from "@/utils/keyboardHandlers";
 
 interface BulletContentProps {
   bullet: BulletPoint;
@@ -37,92 +43,13 @@ const BulletContent: React.FC<BulletContentProps> = ({
     const pos = range?.startOffset || 0;
 
     if (e.key === "Enter") {
-      e.preventDefault();
-      onUpdate(bullet.id, content);
-      const newBulletId = onNewBullet(bullet.id);
-      if (newBulletId !== null) {
-        setTimeout(() => {
-          const newElement = document.querySelector(
-            `[data-id="${newBulletId}"] .bullet-content`
-          ) as HTMLElement;
-          if (newElement) {
-            newElement.focus();
-          }
-        }, 0);
-      }
+      handleEnterKey(e, content, bullet, onUpdate, onNewBullet);
     } else if (e.key === "Tab") {
-      e.preventDefault();
-      onUpdate(bullet.id, content);
-      
-      if (e.shiftKey && onOutdent) {
-        onOutdent(bullet.id);
-      } else if (!e.shiftKey && onIndent) {
-        onIndent(bullet.id);
-      }
-
-      setTimeout(() => {
-        const element = document.querySelector(
-          `[data-id="${bullet.id}"] .bullet-content`
-        ) as HTMLElement;
-        if (element) {
-          element.focus();
-          try {
-            const range = document.createRange();
-            const selection = window.getSelection();
-            const textNode = element.firstChild || element;
-            range.setStart(textNode, pos);
-            range.setEnd(textNode, pos);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-          } catch (err) {
-            console.error('Failed to restore cursor position:', err);
-          }
-        }
-      }, 0);
+      handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
     } else if (e.key === "Backspace") {
-      if (pos === 0) {
-        e.preventDefault();
-        const remainingContent = content;
-        const visibleBullets = document.querySelectorAll('.bullet-content');
-        const currentIndex = Array.from(visibleBullets).findIndex(
-          el => el === contentRef.current
-        );
-        
-        if (currentIndex > 0) {
-          const previousElement = visibleBullets[currentIndex - 1] as HTMLElement;
-          const previousContent = previousElement.textContent || '';
-          
-          // Update previous bullet with combined content
-          const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
-          if (previousBulletId) {
-            onUpdate(previousBulletId, previousContent + remainingContent);
-            onDelete(bullet.id);
-            
-            // Set cursor position at the join point
-            setTimeout(() => {
-              previousElement.focus();
-              const range = document.createRange();
-              const selection = window.getSelection();
-              const textNode = previousElement.firstChild || previousElement;
-              const position = previousContent.length;
-              range.setStart(textNode, position);
-              range.setEnd(textNode, position);
-              selection?.removeAllRanges();
-              selection?.addRange(range);
-            }, 0);
-          }
-        } else if (!content) {
-          onDelete(bullet.id);
-        }
-      }
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      onUpdate(bullet.id, content);
-      onNavigate("up", bullet.id);
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      onUpdate(bullet.id, content);
-      onNavigate("down", bullet.id);
+      handleBackspaceKey(e, content, bullet, pos, contentRef, onUpdate, onDelete);
+    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
     }
   };
 
