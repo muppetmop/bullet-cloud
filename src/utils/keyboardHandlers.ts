@@ -18,44 +18,27 @@ export const handleEnterKey = (
   const beforeCursor = content.slice(0, pos);
   const afterCursor = content.slice(pos);
 
-  // Step 1: Update original bullet and verify
   setTimeout(() => {
     onUpdate(bullet.id, beforeCursor);
+    const newBulletId = onNewBullet(bullet.id);
     
-    // Verify the update was successful by checking DOM
-    const bulletElement = document.querySelector(
-      `[data-id="${bullet.id}"] .bullet-content`
-    ) as HTMLElement;
-    
-    if (bulletElement?.textContent?.trim() === beforeCursor.trim()) {
-      // Step 2: Create new bullet only if first update was successful
-      const newBulletId = onNewBullet(bullet.id);
-      
-      if (newBulletId !== null) {
-        // Set focus to new bullet
-        setTimeout(() => {
-          const newElement = document.querySelector(
-            `[data-id="${newBulletId}"] .bullet-content`
-          ) as HTMLElement;
-          if (newElement) {
-            newElement.focus();
-            // Set the content of the new bullet
-            onUpdate(newBulletId, afterCursor);
-            
-            // Set cursor position at start of new bullet
-            const range = document.createRange();
-            const selection = window.getSelection();
-            range.setStart(newElement, 0);
-            range.collapse(true);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-          }
-        }, 0);
-      }
-    } else {
-      // If update failed, keep original content
-      console.error("Failed to update original bullet content");
-      onUpdate(bullet.id, content);
+    if (newBulletId !== null) {
+      setTimeout(() => {
+        const newElement = document.querySelector(
+          `[data-id="${newBulletId}"] .bullet-content`
+        ) as HTMLElement;
+        if (newElement) {
+          newElement.focus();
+          onUpdate(newBulletId, afterCursor);
+          
+          const range = document.createRange();
+          const selection = window.getSelection();
+          range.setStart(newElement, 0);
+          range.collapse(true);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
+      }, 0);
     }
   }, 0);
 };
