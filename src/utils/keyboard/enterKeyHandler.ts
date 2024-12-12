@@ -15,15 +15,15 @@ export const handleEnterKey = (
   
   // Create temporary DOM element to verify content splitting
   const tempDiv = document.createElement('div');
-  tempDiv.textContent = content;
+  tempDiv.innerHTML = content.replace(/\n/g, '<br>');
   
-  // Split content at cursor position
+  // Split content at cursor position, preserving line breaks
   const beforeCursor = content.substring(0, cursorPosition);
   const afterCursor = content.substring(cursorPosition);
   
   // Verify content splitting in temp element
   const verifyContentSplit = () => {
-    tempDiv.textContent = beforeCursor;
+    tempDiv.innerHTML = beforeCursor.replace(/\n/g, '<br>');
     return tempDiv.textContent === beforeCursor;
   };
   
