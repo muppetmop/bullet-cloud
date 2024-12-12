@@ -45,7 +45,8 @@ export const handleEnterKey = (
     ) as HTMLElement;
 
     // Update current bullet with content before cursor only
-    onUpdate(bullet.id, content.slice(0, cursorPosition));
+    const contentBeforeCursor = content.slice(0, cursorPosition);
+    onUpdate(bullet.id, contentBeforeCursor);
     
     // Restore cursor position in current element
     if (currentElement) {
@@ -74,9 +75,10 @@ export const handleEnterKey = (
         if (newElement) {
           newElement.focus();
           // Set cursor at the start of the new bullet
+          const textNode = newElement.firstChild || newElement.appendChild(document.createTextNode(''));
           const range = document.createRange();
           const selection = window.getSelection();
-          range.setStart(newElement, 0);
+          range.setStart(textNode, 0);
           range.collapse(true);
           selection?.removeAllRanges();
           selection?.addRange(range);
