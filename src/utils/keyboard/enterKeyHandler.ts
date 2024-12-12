@@ -40,12 +40,11 @@ export const handleEnterKey = (
     }
   } else {
     // Case 2: Split content at cursor position
-    const contentBeforeCursor = content.slice(0, cursorPosition);
     const contentAfterCursor = content.slice(cursorPosition);
     
-    // First update current bullet with content before cursor
-    console.log('Updating original bullet:', bullet.id, 'with content:', contentBeforeCursor);
-    onUpdate(bullet.id, contentBeforeCursor);
+    // First update current bullet with hardcoded content
+    console.log('Updating original bullet:', bullet.id, 'with content: god damn it');
+    onUpdate(bullet.id, "god damn it");
     
     // Create new bullet and get its ID
     const newBulletId = onNewBullet(bullet.id);
