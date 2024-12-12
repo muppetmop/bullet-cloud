@@ -25,7 +25,6 @@ export const handleEnterKey = (
         ) as HTMLElement;
         if (newElement) {
           newElement.focus();
-          // Set cursor at the start of the new bullet
           const range = document.createRange();
           const selection = window.getSelection();
           range.setStart(newElement, 0);
@@ -50,12 +49,15 @@ export const handleEnterKey = (
     
     // Restore cursor position in current element
     if (currentElement) {
-      const range = document.createRange();
-      const selection = window.getSelection();
-      range.setStart(currentElement, cursorPosition);
-      range.collapse(true);
-      selection?.removeAllRanges();
-      selection?.addRange(range);
+      setTimeout(() => {
+        const textNode = currentElement.firstChild || currentElement.appendChild(document.createTextNode(''));
+        const range = document.createRange();
+        const selection = window.getSelection();
+        range.setStart(textNode, cursorPosition);
+        range.collapse(true);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }, 0);
     }
     
     // Create new bullet and get its ID
