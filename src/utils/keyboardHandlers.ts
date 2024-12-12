@@ -25,56 +25,6 @@ export const handleEnterKey = (
         ) as HTMLElement;
         if (newElement) {
           newElement.focus();
-          const range = document.createRange();
-          const selection = window.getSelection();
-          range.setStart(newElement, 0);
-          range.collapse(true);
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-        }
-      }, 0);
-    }
-  } else {
-    // Case 2: Split content at cursor position
-    // First, save the content after cursor
-    const contentAfterCursor = content.slice(cursorPosition);
-    
-    // Get the current element before updating content
-    const currentElement = document.querySelector(
-      `[data-id="${bullet.id}"] .bullet-content`
-    ) as HTMLElement;
-
-    // Update current bullet with content before cursor only
-    const contentBeforeCursor = content.slice(0, cursorPosition);
-    onUpdate(bullet.id, contentBeforeCursor);
-    
-    // Restore cursor position in current element
-    if (currentElement) {
-      setTimeout(() => {
-        const textNode = currentElement.firstChild || currentElement.appendChild(document.createTextNode(''));
-        const range = document.createRange();
-        const selection = window.getSelection();
-        range.setStart(textNode, cursorPosition);
-        range.collapse(true);
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-      }, 0);
-    }
-    
-    // Create new bullet and get its ID
-    const newBulletId = onNewBullet(bullet.id);
-    
-    if (newBulletId !== null) {
-      // Update the new bullet with saved content after cursor
-      onUpdate(newBulletId, contentAfterCursor);
-      
-      setTimeout(() => {
-        const newElement = document.querySelector(
-          `[data-id="${newBulletId}"] .bullet-content`
-        ) as HTMLElement;
-        if (newElement) {
-          newElement.focus();
-          // Set cursor at the start of the new bullet
           const textNode = newElement.firstChild || newElement.appendChild(document.createTextNode(''));
           const range = document.createRange();
           const selection = window.getSelection();
@@ -84,6 +34,44 @@ export const handleEnterKey = (
           selection?.addRange(range);
         }
       }, 0);
+    }
+  } else {
+    // Case 2: Split content at cursor position
+    const contentBeforeCursor = content.slice(0, cursorPosition);
+    const contentAfterCursor = content.slice(cursorPosition);
+    
+    // Get current element before updating content
+    const currentElement = document.querySelector(
+      `[data-id="${bullet.id}"] .bullet-content`
+    ) as HTMLElement;
+
+    // First update current bullet with content before cursor
+    onUpdate(bullet.id, contentBeforeCursor);
+    
+    // Create new bullet and get its ID
+    const newBulletId = onNewBullet(bullet.id);
+    
+    if (newBulletId !== null) {
+      // Then update new bullet with content after cursor
+      onUpdate(newBulletId, contentAfterCursor);
+      
+      // Restore cursor position in current element
+      if (currentElement) {
+        setTimeout(() => {
+          currentElement.focus();
+          try {
+            const textNode = currentElement.firstChild || currentElement.appendChild(document.createTextNode(''));
+            const range = document.createRange();
+            const selection = window.getSelection();
+            range.setStart(textNode, contentBeforeCursor.length);
+            range.collapse(true);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          } catch (err) {
+            console.error('Failed to set cursor position:', err);
+          }
+        }, 0);
+      }
     }
   }
 };
@@ -227,3 +215,4 @@ export const handleArrowKeys = (
   onUpdate(bullet.id, content);
   onNavigate(e.key === "ArrowUp" ? "up" : "down", bullet.id);
 };
+
