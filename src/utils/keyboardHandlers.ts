@@ -40,8 +40,23 @@ export const handleEnterKey = (
     // First, save the content after cursor
     const contentAfterCursor = content.slice(cursorPosition);
     
+    // Get the current element before updating content
+    const currentElement = document.querySelector(
+      `[data-id="${bullet.id}"] .bullet-content`
+    ) as HTMLElement;
+
     // Update current bullet with content before cursor only
     onUpdate(bullet.id, content.slice(0, cursorPosition));
+    
+    // Restore cursor position in current element
+    if (currentElement) {
+      const range = document.createRange();
+      const selection = window.getSelection();
+      range.setStart(currentElement, cursorPosition);
+      range.collapse(true);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    }
     
     // Create new bullet and get its ID
     const newBulletId = onNewBullet(bullet.id);
