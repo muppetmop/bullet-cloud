@@ -84,7 +84,7 @@ export const handleBackspaceKey = (
       el => el === contentRef.current
     );
     
-    // Only proceed if we're not at the first bullet and there's a previous bullet
+    // Only proceed if we're not at the first bullet
     if (currentIndex > 0) {
       const previousElement = visibleBullets[currentIndex - 1];
       
@@ -94,43 +94,42 @@ export const handleBackspaceKey = (
       
       // Only proceed if we found the previous bullet's ID
       if (previousBulletId) {
-        // If there's content in the current bullet, merge it
-        if (content.length > 0) {
+        // If there's content in the current bullet, merge it with the previous bullet
+        if (content) {
           console.log('Merging content:', { previousContent, content });
           onUpdate(previousBulletId, previousContent + content);
         }
         
-        // Delete the current bullet
-        onDelete(bullet.id);
-        
-        // Set focus and cursor position after the DOM updates
-        requestAnimationFrame(() => {
-          previousElement.focus();
+        // Delete the current bullet only if it's not the last remaining bullet
+        if (visibleBullets.length > 1) {
+          onDelete(bullet.id);
           
-          try {
-            const selection = window.getSelection();
-            const range = document.createRange();
+          // Set focus and cursor position after the DOM updates
+          requestAnimationFrame(() => {
+            previousElement.focus();
             
-            // Get the text node (or the element itself if no text node exists)
-            const textNode = previousElement.firstChild || previousElement;
-            const position = previousContent.length;
-            
-            // Set the cursor position at the merge point
-            range.setStart(textNode, position);
-            range.setEnd(textNode, position);
-            
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-            
-            console.log('Cursor position set at:', position);
-          } catch (err) {
-            console.error('Failed to set cursor position:', err);
-          }
-        });
+            try {
+              const selection = window.getSelection();
+              const range = document.createRange();
+              
+              // Get the text node (or the element itself if no text node exists)
+              const textNode = previousElement.firstChild || previousElement;
+              const position = previousContent.length;
+              
+              // Set the cursor position at the merge point
+              range.setStart(textNode, position);
+              range.setEnd(textNode, position);
+              
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+              
+              console.log('Cursor position set at:', position);
+            } catch (err) {
+              console.error('Failed to set cursor position:', err);
+            }
+          });
+        }
       }
-    } else if (!content) {
-      // If we're at the first bullet and it's empty, delete it
-      onDelete(bullet.id);
     }
   }
 };
