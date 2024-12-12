@@ -53,7 +53,7 @@ export const handleEnterKey = (
       
       if (originalElement) {
         // Create and dispatch an input event
-        const inputEvent = new Event('input', { bubbles: true });
+        const inputEvent = new Event('input', { bubbles: true, composed: true });
         originalElement.dispatchEvent(inputEvent);
       }
       
