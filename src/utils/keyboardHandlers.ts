@@ -21,41 +21,43 @@ export const handleEnterKey = (
   // Step 1: Update original bullet and verify
   onUpdate(bullet.id, beforeCursor);
   
-  // Verify the update was successful by checking DOM
-  const bulletElement = document.querySelector(
-    `[data-id="${bullet.id}"] .bullet-content`
-  ) as HTMLElement;
-  
-  if (bulletElement?.textContent?.trim() === beforeCursor.trim()) {
-    // Step 2: Create new bullet only if first update was successful
-    const newBulletId = onNewBullet(bullet.id);
+  // Give DOM time to update and verify
+  requestAnimationFrame(() => {
+    const bulletElement = document.querySelector(
+      `[data-id="${bullet.id}"] .bullet-content`
+    ) as HTMLElement;
     
-    if (newBulletId !== null) {
-      // Set focus to new bullet
-      setTimeout(() => {
-        const newElement = document.querySelector(
-          `[data-id="${newBulletId}"] .bullet-content`
-        ) as HTMLElement;
-        if (newElement) {
-          newElement.focus();
-          // Set the content of the new bullet
-          onUpdate(newBulletId, afterCursor);
-          
-          // Set cursor position at start of new bullet
-          const range = document.createRange();
-          const selection = window.getSelection();
-          range.setStart(newElement, 0);
-          range.collapse(true);
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-        }
-      }, 0);
+    if (bulletElement?.textContent?.trim() === beforeCursor.trim()) {
+      // Step 2: Create new bullet only if first update was successful
+      const newBulletId = onNewBullet(bullet.id);
+      
+      if (newBulletId !== null) {
+        // Set focus to new bullet
+        requestAnimationFrame(() => {
+          const newElement = document.querySelector(
+            `[data-id="${newBulletId}"] .bullet-content`
+          ) as HTMLElement;
+          if (newElement) {
+            newElement.focus();
+            // Set the content of the new bullet
+            onUpdate(newBulletId, afterCursor);
+            
+            // Set cursor position at start of new bullet
+            const range = document.createRange();
+            const selection = window.getSelection();
+            range.setStart(newElement, 0);
+            range.collapse(true);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          }
+        });
+      }
+    } else {
+      // If update failed, keep original content
+      console.error("Failed to update original bullet content");
+      onUpdate(bullet.id, content);
     }
-  } else {
-    // If update failed, keep original content
-    console.error("Failed to update original bullet content");
-    onUpdate(bullet.id, content);
-  }
+  });
 };
 
 export const handleTabKey = (
