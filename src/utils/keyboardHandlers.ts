@@ -13,8 +13,12 @@ export const handleEnterKey = (
   const range = selection?.getRangeAt(0);
   const cursorPosition = range?.startOffset || 0;
   
+  console.log('Current content:', content);
+  console.log('Cursor position:', cursorPosition);
+  
   // Case 1: Cursor at the end, create empty bullet
   if (cursorPosition === content.length) {
+    console.log('Case 1: Creating empty bullet');
     onUpdate(bullet.id, content);
     const newBulletId = onNewBullet(bullet.id);
     
@@ -37,15 +41,15 @@ export const handleEnterKey = (
     }
   } else {
     // Case 2: Split content at cursor position
+    console.log('Case 2: Splitting content');
     const contentBeforeCursor = content.slice(0, cursorPosition);
     const contentAfterCursor = content.slice(cursorPosition);
     
-    // Get current element before updating content
-    const currentElement = document.querySelector(
-      `[data-id="${bullet.id}"] .bullet-content`
-    ) as HTMLElement;
-
+    console.log('Content before cursor:', contentBeforeCursor);
+    console.log('Content after cursor:', contentAfterCursor);
+    
     // First update current bullet with content before cursor
+    console.log('Updating current bullet with:', contentBeforeCursor);
     onUpdate(bullet.id, contentBeforeCursor);
     
     // Create new bullet and get its ID
@@ -53,9 +57,17 @@ export const handleEnterKey = (
     
     if (newBulletId !== null) {
       // Then update new bullet with content after cursor
+      console.log('Updating new bullet with:', contentAfterCursor);
       onUpdate(newBulletId, contentAfterCursor);
       
-      // Restore cursor position in current element
+      // Get current element after content update
+      const currentElement = document.querySelector(
+        `[data-id="${bullet.id}"] .bullet-content`
+      ) as HTMLElement;
+      
+      // Verify content was updated
+      console.log('Current element content after update:', currentElement?.textContent);
+      
       if (currentElement) {
         setTimeout(() => {
           currentElement.focus();
