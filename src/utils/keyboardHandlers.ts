@@ -8,17 +8,53 @@ export const handleEnterKey = (
   onNewBullet: (id: string) => string | null
 ) => {
   e.preventDefault();
-  onUpdate(bullet.id, content);
-  const newBulletId = onNewBullet(bullet.id);
-  if (newBulletId !== null) {
-    setTimeout(() => {
-      const newElement = document.querySelector(
-        `[data-id="${newBulletId}"] .bullet-content`
-      ) as HTMLElement;
-      if (newElement) {
-        newElement.focus();
-      }
-    }, 0);
+  
+  // Get current selection and cursor position
+  const selection = window.getSelection();
+  const range = selection?.getRangeAt(0);
+  const pos = range?.startOffset || 0;
+
+  // Split content at cursor position
+  const beforeCursor = content.slice(0, pos);
+  const afterCursor = content.slice(pos);
+
+  // Step 1: Update original bullet and verify
+  onUpdate(bullet.id, beforeCursor);
+  
+  // Verify the update was successful by checking DOM
+  const bulletElement = document.querySelector(
+    `[data-id="${bullet.id}"] .bullet-content`
+  ) as HTMLElement;
+  
+  if (bulletElement?.textContent?.trim() === beforeCursor.trim()) {
+    // Step 2: Create new bullet only if first update was successful
+    const newBulletId = onNewBullet(bullet.id);
+    
+    if (newBulletId !== null) {
+      // Set focus to new bullet
+      setTimeout(() => {
+        const newElement = document.querySelector(
+          `[data-id="${newBulletId}"] .bullet-content`
+        ) as HTMLElement;
+        if (newElement) {
+          newElement.focus();
+          // Set the content of the new bullet
+          onUpdate(newBulletId, afterCursor);
+          
+          // Set cursor position at start of new bullet
+          const range = document.createRange();
+          const selection = window.getSelection();
+          range.setStart(newElement, 0);
+          range.collapse(true);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
+      }, 0);
+    }
+  } else {
+    // If update failed, keep original content
+    console.error("Failed to update original bullet content");
+    onUpdate(bullet.id, content);
   }
 };
 
