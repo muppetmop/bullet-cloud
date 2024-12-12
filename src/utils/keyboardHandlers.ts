@@ -45,8 +45,19 @@ export const handleEnterKey = (
     // Update the new bullet with content after cursor
     onUpdate(newBulletId, afterCursor);
     
-    // Focus the new bullet
+    // Manually trigger an input event on the original bullet's contentEditable div
     requestAnimationFrame(() => {
+      const originalElement = document.querySelector(
+        `[data-id="${bullet.id}"] .bullet-content`
+      ) as HTMLElement;
+      
+      if (originalElement) {
+        // Create and dispatch an input event
+        const inputEvent = new Event('input', { bubbles: true });
+        originalElement.dispatchEvent(inputEvent);
+      }
+      
+      // Focus the new bullet
       const newElement = document.querySelector(
         `[data-id="${newBulletId}"] .bullet-content`
       ) as HTMLElement;
