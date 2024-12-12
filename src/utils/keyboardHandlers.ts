@@ -9,61 +9,62 @@ export const handleEnterKey = (
 ) => {
   e.preventDefault();
   
-  console.log('Enter key pressed - Initial content:', content);
-  console.log('Current bullet ID:', bullet.id);
-  
   // Get current selection and cursor position
   const selection = window.getSelection();
   const range = selection?.getRangeAt(0);
   const pos = range?.startOffset || 0;
   
-  console.log('Cursor position:', pos);
+  console.log('Enter pressed:', {
+    bulletId: bullet.id,
+    originalContent: content,
+    cursorPosition: pos
+  });
 
   // Split content at cursor position
   const beforeCursor = content.slice(0, pos);
   const afterCursor = content.slice(pos);
   
-  console.log('Content split:', { beforeCursor, afterCursor });
-  console.log('Updating bullet with ID:', bullet.id);
+  console.log('Content split:', {
+    beforeCursor,
+    afterCursor,
+    bulletId: bullet.id
+  });
 
-  setTimeout(() => {
-    console.log('Updating original bullet ID:', bullet.id, 'with content:', beforeCursor);
-    onUpdate(bullet.id, beforeCursor);
+  // First, update the current bullet with content before cursor
+  onUpdate(bullet.id, beforeCursor);
+  
+  // Create new bullet and get its ID
+  const newBulletId = onNewBullet(bullet.id);
+  
+  console.log('New bullet created:', {
+    originalBulletId: bullet.id,
+    newBulletId,
+    contentToMove: afterCursor
+  });
+
+  if (newBulletId) {
+    // Update the new bullet with content after cursor
+    onUpdate(newBulletId, afterCursor);
     
-    console.log('Creating new bullet after:', bullet.id);
-    const newBulletId = onNewBullet(bullet.id);
-    
-    console.log('New bullet created with ID:', newBulletId);
-    
-    if (newBulletId !== null) {
-      setTimeout(() => {
-        console.log('Looking for new bullet element with ID:', newBulletId);
-        const newElement = document.querySelector(
-          `[data-id="${newBulletId}"] .bullet-content`
-        ) as HTMLElement;
+    // Focus the new bullet
+    requestAnimationFrame(() => {
+      const newElement = document.querySelector(
+        `[data-id="${newBulletId}"] .bullet-content`
+      ) as HTMLElement;
+      
+      if (newElement) {
+        newElement.focus();
         
-        if (newElement) {
-          console.log('Found new bullet element, focusing and updating content');
-          newElement.focus();
-          console.log('Setting new bullet content to:', afterCursor);
-          onUpdate(newBulletId, afterCursor);
-          
-          console.log('Setting cursor position at start of new bullet');
-          const range = document.createRange();
-          const selection = window.getSelection();
-          range.setStart(newElement, 0);
-          range.collapse(true);
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-          console.log('Cursor position set');
-        } else {
-          console.warn('New bullet element not found in DOM');
-        }
-      }, 0);
-    } else {
-      console.warn('Failed to create new bullet');
-    }
-  }, 0);
+        // Set cursor at the start of the new bullet
+        const range = document.createRange();
+        const selection = window.getSelection();
+        range.setStart(newElement, 0);
+        range.collapse(true);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
+    });
+  }
 };
 
 export const handleTabKey = (

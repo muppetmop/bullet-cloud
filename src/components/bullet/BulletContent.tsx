@@ -31,10 +31,17 @@ const BulletContent: React.FC<BulletContentProps> = ({
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Update content when bullet changes
   useEffect(() => {
     if (!contentRef.current) return;
+    
+    console.log('Updating content ref:', {
+      bulletId: bullet.id,
+      content: bullet.content
+    });
+    
     contentRef.current.textContent = bullet.content;
-  }, [bullet.content]);
+  }, [bullet.id, bullet.content]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     const content = contentRef.current?.textContent || "";
@@ -55,6 +62,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
 
   const handleInput = () => {
     const content = contentRef.current?.textContent || "";
+    console.log('Input handler:', {
+      bulletId: bullet.id,
+      newContent: content
+    });
     onUpdate(bullet.id, content);
   };
 

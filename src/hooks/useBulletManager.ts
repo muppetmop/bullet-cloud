@@ -17,6 +17,12 @@ export const useBulletManager = () => {
       children: [],
       isCollapsed: false,
     };
+    
+    console.log('Creating new bullet:', {
+      parentId: bullet.id,
+      newBulletId: newBullet.id
+    });
+    
     const index = parent.indexOf(bullet);
     parent.splice(index + 1, 0, newBullet);
     setBullets([...bullets]);
@@ -36,6 +42,11 @@ export const useBulletManager = () => {
   };
 
   const updateBullet = (id: string, content: string) => {
+    console.log('Updating bullet:', {
+      bulletId: id,
+      newContent: content
+    });
+    
     const updateBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.map((bullet) => {
         if (bullet.id === id) {
