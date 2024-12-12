@@ -11,24 +11,13 @@ export const useBulletManager = () => {
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return null;
 
-    const index = parent.indexOf(bullet);
-    
-    // Create new bullet
     const newBullet = {
       id: crypto.randomUUID(),
       content: "",
       children: [],
       isCollapsed: false,
     };
-
-    // If the original bullet has children and content was split,
-    // move the children to the new bullet
-    if (bullet.children.length > 0) {
-      newBullet.children = bullet.children;
-      bullet.children = [];
-    }
-
-    // Insert new bullet after the current one
+    const index = parent.indexOf(bullet);
     parent.splice(index + 1, 0, newBullet);
     setBullets([...bullets]);
 
