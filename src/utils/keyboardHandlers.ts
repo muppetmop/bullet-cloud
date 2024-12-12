@@ -94,38 +94,38 @@ export const handleBackspaceKey = (
       
       // Only proceed if we found the previous bullet's ID
       if (previousBulletId) {
-        // Merge content with the previous bullet
-        onUpdate(previousBulletId, previousContent + content);
-        
-        // Delete the current bullet only if it's not the last remaining bullet
-        // and we're not at the root level
-        if (visibleBullets.length > 1 && bullet.children.length === 0) {
-          onDelete(bullet.id);
-          
-          // Set focus and cursor position after the DOM updates
-          requestAnimationFrame(() => {
-            previousElement.focus();
+        // Only delete and merge if the current bullet is empty
+        if (!content.trim()) {
+          // Delete the current bullet only if it's not the last remaining bullet
+          // and we're not at the root level
+          if (visibleBullets.length > 1 && bullet.children.length === 0) {
+            onDelete(bullet.id);
             
-            try {
-              const selection = window.getSelection();
-              const range = document.createRange();
+            // Set focus and cursor position after the DOM updates
+            requestAnimationFrame(() => {
+              previousElement.focus();
               
-              // Get the text node (or the element itself if no text node exists)
-              const textNode = previousElement.firstChild || previousElement;
-              const position = previousContent.length;
-              
-              // Set the cursor position at the merge point
-              range.setStart(textNode, position);
-              range.setEnd(textNode, position);
-              
-              selection?.removeAllRanges();
-              selection?.addRange(range);
-              
-              console.log('Cursor position set at:', position);
-            } catch (err) {
-              console.error('Failed to set cursor position:', err);
-            }
-          });
+              try {
+                const selection = window.getSelection();
+                const range = document.createRange();
+                
+                // Get the text node (or the element itself if no text node exists)
+                const textNode = previousElement.firstChild || previousElement;
+                const position = previousContent.length;
+                
+                // Set the cursor position at the merge point
+                range.setStart(textNode, position);
+                range.setEnd(textNode, position);
+                
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+                
+                console.log('Cursor position set at:', position);
+              } catch (err) {
+                console.error('Failed to set cursor position:', err);
+              }
+            });
+          }
         }
       }
     }
