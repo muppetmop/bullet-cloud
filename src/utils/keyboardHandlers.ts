@@ -19,7 +19,10 @@ export const handleEnterKey = (
   // Case 1: Cursor at the end, create empty bullet
   if (cursorPosition === content.length) {
     console.log('Case 1: Creating empty bullet');
+    // First ensure current bullet content is saved
     onUpdate(bullet.id, content);
+    
+    // Then create new bullet
     const newBulletId = onNewBullet(bullet.id);
     
     if (newBulletId !== null) {
@@ -50,29 +53,31 @@ export const handleEnterKey = (
     
     // First update current bullet with content before cursor
     console.log('Updating current bullet with:', contentBeforeCursor);
+    
+    // Explicitly update current bullet's content
     onUpdate(bullet.id, contentBeforeCursor);
     
     // Create new bullet and get its ID
     const newBulletId = onNewBullet(bullet.id);
     
     if (newBulletId !== null) {
-      // Then update new bullet with content after cursor
-      console.log('Updating new bullet with:', contentAfterCursor);
+      // Immediately update new bullet with content after cursor
       onUpdate(newBulletId, contentAfterCursor);
+      console.log('Updated new bullet with:', contentAfterCursor);
       
       // Get current element after content update
-      const currentElement = document.querySelector(
-        `[data-id="${bullet.id}"] .bullet-content`
-      ) as HTMLElement;
-      
-      // Verify content was updated
-      console.log('Current element content after update:', currentElement?.textContent);
-      
-      if (currentElement) {
-        setTimeout(() => {
+      setTimeout(() => {
+        const currentElement = document.querySelector(
+          `[data-id="${bullet.id}"] .bullet-content`
+        ) as HTMLElement;
+        
+        // Verify content was updated
+        console.log('Current element content after update:', currentElement?.textContent);
+        
+        if (currentElement) {
           currentElement.focus();
           try {
-            const textNode = currentElement.firstChild || currentElement.appendChild(document.createTextNode(''));
+            const textNode = currentElement.firstChild || currentElement.appendChild(document.createTextNode(contentBeforeCursor));
             const range = document.createRange();
             const selection = window.getSelection();
             range.setStart(textNode, contentBeforeCursor.length);
@@ -82,8 +87,8 @@ export const handleEnterKey = (
           } catch (err) {
             console.error('Failed to set cursor position:', err);
           }
-        }, 0);
-      }
+        }
+      }, 0);
     }
   }
 };
@@ -227,4 +232,3 @@ export const handleArrowKeys = (
   onUpdate(bullet.id, content);
   onNavigate(e.key === "ArrowUp" ? "up" : "down", bullet.id);
 };
-
