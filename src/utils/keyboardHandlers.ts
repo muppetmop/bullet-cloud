@@ -8,17 +8,26 @@ export const handleEnterKey = (
   onNewBullet: (id: string) => string | null
 ) => {
   e.preventDefault();
-  onUpdate(bullet.id, content);
+  
+  const selection = window.getSelection();
+  const range = selection?.getRangeAt(0);
+  const cursorPosition = range?.startOffset || 0;
+  
+  // Split content at cursor position
+  const contentBeforeCursor = content.slice(0, cursorPosition);
+  const contentAfterCursor = content.slice(cursorPosition);
+  
+  // Update current bullet with content before cursor
+  onUpdate(bullet.id, contentBeforeCursor);
+  
+  // Create new bullet and get its ID
   const newBulletId = onNewBullet(bullet.id);
+  
   if (newBulletId !== null) {
-    setTimeout(() => {
-      const newElement = document.querySelector(
-        `[data-id="${newBulletId}"] .bullet-content`
-      ) as HTMLElement;
-      if (newElement) {
-        newElement.focus();
-      }
-    }, 0);
+    // Update the new bullet with content after cursor
+    onUpdate(newBulletId, contentAfterCursor);
+    
+    // Focus will be handled by the existing setTimeout in TaskManager
   }
 };
 
