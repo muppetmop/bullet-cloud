@@ -111,9 +111,14 @@ export const handleBackspaceKey = (
             });
           }
         } else {
-          // If current bullet has content, merge with previous bullet
+          // If current bullet has content, merge with previous bullet and then delete current bullet
           e.preventDefault();
           onUpdate(previousBulletId, previousContent + content);
+          
+          // Delete the current bullet after merging content
+          if (bullet.children.length === 0) {
+            onDelete(bullet.id);
+          }
           
           requestAnimationFrame(() => {
             previousElement.focus();
