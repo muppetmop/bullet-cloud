@@ -2,13 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-
-const supabase = createClient(
-  "https://your-project-url.supabase.co",
-  "your-anon-key"
-);
 
 const Auth = () => {
   const [email, setEmail] = useState("");
