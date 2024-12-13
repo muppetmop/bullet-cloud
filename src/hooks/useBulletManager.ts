@@ -21,6 +21,7 @@ export const useBulletManager = () => {
       const { data, error } = await supabase
         .from("bullets")
         .select("*")
+        .eq('user_id', session.session.user.id)
         .order("position");
 
       if (error) throw error;
@@ -68,6 +69,11 @@ export const useBulletManager = () => {
 
   const saveBullet = async (bullet: BulletPoint, parentId: string | null = null, position: number) => {
     try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        throw new Error("No active session");
+      }
+
       const { error } = await supabase
         .from("bullets")
         .upsert({
@@ -76,6 +82,7 @@ export const useBulletManager = () => {
           parent_id: parentId,
           position: position,
           is_collapsed: bullet.isCollapsed,
+          user_id: session.session.user.id,
         });
 
       if (error) throw error;
