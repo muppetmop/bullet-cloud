@@ -1,10 +1,8 @@
 import React, { useRef, KeyboardEvent, useEffect, useState } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { ChevronRight, ChevronDown } from "lucide-react";
-import {
-  handleTabKey,
-  handleArrowKeys,
-} from "@/utils/keyboardHandlers";
+import { handleTabKey, handleArrowKeys } from "@/utils/keyboardHandlers";
+import { useToast } from "@/hooks/use-toast";
 
 interface BulletContentProps {
   bullet: BulletPoint;
@@ -42,7 +40,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
-  const [splitCompleted, setSplitCompleted] = useState(false);
+  const [isProcessingSplit, setIsProcessingSplit] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -56,53 +55,63 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   }, [pendingDelete, onDelete]);
 
-  // First useEffect: Update original bullet content
   useEffect(() => {
-    if (pendingSplit && !splitCompleted) {
-      onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
-      setSplitCompleted(true);
-    }
-  }, [pendingSplit, splitCompleted, onUpdate]);
-
-  // Second useEffect: Create new bullet with remaining content
-  useEffect(() => {
-    if (pendingSplit && splitCompleted) {
-      const createBullet = async () => {
-        const newBulletId = await onNewBullet(pendingSplit.originalBulletId);
-        
-        if (newBulletId) {
-          onUpdate(newBulletId, pendingSplit.afterCursor);
-
-          requestAnimationFrame(() => {
-            const newElement = document.querySelector(
-              `[data-id="${newBulletId}"] .bullet-content`
-            ) as HTMLElement;
+    const handleSplit = async () => {
+      if (pendingSplit && !isProcessingSplit) {
+        setIsProcessingSplit(true);
+        try {
+          // Update original bullet content optimistically
+          onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
+          
+          // Create new bullet
+          const newBulletId = await onNewBullet(pendingSplit.originalBulletId);
+          
+          if (newBulletId) {
+            onUpdate(newBulletId, pendingSplit.afterCursor);
             
-            if (newElement) {
-              newElement.focus();
-              try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const textNode = newElement.firstChild || newElement;
-                range.setStart(textNode, 0);
-                range.setEnd(textNode, 0);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-              } catch (err) {
-                console.error('Failed to set cursor position:', err);
+            // Focus new bullet after creation
+            requestAnimationFrame(() => {
+              const newElement = document.querySelector(
+                `[data-id="${newBulletId}"] .bullet-content`
+              ) as HTMLElement;
+              
+              if (newElement) {
+                newElement.focus();
+                try {
+                  const selection = window.getSelection();
+                  const range = document.createRange();
+                  const textNode = newElement.firstChild || newElement;
+                  range.setStart(textNode, 0);
+                  range.setEnd(textNode, 0);
+                  selection?.removeAllRanges();
+                  selection?.addRange(range);
+                } catch (err) {
+                  console.error('Failed to set cursor position:', err);
+                  toast({
+                    title: "Warning",
+                    description: "Failed to set cursor position",
+                    variant: "destructive",
+                  });
+                }
               }
-            }
+            });
+          }
+        } catch (error) {
+          console.error('Failed to create new bullet:', error);
+          toast({
+            title: "Error",
+            description: "Failed to create new bullet",
+            variant: "destructive",
           });
-
-          // Reset states after successful split
+        } finally {
           setPendingSplit(null);
-          setSplitCompleted(false);
+          setIsProcessingSplit(false);
         }
-      };
+      }
+    };
 
-      createBullet();
-    }
-  }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
+    handleSplit();
+  }, [pendingSplit, isProcessingSplit, onNewBullet, onUpdate]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     const content = contentRef.current?.textContent || "";
@@ -110,7 +119,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
     const range = selection?.getRangeAt(0);
     const pos = range?.startOffset || 0;
 
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !isProcessingSplit) {
       e.preventDefault();
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
