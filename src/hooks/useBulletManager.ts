@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
+import { useDebounceSync } from "./useDebounceSync";
 
 export const useBulletManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([
     { id: crypto.randomUUID(), content: "", children: [], isCollapsed: false },
   ]);
+  const { saveBulletToSupabase } = useDebounceSync();
 
   const createNewBullet = (id: string): string | null => {
     const [bullet, parent] = findBulletAndParent(id, bullets);
@@ -39,6 +41,8 @@ export const useBulletManager = () => {
     const updateBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.map((bullet) => {
         if (bullet.id === id) {
+          // Trigger debounced save when content changes
+          saveBulletToSupabase(id, content);
           return { ...bullet, content };
         }
         return {
