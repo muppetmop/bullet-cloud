@@ -114,6 +114,7 @@ export const handleBackspaceKey = (
           // If current bullet has content, merge with previous bullet
           e.preventDefault();
           onUpdate(previousBulletId, previousContent + content);
+          onDelete(bullet.id);
           
           requestAnimationFrame(() => {
             previousElement.focus();
