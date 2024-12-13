@@ -37,6 +37,7 @@ export const useBulletHandlers = ({
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
   const [splitCompleted, setSplitCompleted] = useState(false);
+  const [isProcessingEnter, setIsProcessingEnter] = useState(false);
 
   // Effect for handling content updates after split
   useEffect(() => {
@@ -49,7 +50,8 @@ export const useBulletHandlers = ({
   // Effect for creating new bullet after split
   useEffect(() => {
     const createNewBulletAfterSplit = async () => {
-      if (pendingSplit && splitCompleted) {
+      if (pendingSplit && splitCompleted && !isProcessingEnter) {
+        setIsProcessingEnter(true);
         const newBulletId = await onNewBullet(pendingSplit.originalBulletId);
         
         if (newBulletId) {
@@ -78,12 +80,13 @@ export const useBulletHandlers = ({
 
           setPendingSplit(null);
           setSplitCompleted(false);
+          setIsProcessingEnter(false);
         }
       }
     };
 
     createNewBulletAfterSplit();
-  }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
+  }, [pendingSplit, splitCompleted, onNewBullet, onUpdate, isProcessingEnter]);
 
   // Effect for handling bullet deletion and cursor positioning
   useEffect(() => {
@@ -173,7 +176,7 @@ export const useBulletHandlers = ({
     const range = selection?.getRangeAt(0);
     const pos = range?.startOffset || 0;
 
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !isProcessingEnter) {
       e.preventDefault();
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
