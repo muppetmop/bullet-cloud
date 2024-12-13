@@ -19,10 +19,10 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-md space-y-8 p-8">
+      <div className="w-full max-w-md space-y-8 p-8 border rounded-lg shadow-lg">
         <div className="text-center">
-          <h2 className="text-2xl font-bold">Welcome to BullBook</h2>
-          <p className="text-muted-foreground">Sign in or create an account</p>
+          <h2 className="text-3xl font-bold tracking-tight">Welcome to BullBook</h2>
+          <p className="mt-2 text-muted-foreground">Your personal bullet journal</p>
         </div>
         <SupabaseAuth 
           supabaseClient={supabase}
@@ -36,6 +36,9 @@ const Auth = () => {
               },
               input: {
                 borderRadius: 'var(--radius)',
+              },
+              anchor: {
+                color: 'rgb(var(--primary))',
               },
             },
           }}
