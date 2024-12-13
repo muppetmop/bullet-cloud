@@ -113,37 +113,27 @@ export const handleBackspaceKey = (
         } else {
           // If current bullet has content, merge with previous bullet
           e.preventDefault();
-          const mergedContent = previousContent + content;
+          onUpdate(previousBulletId, previousContent + content);
           
-          // Update the previous bullet with merged content
-          onUpdate(previousBulletId, mergedContent);
-          
-          // Wait for the update to complete before deleting
           setTimeout(() => {
-            // Verify the content was merged before deleting
-            const updatedPreviousContent = previousElement.textContent || '';
-            if (updatedPreviousContent === mergedContent) {
-              onDelete(bullet.id);
-              
-              requestAnimationFrame(() => {
-                previousElement.focus();
-                try {
-                  const selection = window.getSelection();
-                  const range = document.createRange();
-                  const textNode = previousElement.firstChild || previousElement;
-                  const position = previousContent.length;
-                  range.setStart(textNode, position);
-                  range.setEnd(textNode, position);
-                  selection?.removeAllRanges();
-                  selection?.addRange(range);
-                } catch (err) {
-                  console.error('Failed to set cursor position:', err);
-                }
-              });
-            } else {
-              console.error('Content merge failed, skipping deletion');
-            }
+            onDelete(bullet.id);
           }, 100);
+          
+          requestAnimationFrame(() => {
+            previousElement.focus();
+            try {
+              const selection = window.getSelection();
+              const range = document.createRange();
+              const textNode = previousElement.firstChild || previousElement;
+              const position = previousContent.length;
+              range.setStart(textNode, position);
+              range.setEnd(textNode, position);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            } catch (err) {
+              console.error('Failed to set cursor position:', err);
+            }
+          });
         }
       }
     }
