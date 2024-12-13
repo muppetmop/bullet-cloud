@@ -16,33 +16,26 @@ const supabase = createClient(
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session);
-      setIsLoading(false);
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
-      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1EAEDB]"></div>
-    </div>;
+  if (isAuthenticated === null) {
+    return <div>Loading...</div>;
   }
 
-  return isAuthenticated ? children : <Navigate to="/auth" />;
+  return isAuthenticated ? <>{children}</> : <Navigate to="/auth" />;
 };
 
 const App = () => (
