@@ -17,7 +17,7 @@ export const useDebounceSync = () => {
       } catch (error) {
         console.error("Error in saveBulletToSupabase:", error);
       }
-    }, 1000),
+    }, 100), // Changed from 1000ms to 100ms
     []
   );
 
