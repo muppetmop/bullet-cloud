@@ -18,11 +18,11 @@ const Auth = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-md space-y-8 p-8 border rounded-lg shadow-lg">
-        <div className="text-center">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md space-y-8 p-8 bg-white border rounded-lg shadow-lg">
+        <div className="text-center space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Welcome to BullBook</h2>
-          <p className="mt-2 text-muted-foreground">Your personal bullet journal</p>
+          <p className="text-base text-muted-foreground">Your personal bullet journal</p>
         </div>
         <SupabaseAuth 
           supabaseClient={supabase}
@@ -33,12 +33,26 @@ const Auth = () => {
                 background: 'rgb(var(--primary))',
                 color: 'rgb(var(--primary-foreground))',
                 borderRadius: 'var(--radius)',
+                padding: '10px 15px',
+                height: '42px',
               },
               input: {
                 borderRadius: 'var(--radius)',
+                padding: '10px 15px',
               },
               anchor: {
                 color: 'rgb(var(--primary))',
+              },
+              container: {
+                gap: '16px',
+              },
+              divider: {
+                margin: '24px 0',
+              },
+              message: {
+                padding: '10px',
+                borderRadius: 'var(--radius)',
+                marginBottom: '16px',
               },
             },
           }}
