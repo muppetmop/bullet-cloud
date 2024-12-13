@@ -57,7 +57,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
 
   useEffect(() => {
     if (pendingSplit) {
-      // Update the original bullet with content before cursor
+      // First, update the original bullet with content before cursor
       onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
 
       // Create new bullet for content after cursor
