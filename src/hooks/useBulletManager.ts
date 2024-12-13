@@ -65,6 +65,9 @@ export const useBulletManager = () => {
   }, []);
 
   const createNewBullet = async (id: string): Promise<string | null> => {
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session) return null;
+
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return null;
 
@@ -86,6 +89,7 @@ export const useBulletManager = () => {
       parent_id: parent === bullets ? null : bullet.id,
       position: index + 1,
       is_collapsed: newBullet.isCollapsed,
+      user_id: session.session.user.id
     });
 
     if (error) {
@@ -97,6 +101,9 @@ export const useBulletManager = () => {
   };
 
   const createNewRootBullet = async (): Promise<string> => {
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session) throw new Error("No session found");
+
     const newBullet = {
       id: crypto.randomUUID(),
       content: "",
@@ -113,6 +120,7 @@ export const useBulletManager = () => {
       parent_id: null,
       position: bullets.length,
       is_collapsed: newBullet.isCollapsed,
+      user_id: session.session.user.id
     });
 
     if (error) {

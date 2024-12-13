@@ -28,6 +28,15 @@ const TaskManager = () => {
     );
   }
 
+  const handleNewBullet = async (id: string) => {
+    const newBulletId = await createNewBullet(id);
+    return newBulletId;
+  };
+
+  const handleNewRootBullet = async () => {
+    await createNewRootBullet();
+  };
+
   return (
     <div className="max-w-3xl mx-auto p-8">
       {bullets.map((bullet) => (
@@ -37,7 +46,7 @@ const TaskManager = () => {
           level={0}
           onUpdate={updateBullet}
           onDelete={deleteBullet}
-          onNewBullet={createNewBullet}
+          onNewBullet={handleNewBullet}
           onCollapse={toggleCollapse}
           onNavigate={handleNavigate}
           onIndent={indentBullet}
@@ -45,12 +54,12 @@ const TaskManager = () => {
         />
       ))}
       <button
-        onClick={createNewRootBullet}
+        onClick={handleNewRootBullet}
         className="new-bullet-button w-full flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 transition-colors"
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
-            createNewRootBullet();
+            handleNewRootBullet();
           } else if (e.key === "ArrowUp" && bullets.length > 0) {
             const lastBullet = getAllVisibleBullets(bullets).pop();
             if (lastBullet) {
