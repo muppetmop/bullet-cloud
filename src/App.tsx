@@ -10,8 +10,8 @@ import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
 const supabase = createClient(
-  "https://your-project-url.supabase.co",
-  "your-anon-key"
+  "https://pxmthjryoxoifxdtcevd.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4bXRoanJ5b3hvaWZ4ZHRjZXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQwOTMzMjMsImV4cCI6MjA0OTY2OTMyM30.OdgyZdhqnNL-dt0eKkCLK0Z4ChqQ0y7O07nGcR_w474"
 );
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
