@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import debounce from "lodash/debounce";
+import { toast } from "sonner";
 
 export const useDebounceSync = () => {
   const saveBulletToSupabase = useCallback(
@@ -12,23 +13,24 @@ export const useDebounceSync = () => {
           return;
         }
 
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("bullets")
           .update({ 
             content, 
-            updated_at: new Date().toISOString(),
-            user_id: session.data.session.user.id 
+            updated_at: new Date().toISOString()
           })
           .eq("id", id)
-          .select();
+          .eq("user_id", session.data.session.user.id);
 
         if (error) {
           console.error("Error saving bullet:", error);
+          toast.error("Failed to save changes");
         } else {
-          console.log("Bullet saved successfully:", data);
+          console.log("Bullet saved successfully");
         }
       } catch (error) {
         console.error("Error in saveBulletToSupabase:", error);
+        toast.error("Failed to save changes");
       }
     }, 100),
     []
