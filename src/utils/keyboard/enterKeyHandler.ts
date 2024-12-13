@@ -31,7 +31,7 @@ export const handleEnterKey = (
     bulletId: bullet.id
   });
 
-  // First, update the current bullet with content before cursor
+  // First, update the current bullet with ONLY the content before cursor
   onUpdate(bullet.id, beforeCursor);
   
   // Create new bullet and get its ID
@@ -44,7 +44,7 @@ export const handleEnterKey = (
   });
 
   if (newBulletId) {
-    // Update the new bullet with content after cursor
+    // Update the new bullet with ONLY the content after cursor
     onUpdate(newBulletId, afterCursor);
     
     // Focus the new bullet
@@ -55,24 +55,18 @@ export const handleEnterKey = (
       
       if (newElement) {
         newElement.focus();
-        
-        // Set cursor at the start of the new bullet
-        const range = document.createRange();
-        const selection = window.getSelection();
-        
-        // If there's content, set cursor at start of content
-        if (newElement.firstChild) {
-          range.setStart(newElement.firstChild, 0);
-        } else {
-          // If no content, create empty text node
-          const textNode = document.createTextNode('');
-          newElement.appendChild(textNode);
+        try {
+          // Set cursor at the start of the new bullet's content
+          const range = document.createRange();
+          const selection = window.getSelection();
+          const textNode = newElement.firstChild || newElement;
           range.setStart(textNode, 0);
+          range.collapse(true);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        } catch (err) {
+          console.error('Failed to set cursor position:', err);
         }
-        
-        range.collapse(true);
-        selection?.removeAllRanges();
-        selection?.addRange(range);
       }
     });
   }
