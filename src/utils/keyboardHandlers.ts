@@ -113,27 +113,37 @@ export const handleBackspaceKey = (
         } else {
           // If current bullet has content, merge with previous bullet
           e.preventDefault();
-          onUpdate(previousBulletId, previousContent + content);
+          const mergedContent = previousContent + content;
           
+          // Update the previous bullet with merged content
+          onUpdate(previousBulletId, mergedContent);
+          
+          // Wait for the update to complete before deleting
           setTimeout(() => {
-            onDelete(bullet.id);
-          }, 100);
-          
-          requestAnimationFrame(() => {
-            previousElement.focus();
-            try {
-              const selection = window.getSelection();
-              const range = document.createRange();
-              const textNode = previousElement.firstChild || previousElement;
-              const position = previousContent.length;
-              range.setStart(textNode, position);
-              range.setEnd(textNode, position);
-              selection?.removeAllRanges();
-              selection?.addRange(range);
-            } catch (err) {
-              console.error('Failed to set cursor position:', err);
+            // Verify the content was merged before deleting
+            const updatedPreviousContent = previousElement.textContent || '';
+            if (updatedPreviousContent === mergedContent) {
+              onDelete(bullet.id);
+              
+              requestAnimationFrame(() => {
+                previousElement.focus();
+                try {
+                  const selection = window.getSelection();
+                  const range = document.createRange();
+                  const textNode = previousElement.firstChild || previousElement;
+                  const position = previousContent.length;
+                  range.setStart(textNode, position);
+                  range.setEnd(textNode, position);
+                  selection?.removeAllRanges();
+                  selection?.addRange(range);
+                } catch (err) {
+                  console.error('Failed to set cursor position:', err);
+                }
+              });
+            } else {
+              console.error('Content merge failed, skipping deletion');
             }
-          });
+          }, 100);
         }
       }
     }
