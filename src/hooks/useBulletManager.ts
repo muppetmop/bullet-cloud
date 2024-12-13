@@ -4,6 +4,18 @@ import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperati
 import { useDebounceSync } from "./useDebounceSync";
 import { supabase } from "@/integrations/supabase/client";
 
+const transformDatabaseBullet = (dbBullet: any): BulletPoint => ({
+  id: dbBullet.id,
+  content: dbBullet.content || "",
+  children: [],
+  isCollapsed: dbBullet.is_collapsed,
+  parent_id: dbBullet.parent_id,
+  position: dbBullet.position,
+  user_id: dbBullet.user_id,
+  created_at: dbBullet.created_at,
+  updated_at: dbBullet.updated_at
+});
+
 export const useBulletManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([]);
   const { saveBulletToSupabase } = useDebounceSync();
@@ -25,7 +37,8 @@ export const useBulletManager = () => {
       }
 
       if (data && data.length > 0) {
-        setBullets(data as BulletPoint[]);
+        const transformedBullets = data.map(transformDatabaseBullet);
+        setBullets(transformedBullets);
       } else {
         // Initialize with an empty bullet if no data exists
         const { data: newBullet, error: createError } = await supabase
@@ -46,7 +59,7 @@ export const useBulletManager = () => {
           return;
         }
 
-        setBullets([newBullet as BulletPoint]);
+        setBullets([transformDatabaseBullet(newBullet)]);
       }
     };
 
