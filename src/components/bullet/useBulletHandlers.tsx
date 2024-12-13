@@ -6,7 +6,7 @@ interface BulletHandlers {
   bullet: BulletPoint;
   onUpdate: (id: string, content: string) => void;
   onDelete: (id: string) => void;
-  onNewBullet: (id: string) => string | null;
+  onNewBullet: (id: string) => Promise<string | null>;
   onNavigate: (direction: "up" | "down", id: string) => void;
   onIndent?: (id: string) => void;
   onOutdent?: (id: string) => void;
