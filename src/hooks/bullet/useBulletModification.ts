@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
+import { useCallback } from "react";
 
 export const useBulletModification = (
   bullets: BulletPoint[],
@@ -11,9 +12,10 @@ export const useBulletModification = (
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const updateBullet = async (id: string, content: string) => {
+  const updateBullet = useCallback(async (id: string, content: string) => {
     if (!user) return;
 
+    // Update local state immediately for better UX
     const updateBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.map((bullet) => {
         if (bullet.id === id) {
@@ -28,46 +30,48 @@ export const useBulletModification = (
 
     setBullets(updateBulletRecursive(bullets));
 
-    const { error } = await supabase
-      .from("bullets")
-      .update({ content })
-      .eq("id", id);
+    // Debounce Supabase update
+    const timeoutId = setTimeout(async () => {
+      const { error } = await supabase
+        .from("bullets")
+        .update({ content })
+        .eq("id", id);
 
-    if (error) {
-      toast({
-        title: "Error updating bullet",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
+      if (error) {
+        toast({
+          title: "Error updating bullet",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    }, 500); // Delay Supabase update by 500ms
 
-  const getAllChildrenIds = (bullet: BulletPoint): string[] => {
-    let ids: string[] = [bullet.id];
-    bullet.children.forEach(child => {
-      ids = [...ids, ...getAllChildrenIds(child)];
-    });
-    return ids;
-  };
+    return () => clearTimeout(timeoutId);
+  }, [bullets, setBullets, user, toast]);
 
-  const deleteBullet = async (id: string) => {
+  const deleteBullet = useCallback(async (id: string) => {
     if (!user) return;
 
     const visibleBullets = getAllVisibleBullets(bullets);
     const currentIndex = visibleBullets.findIndex(b => b.id === id);
     const previousBullet = visibleBullets[currentIndex - 1];
 
-    // Find the bullet to delete and get all its children's IDs
-    const bulletToDelete = visibleBullets.find(b => b.id === id);
-    if (!bulletToDelete) return;
+    // Update local state immediately
+    const deleteBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
+      return bullets.filter((bullet) => {
+        if (bullet.id === id) return false;
+        bullet.children = deleteBulletRecursive(bullet.children);
+        return true;
+      });
+    };
 
-    const idsToDelete = getAllChildrenIds(bulletToDelete);
+    setBullets(deleteBulletRecursive(bullets));
 
-    // Delete all bullets (parent and children) from Supabase
+    // Perform Supabase delete
     const { error } = await supabase
       .from("bullets")
       .delete()
-      .in("id", idsToDelete);
+      .eq("id", id);
 
     if (error) {
       toast({
@@ -78,36 +82,27 @@ export const useBulletModification = (
       return;
     }
 
-    // Update local state
-    const deleteBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
-      return bullets.filter((bullet) => {
-        if (idsToDelete.includes(bullet.id)) return false;
-        bullet.children = deleteBulletRecursive(bullet.children);
-        return true;
-      });
-    };
-
-    setBullets(deleteBulletRecursive(bullets));
-
     if (previousBullet) {
-      setTimeout(() => {
-        const previousElement = document.querySelector(
-          `[data-id="${previousBullet.id}"] .bullet-content`
-        ) as HTMLElement;
-        if (previousElement) {
-          previousElement.focus();
+      const previousElement = document.querySelector(
+        `[data-id="${previousBullet.id}"] .bullet-content`
+      ) as HTMLElement;
+      if (previousElement) {
+        previousElement.focus();
+        try {
           const range = document.createRange();
           const selection = window.getSelection();
           range.selectNodeContents(previousElement);
           range.collapse(false);
           selection?.removeAllRanges();
           selection?.addRange(range);
+        } catch (err) {
+          console.error('Failed to set cursor position:', err);
         }
-      }, 0);
+      }
     }
-  };
+  }, [bullets, setBullets, user, toast]);
 
-  const toggleCollapse = async (id: string) => {
+  const toggleCollapse = useCallback(async (id: string) => {
     const toggleCollapseRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.map((bullet) => {
         if (bullet.id === id) {
@@ -134,7 +129,7 @@ export const useBulletModification = (
         variant: "destructive",
       });
     }
-  };
+  }, [bullets, setBullets, toast]);
 
   return {
     updateBullet,
