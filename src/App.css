@@ -1,6 +1,8 @@
 #root {
-  width: 100%;
-  text-align: left;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
 }
 
 .logo {
@@ -9,11 +11,9 @@
   will-change: filter;
   transition: filter 300ms;
 }
-
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
-
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
@@ -39,34 +39,4 @@
 
 .read-the-docs {
   color: #888;
-}
-
-/* Add styles for bullet points */
-.bullet-content {
-  min-height: 24px;
-  padding: 2px 4px;
-  border-radius: 4px;
-  outline: none;
-}
-
-.bullet-content:focus {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.collapse-button {
-  opacity: 0.5;
-  transition: opacity 0.2s;
-}
-
-.collapse-button:hover {
-  opacity: 1;
-}
-
-.new-bullet-button {
-  opacity: 0.5;
-  transition: opacity 0.2s;
-}
-
-.new-bullet-button:hover {
-  opacity: 1;
 }
