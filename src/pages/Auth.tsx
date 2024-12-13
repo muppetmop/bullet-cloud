@@ -19,7 +19,25 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
-        const { error, data } = await supabase.auth.signUp({
+        // First check if user exists
+        const { data: existingUser } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (existingUser.user) {
+          toast({
+            title: "Account exists",
+            description: "This email is already registered. Please sign in instead.",
+            variant: "destructive",
+          });
+          setIsSignUp(false);
+          setIsLoading(false);
+          return;
+        }
+
+        // If user doesn't exist, proceed with signup
+        const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -27,36 +45,26 @@ const Auth = () => {
           },
         });
         
-        if (error) throw error;
-        
-        // Check if email verification is required
-        if (data?.user?.identities?.length === 0) {
-          toast({
-            title: "Account already exists",
-            description: "Please sign in instead.",
-            variant: "destructive",
-          });
-          setIsSignUp(false);
-        } else {
-          toast({
-            title: "Success!",
-            description: "Please check your email to verify your account.",
-          });
-        }
+        if (signUpError) throw signUpError;
+
+        toast({
+          title: "Success!",
+          description: "Please check your email to verify your account.",
+        });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         
-        if (error) {
-          if (error.message === "Email not confirmed") {
-            throw new Error("Please verify your email before signing in.");
+        if (signInError) {
+          if (signInError.message.includes("Email not confirmed")) {
+            throw new Error("Please verify your email before signing in. Check your inbox for the verification link.");
           }
-          if (error.message === "Invalid login credentials") {
-            throw new Error("Invalid email or password. Please try again.");
+          if (signInError.message.includes("Invalid login credentials")) {
+            throw new Error("Invalid email or password. If you haven't registered yet, please sign up first.");
           }
-          throw error;
+          throw signInError;
         }
         
         navigate("/");
@@ -101,6 +109,7 @@ const Auth = () => {
               required
               className="w-full"
               disabled={isLoading}
+              minLength={6}
             />
           </div>
 
