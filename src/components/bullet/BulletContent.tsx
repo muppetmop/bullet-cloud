@@ -2,7 +2,6 @@ import React, { useRef, KeyboardEvent, useEffect, useState } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import {
-  handleEnterKey,
   handleTabKey,
   handleArrowKeys,
 } from "@/utils/keyboardHandlers";
@@ -18,6 +17,18 @@ interface BulletContentProps {
   onOutdent?: (id: string) => void;
 }
 
+interface PendingDelete {
+  bulletId: string;
+  previousContent: string;
+  previousBulletId: string;
+}
+
+interface PendingSplit {
+  originalBulletId: string;
+  beforeCursor: string;
+  afterCursor: string;
+}
+
 const BulletContent: React.FC<BulletContentProps> = ({
   bullet,
   onUpdate,
@@ -29,11 +40,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
   onOutdent,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const [pendingDelete, setPendingDelete] = useState<{
-    bulletId: string;
-    previousContent: string;
-    previousBulletId: string;
-  } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -47,6 +55,45 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   }, [pendingDelete, onDelete]);
 
+  useEffect(() => {
+    if (pendingSplit) {
+      // Update the original bullet with content before cursor
+      onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
+
+      // Create new bullet for content after cursor
+      const newBulletId = onNewBullet(pendingSplit.originalBulletId);
+      
+      if (newBulletId) {
+        // Update the new bullet with content after cursor
+        onUpdate(newBulletId, pendingSplit.afterCursor);
+
+        // Focus the new bullet and set cursor at the beginning
+        requestAnimationFrame(() => {
+          const newElement = document.querySelector(
+            `[data-id="${newBulletId}"] .bullet-content`
+          ) as HTMLElement;
+          
+          if (newElement) {
+            newElement.focus();
+            try {
+              const selection = window.getSelection();
+              const range = document.createRange();
+              const textNode = newElement.firstChild || newElement;
+              range.setStart(textNode, 0);
+              range.setEnd(textNode, 0);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            } catch (err) {
+              console.error('Failed to set cursor position:', err);
+            }
+          }
+        });
+      }
+
+      setPendingSplit(null);
+    }
+  }, [pendingSplit, onUpdate, onNewBullet]);
+
   const handleKeyDown = (e: KeyboardEvent) => {
     const content = contentRef.current?.textContent || "";
     const selection = window.getSelection();
@@ -54,7 +101,15 @@ const BulletContent: React.FC<BulletContentProps> = ({
     const pos = range?.startOffset || 0;
 
     if (e.key === "Enter") {
-      handleEnterKey(e, content, bullet, onUpdate, onNewBullet);
+      e.preventDefault();
+      const beforeCursor = content.slice(0, pos);
+      const afterCursor = content.slice(pos);
+      
+      setPendingSplit({
+        originalBulletId: bullet.id,
+        beforeCursor,
+        afterCursor,
+      });
     } else if (e.key === "Tab") {
       handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
     } else if (e.key === "Backspace") {
