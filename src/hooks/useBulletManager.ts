@@ -1,41 +1,11 @@
 import { useState } from "react";
 import { BulletPoint } from "@/types/bullet";
+import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
 
 export const useBulletManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([
     { id: crypto.randomUUID(), content: "", children: [], isCollapsed: false },
   ]);
-
-  const findBulletAndParent = (
-    id: string,
-    bullets: BulletPoint[],
-    parent: BulletPoint[] | null = null
-  ): [BulletPoint | null, BulletPoint[] | null] => {
-    for (let i = 0; i < bullets.length; i++) {
-      if (bullets[i].id === id) {
-        return [bullets[i], parent || bullets];
-      }
-      if (!bullets[i].isCollapsed) {
-        const [found, foundParent] = findBulletAndParent(
-          id,
-          bullets[i].children,
-          bullets[i].children
-        );
-        if (found) return [found, foundParent];
-      }
-    }
-    return [null, null];
-  };
-
-  const getAllVisibleBullets = (bullets: BulletPoint[]): BulletPoint[] => {
-    return bullets.reduce((acc: BulletPoint[], bullet) => {
-      return [
-        ...acc,
-        bullet,
-        ...(bullet.isCollapsed ? [] : getAllVisibleBullets(bullet.children)),
-      ];
-    }, []);
-  };
 
   const createNewBullet = (id: string): string | null => {
     const [bullet, parent] = findBulletAndParent(id, bullets);
@@ -82,6 +52,10 @@ export const useBulletManager = () => {
   };
 
   const deleteBullet = (id: string) => {
+    const visibleBullets = getAllVisibleBullets(bullets);
+    const currentIndex = visibleBullets.findIndex(b => b.id === id);
+    const previousBullet = visibleBullets[currentIndex - 1];
+
     const deleteBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.filter((bullet) => {
         if (bullet.id === id) return false;
@@ -91,6 +65,25 @@ export const useBulletManager = () => {
     };
 
     setBullets(deleteBulletRecursive(bullets));
+
+    // Focus on the previous bullet after deletion
+    if (previousBullet) {
+      setTimeout(() => {
+        const previousElement = document.querySelector(
+          `[data-id="${previousBullet.id}"] .bullet-content`
+        ) as HTMLElement;
+        if (previousElement) {
+          previousElement.focus();
+          // Set cursor at the end of the content
+          const range = document.createRange();
+          const selection = window.getSelection();
+          range.selectNodeContents(previousElement);
+          range.collapse(false);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
+      }, 0);
+    }
   };
 
   const toggleCollapse = (id: string) => {
@@ -114,7 +107,7 @@ export const useBulletManager = () => {
     if (!bullet || !parent) return;
 
     const index = parent.indexOf(bullet);
-    if (index === 0) return; // Can't indent the first bullet in a list
+    if (index === 0) return;
 
     const previousBullet = parent[index - 1];
     parent.splice(index, 1);

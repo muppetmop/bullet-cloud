@@ -39,6 +39,7 @@
 
 .bullet-item {
   @apply transition-all duration-200;
+  position: relative;
 }
 
 .bullet-item:focus-within {
