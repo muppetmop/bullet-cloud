@@ -42,6 +42,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
+  const [splitCompleted, setSplitCompleted] = useState(false);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -55,19 +56,22 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   }, [pendingDelete, onDelete]);
 
+  // First useEffect: Update original bullet content
   useEffect(() => {
-    if (pendingSplit) {
-      // First, update the original bullet with content before cursor
+    if (pendingSplit && !splitCompleted) {
       onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
+      setSplitCompleted(true);
+    }
+  }, [pendingSplit, splitCompleted, onUpdate]);
 
-      // Create new bullet for content after cursor
+  // Second useEffect: Create new bullet with remaining content
+  useEffect(() => {
+    if (pendingSplit && splitCompleted) {
       const newBulletId = onNewBullet(pendingSplit.originalBulletId);
       
       if (newBulletId) {
-        // Update the new bullet with content after cursor
         onUpdate(newBulletId, pendingSplit.afterCursor);
 
-        // Focus the new bullet and set cursor at the beginning
         requestAnimationFrame(() => {
           const newElement = document.querySelector(
             `[data-id="${newBulletId}"] .bullet-content`
@@ -88,11 +92,13 @@ const BulletContent: React.FC<BulletContentProps> = ({
             }
           }
         });
-      }
 
-      setPendingSplit(null);
+        // Reset states after successful split
+        setPendingSplit(null);
+        setSplitCompleted(false);
+      }
     }
-  }, [pendingSplit, onUpdate, onNewBullet]);
+  }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     const content = contentRef.current?.textContent || "";
