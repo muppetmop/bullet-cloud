@@ -41,7 +41,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
   const [isProcessingSplit, setIsProcessingSplit] = useState(false);
-  const [localContent, setLocalContent] = useState(bullet.content);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -61,13 +60,16 @@ const BulletContent: React.FC<BulletContentProps> = ({
       if (pendingSplit && !isProcessingSplit) {
         setIsProcessingSplit(true);
         try {
+          // Update original bullet content optimistically
           onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
           
+          // Create new bullet
           const newBulletId = await onNewBullet(pendingSplit.originalBulletId);
           
           if (newBulletId) {
             onUpdate(newBulletId, pendingSplit.afterCursor);
             
+            // Focus new bullet after creation
             requestAnimationFrame(() => {
               const newElement = document.querySelector(
                 `[data-id="${newBulletId}"] .bullet-content`
@@ -204,16 +206,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
 
   const handleInput = () => {
     const content = contentRef.current?.textContent || "";
-    setLocalContent(content);
-    
-    // Debounced update to reduce server calls
-    const timeoutId = setTimeout(() => {
-      if (content !== bullet.content) {
-        onUpdate(bullet.id, content);
-      }
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
+    onUpdate(bullet.id, content);
   };
 
   return (
