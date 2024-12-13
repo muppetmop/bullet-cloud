@@ -35,39 +35,65 @@ export const handleEnterKey = (
   // This prevents the text duplication issue
   onUpdate(bullet.id, beforeCursor);
   
-  // Only after updating the original bullet, create the new one
-  const newBulletId = onNewBullet(bullet.id);
+  // Verify the update by checking the DOM
+  const bulletElement = document.querySelector(
+    `[data-id="${bullet.id}"] .bullet-content`
+  ) as HTMLElement;
   
-  console.log('New bullet created:', {
-    originalBulletId: bullet.id,
-    newBulletId,
-    contentToMove: afterCursor
-  });
-
-  if (newBulletId) {
-    // Now update the new bullet with the "after" portion
-    onUpdate(newBulletId, afterCursor);
-    
-    // Focus the new bullet
+  if (bulletElement) {
+    // Wait for React to update the DOM
     requestAnimationFrame(() => {
-      const newElement = document.querySelector(
-        `[data-id="${newBulletId}"] .bullet-content`
-      ) as HTMLElement;
-      
-      if (newElement) {
-        newElement.focus();
-        try {
-          // Set cursor at the start of the new bullet's content
-          const range = document.createRange();
-          const selection = window.getSelection();
-          const textNode = newElement.firstChild || newElement;
-          range.setStart(textNode, 0);
-          range.collapse(true);
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-        } catch (err) {
-          console.error('Failed to set cursor position:', err);
+      const currentContent = bulletElement.textContent;
+      console.log('Verification check:', {
+        bulletId: bullet.id,
+        expectedContent: beforeCursor,
+        actualContent: currentContent
+      });
+
+      // Only create new bullet after verifying the update
+      if (currentContent === beforeCursor) {
+        // Now create the new bullet with the "after" portion
+        const newBulletId = onNewBullet(bullet.id);
+        
+        console.log('New bullet created:', {
+          originalBulletId: bullet.id,
+          newBulletId,
+          contentToMove: afterCursor
+        });
+
+        if (newBulletId) {
+          // Update the new bullet with the "after" portion
+          onUpdate(newBulletId, afterCursor);
+          
+          // Focus the new bullet
+          requestAnimationFrame(() => {
+            const newElement = document.querySelector(
+              `[data-id="${newBulletId}"] .bullet-content`
+            ) as HTMLElement;
+            
+            if (newElement) {
+              newElement.focus();
+              try {
+                // Set cursor at the start of the new bullet's content
+                const range = document.createRange();
+                const selection = window.getSelection();
+                const textNode = newElement.firstChild || newElement;
+                range.setStart(textNode, 0);
+                range.collapse(true);
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+              } catch (err) {
+                console.error('Failed to set cursor position:', err);
+              }
+            }
+          });
         }
+      } else {
+        console.error('Content update verification failed:', {
+          bulletId: bullet.id,
+          expectedContent: beforeCursor,
+          actualContent: currentContent
+        });
       }
     });
   }
