@@ -48,37 +48,41 @@ export const useBulletHandlers = ({
 
   // Effect for creating new bullet after split
   useEffect(() => {
-    if (pendingSplit && splitCompleted) {
-      const newBulletId = onNewBullet(pendingSplit.originalBulletId);
-      
-      if (newBulletId) {
-        onUpdate(newBulletId, pendingSplit.afterCursor);
+    const createNewBulletAfterSplit = async () => {
+      if (pendingSplit && splitCompleted) {
+        const newBulletId = await onNewBullet(pendingSplit.originalBulletId);
+        
+        if (newBulletId) {
+          onUpdate(newBulletId, pendingSplit.afterCursor);
 
-        requestAnimationFrame(() => {
-          const newElement = document.querySelector(
-            `[data-id="${newBulletId}"] .bullet-content`
-          ) as HTMLElement;
-          
-          if (newElement) {
-            newElement.focus();
-            try {
-              const selection = window.getSelection();
-              const range = document.createRange();
-              const textNode = newElement.firstChild || newElement;
-              range.setStart(textNode, 0);
-              range.setEnd(textNode, 0);
-              selection?.removeAllRanges();
-              selection?.addRange(range);
-            } catch (err) {
-              console.error('Failed to set cursor position:', err);
+          requestAnimationFrame(() => {
+            const newElement = document.querySelector(
+              `[data-id="${newBulletId}"] .bullet-content`
+            ) as HTMLElement;
+            
+            if (newElement) {
+              newElement.focus();
+              try {
+                const selection = window.getSelection();
+                const range = document.createRange();
+                const textNode = newElement.firstChild || newElement;
+                range.setStart(textNode, 0);
+                range.setEnd(textNode, 0);
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+              } catch (err) {
+                console.error('Failed to set cursor position:', err);
+              }
             }
-          }
-        });
+          });
 
-        setPendingSplit(null);
-        setSplitCompleted(false);
+          setPendingSplit(null);
+          setSplitCompleted(false);
+        }
       }
-    }
+    };
+
+    createNewBulletAfterSplit();
   }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
 
   // Effect for handling bullet deletion and cursor positioning
