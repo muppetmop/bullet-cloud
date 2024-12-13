@@ -7,6 +7,7 @@ import { useBulletNavigation } from "@/hooks/useBulletNavigation";
 const TaskManager = () => {
   const {
     bullets,
+    isLoading,
     getAllVisibleBullets,
     createNewBullet,
     createNewRootBullet,
@@ -18,6 +19,14 @@ const TaskManager = () => {
   } = useBulletManager();
 
   const { handleNavigate } = useBulletNavigation(getAllVisibleBullets, bullets);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1EAEDB]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto p-8">
