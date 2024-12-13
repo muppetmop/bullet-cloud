@@ -2,36 +2,33 @@ import { useState, useEffect } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 export const useBulletManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load bullets on mount
+  // Load bullets from Supabase on mount
   useEffect(() => {
-    loadBullets();
-  }, []);
-
-  const loadBullets = async () => {
-    try {
+    const loadBullets = async () => {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) return;
 
-      const { data, error } = await supabase
+      const { data: bulletData, error } = await supabase
         .from("bullets")
         .select("*")
-        .eq('user_id', session.session.user.id)
         .order("position");
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error loading bullets:", error);
+        return;
+      }
 
-      // Convert flat structure to tree
-      const bulletMap = new Map();
+      // Convert flat bullet data to tree structure
+      const bulletMap = new Map<string, BulletPoint>();
       const rootBullets: BulletPoint[] = [];
 
-      // First pass: Create all bullet objects
-      data?.forEach(bullet => {
+      // First pass: create BulletPoint objects
+      bulletData.forEach((bullet) => {
         bulletMap.set(bullet.id, {
           id: bullet.id,
           content: bullet.content || "",
@@ -40,16 +37,18 @@ export const useBulletManager = () => {
         });
       });
 
-      // Second pass: Build the tree structure
-      data?.forEach(bullet => {
-        const bulletObj = bulletMap.get(bullet.id);
-        if (bullet.parent_id) {
-          const parent = bulletMap.get(bullet.parent_id);
-          if (parent) {
-            parent.children.push(bulletObj);
+      // Second pass: build tree structure
+      bulletData.forEach((bullet) => {
+        const bulletPoint = bulletMap.get(bullet.id);
+        if (bulletPoint) {
+          if (bullet.parent_id) {
+            const parent = bulletMap.get(bullet.parent_id);
+            if (parent) {
+              parent.children.push(bulletPoint);
+            }
+          } else {
+            rootBullets.push(bulletPoint);
           }
-        } else {
-          rootBullets.push(bulletObj);
         }
       });
 
@@ -59,52 +58,16 @@ export const useBulletManager = () => {
         children: [],
         isCollapsed: false
       }]);
-    } catch (error) {
-      console.error("Error loading bullets:", error);
-      toast.error("Failed to load bullets");
-    } finally {
       setIsLoading(false);
-    }
-  };
+    };
 
-  const saveBullet = async (bullet: BulletPoint, parentId: string | null = null, position: number) => {
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session.session) {
-        throw new Error("No active session");
-      }
+    loadBullets();
+  }, []);
 
-      const { error } = await supabase
-        .from("bullets")
-        .upsert({
-          id: bullet.id,
-          content: bullet.content,
-          parent_id: parentId,
-          position: position,
-          is_collapsed: bullet.isCollapsed,
-          user_id: session.session.user.id,
-        });
-
-      if (error) throw error;
-
-      // Recursively save children
-      for (let i = 0; i < bullet.children.length; i++) {
-        await saveBullet(bullet.children[i], bullet.id, i);
-      }
-    } catch (error) {
-      console.error("Error saving bullet:", error);
-      toast.error("Failed to save changes");
-    }
-  };
-
-  const saveAllBullets = async () => {
-    for (let i = 0; i < bullets.length; i++) {
-      await saveBullet(bullets[i], null, i);
-    }
-  };
-
-  // Wrap existing methods to include saving
   const createNewBullet = async (id: string): Promise<string | null> => {
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session) return null;
+
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return null;
 
@@ -114,24 +77,56 @@ export const useBulletManager = () => {
       children: [],
       isCollapsed: false,
     };
+
     const index = parent.indexOf(bullet);
     parent.splice(index + 1, 0, newBullet);
     setBullets([...bullets]);
-    
-    await saveAllBullets();
+
+    // Save to Supabase
+    const { error } = await supabase.from("bullets").insert({
+      id: newBullet.id,
+      content: newBullet.content,
+      parent_id: parent === bullets ? null : bullet.id,
+      position: index + 1,
+      is_collapsed: newBullet.isCollapsed,
+      user_id: session.session.user.id
+    });
+
+    if (error) {
+      console.error("Error creating bullet:", error);
+      return null;
+    }
+
     return newBullet.id;
   };
 
   const createNewRootBullet = async (): Promise<string> => {
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session) throw new Error("No session found");
+
     const newBullet = {
       id: crypto.randomUUID(),
       content: "",
       children: [],
       isCollapsed: false,
     };
+
     setBullets([...bullets, newBullet]);
-    
-    await saveAllBullets();
+
+    // Save to Supabase
+    const { error } = await supabase.from("bullets").insert({
+      id: newBullet.id,
+      content: newBullet.content,
+      parent_id: null,
+      position: bullets.length,
+      is_collapsed: newBullet.isCollapsed,
+      user_id: session.session.user.id
+    });
+
+    if (error) {
+      console.error("Error creating root bullet:", error);
+    }
+
     return newBullet.id;
   };
 
@@ -148,12 +143,24 @@ export const useBulletManager = () => {
       });
     };
 
-    const newBullets = updateBulletRecursive(bullets);
-    setBullets(newBullets);
-    await saveAllBullets();
+    setBullets(updateBulletRecursive(bullets));
+
+    // Save to Supabase
+    const { error } = await supabase
+      .from("bullets")
+      .update({ content })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error updating bullet:", error);
+    }
   };
 
   const deleteBullet = async (id: string) => {
+    const visibleBullets = getAllVisibleBullets(bullets);
+    const currentIndex = visibleBullets.findIndex(b => b.id === id);
+    const previousBullet = visibleBullets[currentIndex - 1];
+
     const deleteBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.filter((bullet) => {
         if (bullet.id === id) return false;
@@ -162,19 +169,34 @@ export const useBulletManager = () => {
       });
     };
 
-    const newBullets = deleteBulletRecursive(bullets);
-    setBullets(newBullets);
-    
-    try {
-      const { error } = await supabase
-        .from("bullets")
-        .delete()
-        .eq("id", id);
+    setBullets(deleteBulletRecursive(bullets));
 
-      if (error) throw error;
-    } catch (error) {
+    // Delete from Supabase
+    const { error } = await supabase
+      .from("bullets")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
       console.error("Error deleting bullet:", error);
-      toast.error("Failed to delete bullet");
+    }
+
+    // Focus on the previous bullet after deletion
+    if (previousBullet) {
+      setTimeout(() => {
+        const previousElement = document.querySelector(
+          `[data-id="${previousBullet.id}"] .bullet-content`
+        ) as HTMLElement;
+        if (previousElement) {
+          previousElement.focus();
+          const range = document.createRange();
+          const selection = window.getSelection();
+          range.selectNodeContents(previousElement);
+          range.collapse(false);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
+      }, 0);
     }
   };
 
@@ -191,12 +213,23 @@ export const useBulletManager = () => {
       });
     };
 
-    const newBullets = toggleCollapseRecursive(bullets);
-    setBullets(newBullets);
-    await saveAllBullets();
+    setBullets(toggleCollapseRecursive(bullets));
+
+    // Update in Supabase
+    const bullet = getAllVisibleBullets(bullets).find(b => b.id === id);
+    if (bullet) {
+      const { error } = await supabase
+        .from("bullets")
+        .update({ is_collapsed: !bullet.isCollapsed })
+        .eq("id", id);
+
+      if (error) {
+        console.error("Error toggling collapse:", error);
+      }
+    }
   };
 
-  const indentBullet = (id: string) => {
+  const indentBullet = async (id: string) => {
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return;
 
@@ -207,9 +240,22 @@ export const useBulletManager = () => {
     parent.splice(index, 1);
     previousBullet.children.push(bullet);
     setBullets([...bullets]);
+
+    // Update in Supabase
+    const { error } = await supabase
+      .from("bullets")
+      .update({
+        parent_id: previousBullet.id,
+        position: previousBullet.children.length - 1,
+      })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error indenting bullet:", error);
+    }
   };
 
-  const outdentBullet = (id: string) => {
+  const outdentBullet = async (id: string) => {
     const findBulletAndGrandParent = (
       id: string,
       bullets: BulletPoint[],
@@ -243,6 +289,19 @@ export const useBulletManager = () => {
     parent.splice(bulletIndex, 1);
     grandParent.splice(parentIndex + 1, 0, bullet);
     setBullets([...bullets]);
+
+    // Update in Supabase
+    const { error } = await supabase
+      .from("bullets")
+      .update({
+        parent_id: null,
+        position: parentIndex + 1,
+      })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error outdenting bullet:", error);
+    }
   };
 
   return {
