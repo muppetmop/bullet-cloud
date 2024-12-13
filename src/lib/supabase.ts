@@ -1,18 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl) {
-  console.error("Missing VITE_SUPABASE_URL environment variable");
-  console.log("Please make sure you have connected your Supabase project in the Lovable interface");
-  throw new Error("Missing VITE_SUPABASE_URL - Please connect your Supabase project");
-}
-
-if (!supabaseAnonKey) {
-  console.error("Missing VITE_SUPABASE_ANON_KEY environment variable");
-  console.log("Please make sure you have connected your Supabase project in the Lovable interface");
-  throw new Error("Missing VITE_SUPABASE_ANON_KEY - Please connect your Supabase project");
-}
+const supabaseUrl = "https://pxmthjryoxoifxdtcevd.supabase.co";
+const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4bXRoanJ5b3hvaWZ4ZHRjZXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQwOTMzMjMsImV4cCI6MjA0OTY2OTMyM30.OdgyZdhqnNL-dt0eKkCLK0Z4ChqQ0y7O07nGcR_w474";
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
