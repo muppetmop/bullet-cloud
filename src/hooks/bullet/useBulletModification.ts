@@ -42,6 +42,14 @@ export const useBulletModification = (
     }
   };
 
+  const getAllChildrenIds = (bullet: BulletPoint): string[] => {
+    let ids: string[] = [bullet.id];
+    bullet.children.forEach(child => {
+      ids = [...ids, ...getAllChildrenIds(child)];
+    });
+    return ids;
+  };
+
   const deleteBullet = async (id: string) => {
     if (!user) return;
 
@@ -49,20 +57,17 @@ export const useBulletModification = (
     const currentIndex = visibleBullets.findIndex(b => b.id === id);
     const previousBullet = visibleBullets[currentIndex - 1];
 
-    const deleteBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
-      return bullets.filter((bullet) => {
-        if (bullet.id === id) return false;
-        bullet.children = deleteBulletRecursive(bullet.children);
-        return true;
-      });
-    };
+    // Find the bullet to delete and get all its children's IDs
+    const bulletToDelete = visibleBullets.find(b => b.id === id);
+    if (!bulletToDelete) return;
 
-    setBullets(deleteBulletRecursive(bullets));
+    const idsToDelete = getAllChildrenIds(bulletToDelete);
 
+    // Delete all bullets (parent and children) from Supabase
     const { error } = await supabase
       .from("bullets")
       .delete()
-      .eq("id", id);
+      .in("id", idsToDelete);
 
     if (error) {
       toast({
@@ -70,7 +75,19 @@ export const useBulletModification = (
         description: error.message,
         variant: "destructive",
       });
+      return;
     }
+
+    // Update local state
+    const deleteBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
+      return bullets.filter((bullet) => {
+        if (idsToDelete.includes(bullet.id)) return false;
+        bullet.children = deleteBulletRecursive(bullet.children);
+        return true;
+      });
+    };
+
+    setBullets(deleteBulletRecursive(bullets));
 
     if (previousBullet) {
       setTimeout(() => {
