@@ -23,35 +23,14 @@ export const useBackspaceHandler = ({
       );
       
       if (currentIndex > 0) {
+        e.preventDefault();
         const previousElement = visibleBullets[currentIndex - 1];
         const previousContent = previousElement.textContent || '';
         const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
         
         if (previousBulletId) {
           if (content.length === 0) {
-            if (visibleBullets.length > 1) {
-              onDelete(bullet.id);
-              
-              requestAnimationFrame(() => {
-                previousElement.focus();
-                try {
-                  const selection = window.getSelection();
-                  const range = document.createRange();
-                  const textNode = previousElement.firstChild || previousElement;
-                  const position = previousContent.length;
-                  range.setStart(textNode, position);
-                  range.setEnd(textNode, position);
-                  selection?.removeAllRanges();
-                  selection?.addRange(range);
-                } catch (err) {
-                  console.error('Failed to set cursor position:', err);
-                }
-              });
-            }
-          } else {
-            e.preventDefault();
-            const cursorPosition = previousContent.length;
-            onUpdate(previousBulletId, previousContent + content);
+            // Only delete the current bullet if it's empty
             onDelete(bullet.id);
             
             requestAnimationFrame(() => {
@@ -60,8 +39,29 @@ export const useBackspaceHandler = ({
                 const selection = window.getSelection();
                 const range = document.createRange();
                 const textNode = previousElement.firstChild || previousElement;
-                range.setStart(textNode, cursorPosition);
-                range.setEnd(textNode, cursorPosition);
+                const position = previousContent.length;
+                range.setStart(textNode, position);
+                range.setEnd(textNode, position);
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+              } catch (err) {
+                console.error('Failed to set cursor position:', err);
+              }
+            });
+          } else {
+            // Merge content with the previous bullet
+            const newContent = previousContent + content;
+            onUpdate(previousBulletId, newContent);
+            onDelete(bullet.id);
+            
+            requestAnimationFrame(() => {
+              previousElement.focus();
+              try {
+                const selection = window.getSelection();
+                const range = document.createRange();
+                const textNode = previousElement.firstChild || previousElement;
+                range.setStart(textNode, previousContent.length);
+                range.setEnd(textNode, previousContent.length);
                 selection?.removeAllRanges();
                 selection?.addRange(range);
               } catch (err) {
