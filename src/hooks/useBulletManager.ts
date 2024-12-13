@@ -103,6 +103,40 @@ export const useBulletManager = () => {
     return newBullet.id;
   };
 
+  const createNewRootBullet = async () => {
+    if (!user) return null;
+
+    const newBullet = {
+      id: crypto.randomUUID(),
+      content: "",
+      children: [],
+      isCollapsed: false,
+    };
+
+    setBullets([...bullets, newBullet]);
+
+    // Save to Supabase
+    const { error } = await supabase.from("bullets").insert({
+      id: newBullet.id,
+      content: newBullet.content,
+      parent_id: null,
+      position: bullets.length,
+      is_collapsed: newBullet.isCollapsed,
+      user_id: user.id,
+    });
+
+    if (error) {
+      toast({
+        title: "Error creating root bullet",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    return newBullet.id;
+  };
+
   const updateBullet = async (id: string, content: string) => {
     if (!user) return;
 
