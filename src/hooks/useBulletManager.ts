@@ -1,26 +1,90 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
 import { useDebounceSync } from "./useDebounceSync";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useBulletManager = () => {
-  const [bullets, setBullets] = useState<BulletPoint[]>([
-    { id: crypto.randomUUID(), content: "", children: [], isCollapsed: false },
-  ]);
+  const [bullets, setBullets] = useState<BulletPoint[]>([]);
   const { saveBulletToSupabase } = useDebounceSync();
 
-  const createNewBullet = (id: string): string | null => {
+  useEffect(() => {
+    const loadBullets = async () => {
+      const session = await supabase.auth.getSession();
+      if (!session.data.session?.user.id) return;
+
+      const { data, error } = await supabase
+        .from("bullets")
+        .select("*")
+        .eq("user_id", session.data.session.user.id)
+        .order("position");
+
+      if (error) {
+        console.error("Error loading bullets:", error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        setBullets(data as BulletPoint[]);
+      } else {
+        // Initialize with an empty bullet if no data exists
+        const { data: newBullet, error: createError } = await supabase
+          .from("bullets")
+          .insert([
+            {
+              content: "",
+              user_id: session.data.session.user.id,
+              position: 0,
+              is_collapsed: false
+            }
+          ])
+          .select()
+          .single();
+
+        if (createError) {
+          console.error("Error creating initial bullet:", createError);
+          return;
+        }
+
+        setBullets([newBullet as BulletPoint]);
+      }
+    };
+
+    loadBullets();
+  }, []);
+
+  const createNewBullet = async (id: string): Promise<string | null> => {
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return null;
+
+    const session = await supabase.auth.getSession();
+    if (!session.data.session?.user.id) return null;
 
     const newBullet = {
       id: crypto.randomUUID(),
       content: "",
       children: [],
       isCollapsed: false,
+      user_id: session.data.session.user.id,
+      position: parent.indexOf(bullet) + 1
     };
-    const index = parent.indexOf(bullet);
-    parent.splice(index + 1, 0, newBullet);
+
+    const { error } = await supabase
+      .from("bullets")
+      .insert([{
+        id: newBullet.id,
+        content: newBullet.content,
+        user_id: newBullet.user_id,
+        position: newBullet.position,
+        is_collapsed: newBullet.isCollapsed
+      }]);
+
+    if (error) {
+      console.error("Error creating new bullet:", error);
+      return null;
+    }
+
+    parent.splice(parent.indexOf(bullet) + 1, 0, newBullet);
     setBullets([...bullets]);
 
     return newBullet.id;
