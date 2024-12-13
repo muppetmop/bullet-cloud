@@ -22,6 +22,9 @@ const Auth = () => {
         const { error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: window.location.origin,
+          },
         });
         if (error) throw error;
         toast({
@@ -33,7 +36,12 @@ const Auth = () => {
           email,
           password,
         });
-        if (error) throw error;
+        if (error) {
+          if (error.message === "Invalid login credentials") {
+            throw new Error("Invalid email or password. Please try again.");
+          }
+          throw error;
+        }
         navigate("/");
       }
     } catch (error: any) {
@@ -66,6 +74,7 @@ const Auth = () => {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full"
+              disabled={isLoading}
             />
             <Input
               type="password"
@@ -74,6 +83,7 @@ const Auth = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full"
+              disabled={isLoading}
             />
           </div>
 
@@ -94,6 +104,7 @@ const Auth = () => {
               type="button"
               onClick={() => setIsSignUp(!isSignUp)}
               className="text-[#0EA5E9] hover:underline"
+              disabled={isLoading}
             >
               {isSignUp
                 ? "Already have an account? Sign in"
