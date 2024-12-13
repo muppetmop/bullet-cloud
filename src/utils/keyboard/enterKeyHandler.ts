@@ -31,10 +31,11 @@ export const handleEnterKey = (
     bulletId: bullet.id
   });
 
-  // First, update the current bullet with ONLY the content before cursor
+  // Important: First update the original bullet to remove the "after" portion
+  // This prevents the text duplication issue
   onUpdate(bullet.id, beforeCursor);
   
-  // Create new bullet and get its ID
+  // Only after updating the original bullet, create the new one
   const newBulletId = onNewBullet(bullet.id);
   
   console.log('New bullet created:', {
@@ -44,7 +45,7 @@ export const handleEnterKey = (
   });
 
   if (newBulletId) {
-    // Update the new bullet with ONLY the content after cursor
+    // Now update the new bullet with the "after" portion
     onUpdate(newBulletId, afterCursor);
     
     // Focus the new bullet
