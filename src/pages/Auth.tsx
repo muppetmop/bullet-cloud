@@ -19,29 +19,46 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { error, data } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: window.location.origin,
           },
         });
+        
         if (error) throw error;
-        toast({
-          title: "Success!",
-          description: "Please check your email to verify your account.",
-        });
+        
+        // Check if email verification is required
+        if (data?.user?.identities?.length === 0) {
+          toast({
+            title: "Account already exists",
+            description: "Please sign in instead.",
+            variant: "destructive",
+          });
+          setIsSignUp(false);
+        } else {
+          toast({
+            title: "Success!",
+            description: "Please check your email to verify your account.",
+          });
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
+        
         if (error) {
+          if (error.message === "Email not confirmed") {
+            throw new Error("Please verify your email before signing in.");
+          }
           if (error.message === "Invalid login credentials") {
             throw new Error("Invalid email or password. Please try again.");
           }
           throw error;
         }
+        
         navigate("/");
       }
     } catch (error: any) {
