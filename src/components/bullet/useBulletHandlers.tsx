@@ -1,5 +1,6 @@
-import { useState, KeyboardEvent } from "react";
+import { useState, KeyboardEvent, useEffect } from "react";
 import { BulletPoint } from "@/types/bullet";
+import { handleTabKey, handleArrowKeys } from "@/utils/keyboardHandlers";
 
 interface BulletHandlers {
   bullet: BulletPoint;
@@ -38,7 +39,7 @@ export const useBulletHandlers = ({
   const [splitCompleted, setSplitCompleted] = useState(false);
 
   // Effect for handling content updates after split
-  React.useEffect(() => {
+  useEffect(() => {
     if (pendingSplit && !splitCompleted) {
       onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
       setSplitCompleted(true);
@@ -46,7 +47,7 @@ export const useBulletHandlers = ({
   }, [pendingSplit, splitCompleted, onUpdate]);
 
   // Effect for creating new bullet after split
-  React.useEffect(() => {
+  useEffect(() => {
     if (pendingSplit && splitCompleted) {
       const newBulletId = onNewBullet(pendingSplit.originalBulletId);
       
@@ -81,7 +82,7 @@ export const useBulletHandlers = ({
   }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
 
   // Effect for handling bullet deletion and cursor positioning
-  React.useEffect(() => {
+  useEffect(() => {
     if (pendingDelete) {
       onDelete(pendingDelete.bulletId);
       
