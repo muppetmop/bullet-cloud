@@ -73,13 +73,16 @@ export const useBulletManager = () => {
     const session = await supabase.auth.getSession();
     if (!session.data.session?.user.id) return null;
 
-    const newBullet = {
+    const newBullet: BulletPoint = {
       id: crypto.randomUUID(),
       content: "",
       children: [],
       isCollapsed: false,
       user_id: session.data.session.user.id,
-      position: parent.indexOf(bullet) + 1
+      position: parent.indexOf(bullet) + 1,
+      parent_id: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
 
     const { error } = await supabase
@@ -89,7 +92,10 @@ export const useBulletManager = () => {
         content: newBullet.content,
         user_id: newBullet.user_id,
         position: newBullet.position,
-        is_collapsed: newBullet.isCollapsed
+        is_collapsed: newBullet.isCollapsed,
+        parent_id: newBullet.parent_id,
+        created_at: newBullet.created_at,
+        updated_at: newBullet.updated_at
       }]);
 
     if (error) {
@@ -103,13 +109,40 @@ export const useBulletManager = () => {
     return newBullet.id;
   };
 
-  const createNewRootBullet = (): string => {
-    const newBullet = {
+  const createNewRootBullet = async (): Promise<string> => {
+    const session = await supabase.auth.getSession();
+    if (!session.data.session?.user.id) throw new Error("No user session");
+
+    const newBullet: BulletPoint = {
       id: crypto.randomUUID(),
       content: "",
       children: [],
       isCollapsed: false,
+      position: bullets.length,
+      user_id: session.data.session.user.id,
+      parent_id: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
+
+    const { error } = await supabase
+      .from("bullets")
+      .insert([{
+        id: newBullet.id,
+        content: newBullet.content,
+        user_id: newBullet.user_id,
+        position: newBullet.position,
+        is_collapsed: newBullet.isCollapsed,
+        parent_id: newBullet.parent_id,
+        created_at: newBullet.created_at,
+        updated_at: newBullet.updated_at
+      }]);
+
+    if (error) {
+      console.error("Error creating new root bullet:", error);
+      throw error;
+    }
+
     setBullets([...bullets, newBullet]);
     return newBullet.id;
   };
