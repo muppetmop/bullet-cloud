@@ -1,13 +1,103 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const useBulletManager = () => {
-  const [bullets, setBullets] = useState<BulletPoint[]>([
-    { id: crypto.randomUUID(), content: "", children: [], isCollapsed: false },
-  ]);
+  const [bullets, setBullets] = useState<BulletPoint[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const createNewBullet = (id: string): string | null => {
+  // Load bullets on mount
+  useEffect(() => {
+    loadBullets();
+  }, []);
+
+  const loadBullets = async () => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) return;
+
+      const { data, error } = await supabase
+        .from("bullets")
+        .select("*")
+        .order("position");
+
+      if (error) throw error;
+
+      // Convert flat structure to tree
+      const bulletMap = new Map();
+      const rootBullets: BulletPoint[] = [];
+
+      // First pass: Create all bullet objects
+      data?.forEach(bullet => {
+        bulletMap.set(bullet.id, {
+          id: bullet.id,
+          content: bullet.content || "",
+          children: [],
+          isCollapsed: bullet.is_collapsed,
+        });
+      });
+
+      // Second pass: Build the tree structure
+      data?.forEach(bullet => {
+        const bulletObj = bulletMap.get(bullet.id);
+        if (bullet.parent_id) {
+          const parent = bulletMap.get(bullet.parent_id);
+          if (parent) {
+            parent.children.push(bulletObj);
+          }
+        } else {
+          rootBullets.push(bulletObj);
+        }
+      });
+
+      setBullets(rootBullets.length > 0 ? rootBullets : [{
+        id: crypto.randomUUID(),
+        content: "",
+        children: [],
+        isCollapsed: false
+      }]);
+    } catch (error) {
+      console.error("Error loading bullets:", error);
+      toast.error("Failed to load bullets");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveBullet = async (bullet: BulletPoint, parentId: string | null = null, position: number) => {
+    try {
+      const { error } = await supabase
+        .from("bullets")
+        .upsert({
+          id: bullet.id,
+          content: bullet.content,
+          parent_id: parentId,
+          position: position,
+          is_collapsed: bullet.isCollapsed,
+        });
+
+      if (error) throw error;
+
+      // Recursively save children
+      for (let i = 0; i < bullet.children.length; i++) {
+        await saveBullet(bullet.children[i], bullet.id, i);
+      }
+    } catch (error) {
+      console.error("Error saving bullet:", error);
+      toast.error("Failed to save changes");
+    }
+  };
+
+  const saveAllBullets = async () => {
+    for (let i = 0; i < bullets.length; i++) {
+      await saveBullet(bullets[i], null, i);
+    }
+  };
+
+  // Wrap existing methods to include saving
+  const createNewBullet = async (id: string): Promise<string | null> => {
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return null;
 
@@ -20,11 +110,12 @@ export const useBulletManager = () => {
     const index = parent.indexOf(bullet);
     parent.splice(index + 1, 0, newBullet);
     setBullets([...bullets]);
-
+    
+    await saveAllBullets();
     return newBullet.id;
   };
 
-  const createNewRootBullet = (): string => {
+  const createNewRootBullet = async (): Promise<string> => {
     const newBullet = {
       id: crypto.randomUUID(),
       content: "",
@@ -32,10 +123,12 @@ export const useBulletManager = () => {
       isCollapsed: false,
     };
     setBullets([...bullets, newBullet]);
+    
+    await saveAllBullets();
     return newBullet.id;
   };
 
-  const updateBullet = (id: string, content: string) => {
+  const updateBullet = async (id: string, content: string) => {
     const updateBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.map((bullet) => {
         if (bullet.id === id) {
@@ -48,14 +141,12 @@ export const useBulletManager = () => {
       });
     };
 
-    setBullets(updateBulletRecursive(bullets));
+    const newBullets = updateBulletRecursive(bullets);
+    setBullets(newBullets);
+    await saveAllBullets();
   };
 
-  const deleteBullet = (id: string) => {
-    const visibleBullets = getAllVisibleBullets(bullets);
-    const currentIndex = visibleBullets.findIndex(b => b.id === id);
-    const previousBullet = visibleBullets[currentIndex - 1];
-
+  const deleteBullet = async (id: string) => {
     const deleteBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.filter((bullet) => {
         if (bullet.id === id) return false;
@@ -64,29 +155,23 @@ export const useBulletManager = () => {
       });
     };
 
-    setBullets(deleteBulletRecursive(bullets));
+    const newBullets = deleteBulletRecursive(bullets);
+    setBullets(newBullets);
+    
+    try {
+      const { error } = await supabase
+        .from("bullets")
+        .delete()
+        .eq("id", id);
 
-    // Focus on the previous bullet after deletion
-    if (previousBullet) {
-      setTimeout(() => {
-        const previousElement = document.querySelector(
-          `[data-id="${previousBullet.id}"] .bullet-content`
-        ) as HTMLElement;
-        if (previousElement) {
-          previousElement.focus();
-          // Set cursor at the end of the content
-          const range = document.createRange();
-          const selection = window.getSelection();
-          range.selectNodeContents(previousElement);
-          range.collapse(false);
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-        }
-      }, 0);
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error deleting bullet:", error);
+      toast.error("Failed to delete bullet");
     }
   };
 
-  const toggleCollapse = (id: string) => {
+  const toggleCollapse = async (id: string) => {
     const toggleCollapseRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.map((bullet) => {
         if (bullet.id === id) {
@@ -99,7 +184,9 @@ export const useBulletManager = () => {
       });
     };
 
-    setBullets(toggleCollapseRecursive(bullets));
+    const newBullets = toggleCollapseRecursive(bullets);
+    setBullets(newBullets);
+    await saveAllBullets();
   };
 
   const indentBullet = (id: string) => {
@@ -153,6 +240,7 @@ export const useBulletManager = () => {
 
   return {
     bullets,
+    isLoading,
     findBulletAndParent,
     getAllVisibleBullets,
     createNewBullet,
