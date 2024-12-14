@@ -32,7 +32,7 @@ export const useBulletUpdates = () => {
         console.error("Error in saveBulletToSupabase:", error);
         toast.error("Failed to save changes");
       }
-    }, 100),
+    }, 500), // Increased debounce time to reduce save frequency
     []
   );
 
