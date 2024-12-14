@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
-import { useDebounceSync } from "./useDebounceSync";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const transformDatabaseBullet = (dbBullet: any): BulletPoint => ({
   id: dbBullet.id,
@@ -18,7 +18,6 @@ const transformDatabaseBullet = (dbBullet: any): BulletPoint => ({
 
 export const useBulletManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([]);
-  const { saveBulletToSupabase } = useDebounceSync();
 
   useEffect(() => {
     const loadBullets = async () => {
@@ -33,6 +32,7 @@ export const useBulletManager = () => {
 
       if (error) {
         console.error("Error loading bullets:", error);
+        toast.error("Failed to load bullets");
         return;
       }
 
@@ -40,7 +40,6 @@ export const useBulletManager = () => {
         const transformedBullets = data.map(transformDatabaseBullet);
         setBullets(transformedBullets);
       } else {
-        // Initialize with an empty bullet if no data exists
         const { data: newBullet, error: createError } = await supabase
           .from("bullets")
           .insert([
@@ -56,6 +55,7 @@ export const useBulletManager = () => {
 
         if (createError) {
           console.error("Error creating initial bullet:", createError);
+          toast.error("Failed to create initial bullet");
           return;
         }
 
@@ -67,20 +67,21 @@ export const useBulletManager = () => {
   }, []);
 
   const createNewBullet = async (id: string): Promise<string | null> => {
-    const [bullet, parent] = findBulletAndParent(id, bullets);
-    if (!bullet || !parent) return null;
-
     const session = await supabase.auth.getSession();
     if (!session.data.session?.user.id) return null;
 
+    const [bullet, parent] = findBulletAndParent(id, bullets);
+    if (!bullet || !parent) return null;
+
+    const newPosition = parent.indexOf(bullet) + 1;
     const newBullet: BulletPoint = {
       id: crypto.randomUUID(),
       content: "",
       children: [],
       isCollapsed: false,
-      user_id: session.data.session.user.id,
-      position: parent.indexOf(bullet) + 1,
       parent_id: null,
+      position: newPosition,
+      user_id: session.data.session.user.id,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -100,6 +101,7 @@ export const useBulletManager = () => {
 
     if (error) {
       console.error("Error creating new bullet:", error);
+      toast.error("Failed to create new bullet");
       return null;
     }
 
@@ -109,7 +111,7 @@ export const useBulletManager = () => {
     return newBullet.id;
   };
 
-  const createNewRootBullet = async (): Promise<string> => {
+  const createNewRootBullet = async () => {
     const session = await supabase.auth.getSession();
     if (!session.data.session?.user.id) throw new Error("No user session");
 
@@ -140,6 +142,7 @@ export const useBulletManager = () => {
 
     if (error) {
       console.error("Error creating new root bullet:", error);
+      toast.error("Failed to create new bullet");
       throw error;
     }
 
@@ -151,8 +154,6 @@ export const useBulletManager = () => {
     const updateBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.map((bullet) => {
         if (bullet.id === id) {
-          // Trigger debounced save when content changes
-          saveBulletToSupabase(id, content);
           return { ...bullet, content };
         }
         return {
@@ -165,10 +166,17 @@ export const useBulletManager = () => {
     setBullets(updateBulletRecursive(bullets));
   };
 
-  const deleteBullet = (id: string) => {
-    const visibleBullets = getAllVisibleBullets(bullets);
-    const currentIndex = visibleBullets.findIndex(b => b.id === id);
-    const previousBullet = visibleBullets[currentIndex - 1];
+  const deleteBullet = async (id: string) => {
+    const { error } = await supabase
+      .from("bullets")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting bullet:", error);
+      toast.error("Failed to delete bullet");
+      return;
+    }
 
     const deleteBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.filter((bullet) => {
@@ -179,25 +187,6 @@ export const useBulletManager = () => {
     };
 
     setBullets(deleteBulletRecursive(bullets));
-
-    // Focus on the previous bullet after deletion
-    if (previousBullet) {
-      setTimeout(() => {
-        const previousElement = document.querySelector(
-          `[data-id="${previousBullet.id}"] .bullet-content`
-        ) as HTMLElement;
-        if (previousElement) {
-          previousElement.focus();
-          // Set cursor at the end of the content
-          const range = document.createRange();
-          const selection = window.getSelection();
-          range.selectNodeContents(previousElement);
-          range.collapse(false);
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-        }
-      }, 0);
-    }
   };
 
   const toggleCollapse = (id: string) => {
