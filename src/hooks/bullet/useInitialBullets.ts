@@ -21,7 +21,7 @@ export const useInitialBullets = () => {
           .from('bullets')
           .select('*')
           .eq('user_id', session.session.user.id)
-          .order('tree_path');
+          .order('absolute_position', { ascending: true });
 
         if (error) {
           console.error('Error loading bullets:', error);
@@ -40,22 +40,37 @@ export const useInitialBullets = () => {
               content: bullet.content || '',
               children: [],
               isCollapsed: bullet.is_collapsed,
-              treePathArray: bullet.tree_path,
-              depth: bullet.depth
+              absolutePosition: bullet.absolute_position,
+              levelPosition: bullet.level_position
             });
           });
 
-          // Second pass: build the hierarchy based on tree_path
+          // Second pass: build hierarchy based on parent_id
           bulletData.forEach(bullet => {
             const bulletNode = bulletMap.get(bullet.id);
-            if (bullet.parent_id && bullet.tree_path && bullet.tree_path.length > 1) {
-              const parentId = bullet.tree_path[bullet.tree_path.length - 2]; // Get immediate parent from tree_path
-              const parent = bulletMap.get(parentId);
+            if (bullet.parent_id) {
+              const parent = bulletMap.get(bullet.parent_id);
               if (parent) {
-                parent.children.push(bulletNode);
+                // Insert at the correct position based on level_position
+                const insertIndex = parent.children.findIndex(
+                  child => child.levelPosition > bulletNode.levelPosition
+                );
+                if (insertIndex === -1) {
+                  parent.children.push(bulletNode);
+                } else {
+                  parent.children.splice(insertIndex, 0, bulletNode);
+                }
               }
             } else {
-              rootBullets.push(bulletNode);
+              // Insert root bullet at correct position based on absolute_position
+              const insertIndex = rootBullets.findIndex(
+                b => b.absolutePosition > bulletNode.absolutePosition
+              );
+              if (insertIndex === -1) {
+                rootBullets.push(bulletNode);
+              } else {
+                rootBullets.splice(insertIndex, 0, bulletNode);
+              }
             }
           });
 
@@ -72,6 +87,8 @@ export const useInitialBullets = () => {
             content: "",
             children: [],
             isCollapsed: false,
+            absolutePosition: 0,
+            levelPosition: 0
           };
           
           const { error: insertError } = await supabase
@@ -79,7 +96,8 @@ export const useInitialBullets = () => {
             .insert([{
               id: newBullet.id,
               content: newBullet.content,
-              position: 0,
+              absolute_position: 0,
+              level_position: 0,
               is_collapsed: false,
               user_id: session.session.user.id
             }]);

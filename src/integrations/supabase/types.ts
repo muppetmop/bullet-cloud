@@ -14,13 +14,11 @@ export type Database = {
           absolute_position: number
           content: string | null
           created_at: string
-          depth: number | null
           id: string
           is_collapsed: boolean
           level_position: number
           parent_id: string | null
           position: number
-          tree_path: string[] | null
           updated_at: string
           user_id: string
         }
@@ -28,13 +26,11 @@ export type Database = {
           absolute_position?: number
           content?: string | null
           created_at?: string
-          depth?: number | null
           id?: string
           is_collapsed?: boolean
           level_position?: number
           parent_id?: string | null
           position?: number
-          tree_path?: string[] | null
           updated_at?: string
           user_id: string
         }
@@ -42,13 +38,11 @@ export type Database = {
           absolute_position?: number
           content?: string | null
           created_at?: string
-          depth?: number | null
           id?: string
           is_collapsed?: boolean
           level_position?: number
           parent_id?: string | null
           position?: number
-          tree_path?: string[] | null
           updated_at?: string
           user_id?: string
         }
