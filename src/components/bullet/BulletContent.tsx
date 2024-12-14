@@ -1,8 +1,6 @@
-import React, { useState, useCallback } from "react";
+import React, { useRef, KeyboardEvent, useEffect, useState } from "react";
 import { BulletPoint } from "@/types/bullet";
-import BulletActions from "./BulletActions";
-import BulletInput from "./BulletInput";
-import { useBulletUpdates } from "@/hooks/useBulletUpdates";
+import { ChevronRight, ChevronDown } from "lucide-react";
 import {
   handleTabKey,
   handleArrowKeys,
@@ -12,11 +10,23 @@ interface BulletContentProps {
   bullet: BulletPoint;
   onUpdate: (id: string, content: string) => void;
   onDelete: (id: string) => void;
-  onNewBullet: (id: string) => Promise<string | null>;
+  onNewBullet: (id: string) => string | null;
   onCollapse: (id: string) => void;
   onNavigate: (direction: "up" | "down", id: string) => void;
   onIndent?: (id: string) => void;
   onOutdent?: (id: string) => void;
+}
+
+interface PendingDelete {
+  bulletId: string;
+  previousContent: string;
+  previousBulletId: string;
+}
+
+interface PendingSplit {
+  originalBulletId: string;
+  beforeCursor: string;
+  afterCursor: string;
 }
 
 const BulletContent: React.FC<BulletContentProps> = ({
@@ -29,49 +39,100 @@ const BulletContent: React.FC<BulletContentProps> = ({
   onIndent,
   onOutdent,
 }) => {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const { saveBulletToSupabase } = useBulletUpdates();
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
+  const [splitCompleted, setSplitCompleted] = useState(false);
 
-  const handleSplit = useCallback(async (beforeCursor: string, afterCursor: string) => {
-    onUpdate(bullet.id, beforeCursor);
-    const newBulletId = await onNewBullet(bullet.id);
-    
-    if (newBulletId) {
-      onUpdate(newBulletId, afterCursor);
-      saveBulletToSupabase(bullet.id, beforeCursor);
-      saveBulletToSupabase(newBulletId, afterCursor);
-      
-      requestAnimationFrame(() => {
-        const newElement = document.querySelector(
-          `[data-id="${newBulletId}"] .bullet-content`
-        ) as HTMLElement;
-        
-        if (newElement) {
-          newElement.focus();
-          try {
-            const selection = window.getSelection();
-            const range = document.createRange();
-            const textNode = newElement.firstChild || newElement;
-            range.setStart(textNode, 0);
-            range.setEnd(textNode, 0);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-          } catch (err) {
-            console.error('Failed to set cursor position:', err);
-          }
-        }
-      });
+  useEffect(() => {
+    if (!contentRef.current) return;
+    contentRef.current.textContent = bullet.content;
+  }, [bullet.content]);
+
+  useEffect(() => {
+    if (pendingDelete) {
+      onDelete(pendingDelete.bulletId);
+      setPendingDelete(null);
     }
-  }, [bullet.id, onUpdate, onNewBullet, saveBulletToSupabase]);
+  }, [pendingDelete, onDelete]);
 
-  const handleBackspace = useCallback(async (e: React.KeyboardEvent, content: string, pos: number) => {
-    if (pos === 0 && !isProcessing) {
+  // First useEffect: Update original bullet content
+  useEffect(() => {
+    if (pendingSplit && !splitCompleted) {
+      onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
+      setSplitCompleted(true);
+    }
+  }, [pendingSplit, splitCompleted, onUpdate]);
+
+  // Second useEffect: Create new bullet with remaining content
+  useEffect(() => {
+    if (pendingSplit && splitCompleted) {
+      const newBulletId = onNewBullet(pendingSplit.originalBulletId);
+      
+      if (newBulletId) {
+        onUpdate(newBulletId, pendingSplit.afterCursor);
+
+        requestAnimationFrame(() => {
+          const newElement = document.querySelector(
+            `[data-id="${newBulletId}"] .bullet-content`
+          ) as HTMLElement;
+          
+          if (newElement) {
+            newElement.focus();
+            try {
+              const selection = window.getSelection();
+              const range = document.createRange();
+              const textNode = newElement.firstChild || newElement;
+              range.setStart(textNode, 0);
+              range.setEnd(textNode, 0);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            } catch (err) {
+              console.error('Failed to set cursor position:', err);
+            }
+          }
+        });
+
+        // Reset states after successful split
+        setPendingSplit(null);
+        setSplitCompleted(false);
+      }
+    }
+  }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    const content = contentRef.current?.textContent || "";
+    const selection = window.getSelection();
+    const range = selection?.getRangeAt(0);
+    const pos = range?.startOffset || 0;
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const beforeCursor = content.slice(0, pos);
+      const afterCursor = content.slice(pos);
+      
+      setPendingSplit({
+        originalBulletId: bullet.id,
+        beforeCursor,
+        afterCursor,
+      });
+    } else if (e.key === "Tab") {
+      handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
+    } else if (e.key === "Backspace") {
+      handleBackspace(e, content, pos);
+    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
+    }
+  };
+
+  const handleBackspace = (e: KeyboardEvent, content: string, pos: number) => {
+    if (pos === 0) {
       const visibleBullets = Array.from(
         document.querySelectorAll('.bullet-content')
       ) as HTMLElement[];
       
       const currentIndex = visibleBullets.findIndex(
-        el => el === e.target
+        el => el === contentRef.current
       );
       
       if (currentIndex > 0) {
@@ -80,11 +141,9 @@ const BulletContent: React.FC<BulletContentProps> = ({
         const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
         
         if (previousBulletId) {
-          setIsProcessing(true);
-          
           if (content.length === 0) {
             if (visibleBullets.length > 1 && bullet.children.length === 0) {
-              await onDelete(bullet.id);
+              onDelete(bullet.id);
               
               requestAnimationFrame(() => {
                 previousElement.focus();
@@ -100,15 +159,16 @@ const BulletContent: React.FC<BulletContentProps> = ({
                 } catch (err) {
                   console.error('Failed to set cursor position:', err);
                 }
-                setIsProcessing(false);
               });
             }
           } else {
             e.preventDefault();
-            const newContent = previousContent + content;
-            onUpdate(previousBulletId, newContent);
-            saveBulletToSupabase(previousBulletId, newContent);
-            await onDelete(bullet.id);
+            onUpdate(previousBulletId, previousContent + content);
+            setPendingDelete({ 
+              bulletId: bullet.id, 
+              previousContent: previousContent + content,
+              previousBulletId
+            });
             
             requestAnimationFrame(() => {
               previousElement.focus();
@@ -124,58 +184,43 @@ const BulletContent: React.FC<BulletContentProps> = ({
               } catch (err) {
                 console.error('Failed to set cursor position:', err);
               }
-              setIsProcessing(false);
             });
           }
         }
       }
     }
-  }, [bullet.children.length, bullet.id, isProcessing, onDelete, onUpdate, saveBulletToSupabase]);
+  };
 
-  const handleKeyDown = useCallback(async (e: React.KeyboardEvent) => {
-    if (isProcessing) {
-      e.preventDefault();
-      return;
-    }
-
-    const content = (e.target as HTMLElement).textContent || "";
-    const selection = window.getSelection();
-    const range = selection?.getRangeAt(0);
-    const pos = range?.startOffset || 0;
-
-    if (e.key === "Enter") {
-      e.preventDefault();
-      setIsProcessing(true);
-      const beforeCursor = content.slice(0, pos);
-      const afterCursor = content.slice(pos);
-      await handleSplit(beforeCursor, afterCursor);
-      setIsProcessing(false);
-    } else if (e.key === "Tab") {
-      handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
-    } else if (e.key === "Backspace") {
-      await handleBackspace(e, content, pos);
-    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
-    }
-  }, [bullet, handleBackspace, handleSplit, isProcessing, onIndent, onNavigate, onOutdent, onUpdate]);
-
-  const handleInput = useCallback(() => {
-    const content = (document.querySelector(`[data-id="${bullet.id}"] .bullet-content`) as HTMLElement)?.textContent || "";
+  const handleInput = () => {
+    const content = contentRef.current?.textContent || "";
     onUpdate(bullet.id, content);
-    saveBulletToSupabase(bullet.id, content);
-  }, [bullet.id, onUpdate, saveBulletToSupabase]);
+  };
 
   return (
     <div className="flex items-start gap-1">
-      <BulletActions
-        hasChildren={bullet.children.length > 0}
-        isCollapsed={bullet.isCollapsed}
-        onCollapse={() => onCollapse(bullet.id)}
-      />
-      <BulletInput
-        content={bullet.content}
+      {bullet.children.length > 0 ? (
+        <button
+          className="collapse-button mt-1"
+          onClick={() => onCollapse(bullet.id)}
+        >
+          {bullet.isCollapsed ? (
+            <ChevronRight className="w-3 h-3" />
+          ) : (
+            <ChevronDown className="w-3 h-3" />
+          )}
+        </button>
+      ) : (
+        <span className="w-4 h-4 inline-flex items-center justify-center mt-1">
+          •
+        </span>
+      )}
+      <div
+        ref={contentRef}
+        className="bullet-content py-1"
+        contentEditable
         onInput={handleInput}
         onKeyDown={handleKeyDown}
+        suppressContentEditableWarning
       />
     </div>
   );

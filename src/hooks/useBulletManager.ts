@@ -1,151 +1,36 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-
-const transformDatabaseBullet = (dbBullet: any): BulletPoint => ({
-  id: dbBullet.id,
-  content: dbBullet.content || "",
-  children: [],
-  isCollapsed: dbBullet.is_collapsed,
-  parent_id: dbBullet.parent_id,
-  position: dbBullet.position,
-  user_id: dbBullet.user_id,
-  created_at: dbBullet.created_at,
-  updated_at: dbBullet.updated_at
-});
 
 export const useBulletManager = () => {
-  const [bullets, setBullets] = useState<BulletPoint[]>([]);
+  const [bullets, setBullets] = useState<BulletPoint[]>([
+    { id: crypto.randomUUID(), content: "", children: [], isCollapsed: false },
+  ]);
 
-  useEffect(() => {
-    const loadBullets = async () => {
-      const session = await supabase.auth.getSession();
-      if (!session.data.session?.user.id) return;
-
-      const { data, error } = await supabase
-        .from("bullets")
-        .select("*")
-        .eq("user_id", session.data.session.user.id)
-        .order("position");
-
-      if (error) {
-        console.error("Error loading bullets:", error);
-        toast.error("Failed to load bullets");
-        return;
-      }
-
-      if (data && data.length > 0) {
-        const transformedBullets = data.map(transformDatabaseBullet);
-        setBullets(transformedBullets);
-      } else {
-        const { data: newBullet, error: createError } = await supabase
-          .from("bullets")
-          .insert([
-            {
-              content: "",
-              user_id: session.data.session.user.id,
-              position: 0,
-              is_collapsed: false
-            }
-          ])
-          .select()
-          .single();
-
-        if (createError) {
-          console.error("Error creating initial bullet:", createError);
-          toast.error("Failed to create initial bullet");
-          return;
-        }
-
-        setBullets([transformDatabaseBullet(newBullet)]);
-      }
-    };
-
-    loadBullets();
-  }, []);
-
-  const createNewBullet = async (id: string): Promise<string | null> => {
-    const session = await supabase.auth.getSession();
-    if (!session.data.session?.user.id) return null;
-
+  const createNewBullet = (id: string): string | null => {
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return null;
 
-    const newPosition = parent.indexOf(bullet) + 1;
-    const newBullet: BulletPoint = {
+    const newBullet = {
       id: crypto.randomUUID(),
       content: "",
       children: [],
       isCollapsed: false,
-      parent_id: null,
-      position: newPosition,
-      user_id: session.data.session.user.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
     };
-
-    const { error } = await supabase
-      .from("bullets")
-      .insert([{
-        id: newBullet.id,
-        content: newBullet.content,
-        user_id: newBullet.user_id,
-        position: newBullet.position,
-        is_collapsed: newBullet.isCollapsed,
-        parent_id: newBullet.parent_id,
-        created_at: newBullet.created_at,
-        updated_at: newBullet.updated_at
-      }]);
-
-    if (error) {
-      console.error("Error creating new bullet:", error);
-      toast.error("Failed to create new bullet");
-      return null;
-    }
-
-    parent.splice(parent.indexOf(bullet) + 1, 0, newBullet);
+    const index = parent.indexOf(bullet);
+    parent.splice(index + 1, 0, newBullet);
     setBullets([...bullets]);
 
     return newBullet.id;
   };
 
-  const createNewRootBullet = async () => {
-    const session = await supabase.auth.getSession();
-    if (!session.data.session?.user.id) throw new Error("No user session");
-
-    const newBullet: BulletPoint = {
+  const createNewRootBullet = (): string => {
+    const newBullet = {
       id: crypto.randomUUID(),
       content: "",
       children: [],
       isCollapsed: false,
-      position: bullets.length,
-      user_id: session.data.session.user.id,
-      parent_id: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
     };
-
-    const { error } = await supabase
-      .from("bullets")
-      .insert([{
-        id: newBullet.id,
-        content: newBullet.content,
-        user_id: newBullet.user_id,
-        position: newBullet.position,
-        is_collapsed: newBullet.isCollapsed,
-        parent_id: newBullet.parent_id,
-        created_at: newBullet.created_at,
-        updated_at: newBullet.updated_at
-      }]);
-
-    if (error) {
-      console.error("Error creating new root bullet:", error);
-      toast.error("Failed to create new bullet");
-      throw error;
-    }
-
     setBullets([...bullets, newBullet]);
     return newBullet.id;
   };
@@ -166,17 +51,10 @@ export const useBulletManager = () => {
     setBullets(updateBulletRecursive(bullets));
   };
 
-  const deleteBullet = async (id: string) => {
-    const { error } = await supabase
-      .from("bullets")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      console.error("Error deleting bullet:", error);
-      toast.error("Failed to delete bullet");
-      return;
-    }
+  const deleteBullet = (id: string) => {
+    const visibleBullets = getAllVisibleBullets(bullets);
+    const currentIndex = visibleBullets.findIndex(b => b.id === id);
+    const previousBullet = visibleBullets[currentIndex - 1];
 
     const deleteBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.filter((bullet) => {
@@ -187,6 +65,25 @@ export const useBulletManager = () => {
     };
 
     setBullets(deleteBulletRecursive(bullets));
+
+    // Focus on the previous bullet after deletion
+    if (previousBullet) {
+      setTimeout(() => {
+        const previousElement = document.querySelector(
+          `[data-id="${previousBullet.id}"] .bullet-content`
+        ) as HTMLElement;
+        if (previousElement) {
+          previousElement.focus();
+          // Set cursor at the end of the content
+          const range = document.createRange();
+          const selection = window.getSelection();
+          range.selectNodeContents(previousElement);
+          range.collapse(false);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
+      }, 0);
+    }
   };
 
   const toggleCollapse = (id: string) => {
