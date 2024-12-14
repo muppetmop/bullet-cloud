@@ -23,6 +23,14 @@ export class SyncQueue {
     const operation = this.queue[0];
 
     try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        console.error('No session found');
+        this.queue.shift(); // Remove failed operation
+        toast.error('Please log in to save changes');
+        return;
+      }
+
       await this.syncToSupabase(operation);
       this.queue.shift();
       console.log(`Operation ${operation.type} for bullet ${operation.bulletId} processed successfully`);
