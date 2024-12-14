@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { versionManager } from '@/utils/VersionManager';
-import { toast } from 'sonner';
+import { BulletPoint } from '@/types/bullet';
 
 export const useRealtimeSync = (onBulletUpdate: (id: string, content: string) => void) => {
   useEffect(() => {
@@ -15,20 +15,15 @@ export const useRealtimeSync = (onBulletUpdate: (id: string, content: string) =>
           table: 'bullets'
         },
         async (payload) => {
-          try {
-            if (payload.eventType === 'UPDATE') {
-              const { id, content, updated_at } = payload.new;
-              const serverVersion = new Date(updated_at).getTime();
-              const resolvedContent = await versionManager.syncWithServer(
-                id,
-                content || '',
-                serverVersion
-              );
-              onBulletUpdate(id, resolvedContent);
-            }
-          } catch (error) {
-            console.error('Error handling realtime update:', error);
-            toast.error("Failed to sync changes. Changes will be retried automatically.");
+          if (payload.eventType === 'UPDATE') {
+            const { id, content, updated_at } = payload.new;
+            const serverVersion = new Date(updated_at).getTime();
+            const resolvedContent = await versionManager.syncWithServer(
+              id,
+              content || '',
+              serverVersion
+            );
+            onBulletUpdate(id, resolvedContent);
           }
         }
       )
