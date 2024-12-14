@@ -3,4 +3,6 @@ export interface BulletPoint {
   content: string;
   children: BulletPoint[];
   isCollapsed: boolean;
+  treePathArray?: string[];
+  depth?: number;
 }

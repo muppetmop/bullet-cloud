@@ -111,10 +111,11 @@ export const useBulletOperations = (
     setBullets(deleteBulletRecursive(bullets));
 
     try {
+      // Delete the bullet and all its children using tree_path
       const { error } = await supabase
         .from('bullets')
         .delete()
-        .eq('id', id);
+        .filter('tree_path', 'cs', `{${id}}`);
 
       if (error) {
         console.error('Error deleting bullet:', error);

@@ -21,7 +21,7 @@ export const useInitialBullets = () => {
           .from('bullets')
           .select('*')
           .eq('user_id', session.session.user.id)
-          .order('position');
+          .order('tree_path');
 
         if (error) {
           console.error('Error loading bullets:', error);
@@ -33,15 +33,19 @@ export const useInitialBullets = () => {
           const bulletMap = new Map();
           const rootBullets: BulletPoint[] = [];
 
+          // First pass: create all bullet objects
           bulletData.forEach(bullet => {
             bulletMap.set(bullet.id, {
               id: bullet.id,
               content: bullet.content || '',
               children: [],
-              isCollapsed: bullet.is_collapsed
+              isCollapsed: bullet.is_collapsed,
+              treePathArray: bullet.tree_path,
+              depth: bullet.depth
             });
           });
 
+          // Second pass: build the hierarchy
           bulletData.forEach(bullet => {
             const bulletNode = bulletMap.get(bullet.id);
             if (bullet.parent_id) {
