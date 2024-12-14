@@ -52,7 +52,6 @@ export const useKeyboardHandlers = ({
         onIndent(bullet.id);
       }
 
-      // Restore cursor position after indent/outdent
       requestAnimationFrame(() => {
         if (contentRef.current) {
           contentRef.current.focus();
@@ -66,60 +65,56 @@ export const useKeyboardHandlers = ({
         }
       });
     } else if (e.key === "Backspace") {
-      handleBackspace(e, content, pos);
+      if (pos === 0) {
+        const visibleBullets = Array.from(
+          document.querySelectorAll('.bullet-content')
+        ) as HTMLElement[];
+        
+        const currentIndex = visibleBullets.findIndex(
+          el => el === contentRef.current
+        );
+        
+        if (currentIndex > 0) {
+          const previousElement = visibleBullets[currentIndex - 1];
+          const previousContent = previousElement.textContent || '';
+          const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
+          
+          if (previousBulletId) {
+            if (content.length === 0) {
+              if (visibleBullets.length > 1 && bullet.children.length === 0) {
+                onDelete(bullet.id);
+                
+                requestAnimationFrame(() => {
+                  previousElement.focus();
+                  try {
+                    const selection = window.getSelection();
+                    const range = document.createRange();
+                    const textNode = previousElement.firstChild || previousElement;
+                    const position = previousContent.length;
+                    range.setStart(textNode, position);
+                    range.setEnd(textNode, position);
+                    selection?.removeAllRanges();
+                    selection?.addRange(range);
+                  } catch (err) {
+                    console.error('Failed to set cursor position:', err);
+                  }
+                });
+              }
+            } else {
+              e.preventDefault();
+              setPendingDelete({ 
+                bulletId: bullet.id, 
+                previousContent: previousContent + content,
+                previousBulletId
+              });
+            }
+          }
+        }
+      }
     } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       e.preventDefault();
       onUpdate(bullet.id, content);
       onNavigate(e.key === "ArrowUp" ? "up" : "down", bullet.id);
-    }
-  };
-
-  const handleBackspace = (e: KeyboardEvent, content: string, pos: number) => {
-    if (pos === 0) {
-      const visibleBullets = Array.from(
-        document.querySelectorAll('.bullet-content')
-      ) as HTMLElement[];
-      
-      const currentIndex = visibleBullets.findIndex(
-        el => el === contentRef.current
-      );
-      
-      if (currentIndex > 0) {
-        const previousElement = visibleBullets[currentIndex - 1];
-        const previousContent = previousElement.textContent || '';
-        const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
-        
-        if (previousBulletId) {
-          if (content.length === 0) {
-            if (visibleBullets.length > 1 && bullet.children.length === 0) {
-              onDelete(bullet.id);
-              
-              requestAnimationFrame(() => {
-                previousElement.focus();
-                try {
-                  const selection = window.getSelection();
-                  const range = document.createRange();
-                  const textNode = previousElement.firstChild || previousElement;
-                  const position = previousContent.length;
-                  range.setStart(textNode, position);
-                  range.setEnd(textNode, position);
-                  selection?.removeAllRanges();
-                  selection?.addRange(range);
-                } catch (err) {
-                  console.error('Failed to set cursor position:', err);
-                }
-              });
-            }
-          } else {
-            e.preventDefault();
-            setPendingDelete({ 
-              bulletId: bullet.id, 
-              previousContent: previousContent + content,
-              previousBulletId
-            });
-          }
-        }
-      }
     }
   };
 

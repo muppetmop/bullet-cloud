@@ -59,6 +59,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
     contentRef.current.textContent = bullet.content;
   }, [bullet.content]);
 
+  // Handle pending deletes
   useEffect(() => {
     if (pendingDelete) {
       onDelete(pendingDelete.bulletId);
@@ -66,8 +67,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   }, [pendingDelete, onDelete]);
 
+  // Handle pending splits in two phases
   useEffect(() => {
     if (pendingSplit && !splitCompleted) {
+      // Phase 1: Update the original bullet with content before cursor
       onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
       setSplitCompleted(true);
     }
@@ -76,11 +79,13 @@ const BulletContent: React.FC<BulletContentProps> = ({
   useEffect(() => {
     const handleSplit = async () => {
       if (pendingSplit && splitCompleted) {
+        // Phase 2: Create new bullet with content after cursor
         const newBulletId = await onNewBullet(pendingSplit.originalBulletId);
         
         if (newBulletId) {
           onUpdate(newBulletId, pendingSplit.afterCursor);
           
+          // Focus the new bullet
           requestAnimationFrame(() => {
             const newElement = document.querySelector(
               `[data-id="${newBulletId}"] .bullet-content`
