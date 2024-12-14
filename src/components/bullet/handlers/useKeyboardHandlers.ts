@@ -26,7 +26,7 @@ export const useKeyboardHandlers = ({
   setPendingSplit,
   setPendingDelete,
 }: KeyboardHandlerProps) => {
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const content = contentRef.current?.textContent || "";
     const selection = window.getSelection();
     const range = selection?.getRangeAt(0);
