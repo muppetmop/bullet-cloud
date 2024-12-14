@@ -1,10 +1,7 @@
-import React, { useRef, KeyboardEvent, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { ChevronRight, ChevronDown } from "lucide-react";
-import {
-  handleTabKey,
-  handleArrowKeys,
-} from "@/utils/keyboardHandlers";
+import { useKeyboardHandlers } from "./handlers/useKeyboardHandlers";
 
 interface BulletContentProps {
   bullet: BulletPoint;
@@ -44,6 +41,19 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
   const [splitCompleted, setSplitCompleted] = useState(false);
 
+  const { handleKeyDown } = useKeyboardHandlers({
+    contentRef,
+    bullet,
+    onUpdate,
+    onDelete,
+    onNewBullet,
+    onNavigate,
+    onIndent,
+    onOutdent,
+    setPendingSplit,
+    setPendingDelete,
+  });
+
   useEffect(() => {
     if (!contentRef.current) return;
     contentRef.current.textContent = bullet.content;
@@ -56,7 +66,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   }, [pendingDelete, onDelete]);
 
-  // First useEffect: Update original bullet content
   useEffect(() => {
     if (pendingSplit && !splitCompleted) {
       onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
@@ -64,132 +73,43 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   }, [pendingSplit, splitCompleted, onUpdate]);
 
-  // Second useEffect: Create new bullet with remaining content
   useEffect(() => {
-    if (pendingSplit && splitCompleted) {
-      const newBulletId = onNewBullet(pendingSplit.originalBulletId);
-      
-      if (newBulletId) {
-        onUpdate(newBulletId, pendingSplit.afterCursor);
-
-        requestAnimationFrame(() => {
-          const newElement = document.querySelector(
-            `[data-id="${newBulletId}"] .bullet-content`
-          ) as HTMLElement;
-          
-          if (newElement) {
-            newElement.focus();
-            try {
-              const selection = window.getSelection();
-              const range = document.createRange();
-              const textNode = newElement.firstChild || newElement;
-              range.setStart(textNode, 0);
-              range.setEnd(textNode, 0);
-              selection?.removeAllRanges();
-              selection?.addRange(range);
-            } catch (err) {
-              console.error('Failed to set cursor position:', err);
-            }
-          }
-        });
-
-        // Reset states after successful split
-        setPendingSplit(null);
-        setSplitCompleted(false);
-      }
-    }
-  }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
-
-  const handleKeyDown = async (e: KeyboardEvent) => {
-    const content = contentRef.current?.textContent || "";
-    const selection = window.getSelection();
-    const range = selection?.getRangeAt(0);
-    const pos = range?.startOffset || 0;
-
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const beforeCursor = content.slice(0, pos);
-      const afterCursor = content.slice(pos);
-      
-      setPendingSplit({
-        originalBulletId: bullet.id,
-        beforeCursor,
-        afterCursor,
-      });
-    } else if (e.key === "Tab") {
-      handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
-    } else if (e.key === "Backspace") {
-      handleBackspace(e, content, pos);
-    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
-    }
-  };
-
-  const handleBackspace = (e: KeyboardEvent, content: string, pos: number) => {
-    if (pos === 0) {
-      const visibleBullets = Array.from(
-        document.querySelectorAll('.bullet-content')
-      ) as HTMLElement[];
-      
-      const currentIndex = visibleBullets.findIndex(
-        el => el === contentRef.current
-      );
-      
-      if (currentIndex > 0) {
-        const previousElement = visibleBullets[currentIndex - 1];
-        const previousContent = previousElement.textContent || '';
-        const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
+    const handleSplit = async () => {
+      if (pendingSplit && splitCompleted) {
+        const newBulletId = await onNewBullet(pendingSplit.originalBulletId);
         
-        if (previousBulletId) {
-          if (content.length === 0) {
-            if (visibleBullets.length > 1 && bullet.children.length === 0) {
-              onDelete(bullet.id);
-              
-              requestAnimationFrame(() => {
-                previousElement.focus();
-                try {
-                  const selection = window.getSelection();
-                  const range = document.createRange();
-                  const textNode = previousElement.firstChild || previousElement;
-                  const position = previousContent.length;
-                  range.setStart(textNode, position);
-                  range.setEnd(textNode, position);
-                  selection?.removeAllRanges();
-                  selection?.addRange(range);
-                } catch (err) {
-                  console.error('Failed to set cursor position:', err);
-                }
-              });
-            }
-          } else {
-            e.preventDefault();
-            onUpdate(previousBulletId, previousContent + content);
-            setPendingDelete({ 
-              bulletId: bullet.id, 
-              previousContent: previousContent + content,
-              previousBulletId
-            });
+        if (newBulletId) {
+          onUpdate(newBulletId, pendingSplit.afterCursor);
+          
+          requestAnimationFrame(() => {
+            const newElement = document.querySelector(
+              `[data-id="${newBulletId}"] .bullet-content`
+            ) as HTMLElement;
             
-            requestAnimationFrame(() => {
-              previousElement.focus();
+            if (newElement) {
+              newElement.focus();
               try {
                 const selection = window.getSelection();
                 const range = document.createRange();
-                const textNode = previousElement.firstChild || previousElement;
-                const position = previousContent.length;
-                range.setStart(textNode, position);
-                range.setEnd(textNode, position);
+                const textNode = newElement.firstChild || newElement;
+                range.setStart(textNode, 0);
+                range.setEnd(textNode, 0);
                 selection?.removeAllRanges();
                 selection?.addRange(range);
               } catch (err) {
                 console.error('Failed to set cursor position:', err);
               }
-            });
-          }
+            }
+          });
+          
+          setPendingSplit(null);
+          setSplitCompleted(false);
         }
       }
-    }
-  };
+    };
+    
+    handleSplit();
+  }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
 
   const handleInput = () => {
     const content = contentRef.current?.textContent || "";
