@@ -1,6 +1,8 @@
 import { BulletPoint } from "@/types/bullet";
 import { generateUbid } from "@/utils/idGenerator";
 import { findBulletAndParent } from "@/utils/bulletOperations";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const useBulletOperations = (
   bullets: BulletPoint[],
@@ -22,7 +24,7 @@ export const useBulletOperations = (
     setBullets(toggleCollapseRecursive(bullets));
   };
 
-  const indentBullet = (id: string) => {
+  const indentBullet = async (id: string) => {
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return;
 
@@ -30,12 +32,34 @@ export const useBulletOperations = (
     if (index === 0) return;
 
     const previousBullet = parent[index - 1];
-    parent.splice(index, 1);
-    previousBullet.children.push(bullet);
-    setBullets([...bullets]);
+    
+    try {
+      // Update the parent_id in Supabase
+      const { error } = await supabase
+        .from('bullets')
+        .update({ 
+          parent_id: previousBullet.id,
+          level_position: previousBullet.levelPosition + 1
+        })
+        .eq('id', bullet.id);
+
+      if (error) {
+        console.error('Error updating bullet parent:', error);
+        toast.error('Failed to indent bullet');
+        return;
+      }
+
+      // Update local state
+      parent.splice(index, 1);
+      previousBullet.children.push(bullet);
+      setBullets([...bullets]);
+    } catch (error) {
+      console.error('Error in indentBullet:', error);
+      toast.error('Failed to indent bullet');
+    }
   };
 
-  const outdentBullet = (id: string) => {
+  const outdentBullet = async (id: string) => {
     const findBulletAndGrandParent = (
       id: string,
       bullets: BulletPoint[],
@@ -60,15 +84,40 @@ export const useBulletOperations = (
     const [bullet, parent, grandParent] = findBulletAndGrandParent(id, bullets);
     if (!bullet || !parent || !grandParent) return;
 
-    const parentIndex = grandParent.findIndex((b) => 
-      b.children.includes(bullet)
-    );
-    if (parentIndex === -1) return;
+    try {
+      // Find the parent bullet to get its parent_id
+      const parentBullet = bullets.find(b => b.children.includes(bullet));
+      const newParentId = parentBullet ? parentBullet.parent_id : null;
 
-    const bulletIndex = parent.indexOf(bullet);
-    parent.splice(bulletIndex, 1);
-    grandParent.splice(parentIndex + 1, 0, bullet);
-    setBullets([...bullets]);
+      // Update the parent_id in Supabase
+      const { error } = await supabase
+        .from('bullets')
+        .update({ 
+          parent_id: newParentId,
+          level_position: bullet.absolutePosition // Reset level_position to match absolute_position
+        })
+        .eq('id', bullet.id);
+
+      if (error) {
+        console.error('Error updating bullet parent:', error);
+        toast.error('Failed to outdent bullet');
+        return;
+      }
+
+      // Update local state
+      const parentIndex = grandParent.findIndex((b) => 
+        b.children.includes(bullet)
+      );
+      if (parentIndex === -1) return;
+
+      const bulletIndex = parent.indexOf(bullet);
+      parent.splice(bulletIndex, 1);
+      grandParent.splice(parentIndex + 1, 0, bullet);
+      setBullets([...bullets]);
+    } catch (error) {
+      console.error('Error in outdentBullet:', error);
+      toast.error('Failed to outdent bullet');
+    }
   };
 
   return {
