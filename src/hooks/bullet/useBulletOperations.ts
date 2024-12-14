@@ -126,22 +126,51 @@ export const useBulletOperations = (
     return newBullet.id;
   }, [bullets, setBullets]);
 
+  const getAllChildIds = (bulletId: string, bullets: BulletPoint[]): string[] => {
+    const childIds: string[] = [];
+    
+    const collectChildIds = (id: string, bulletList: BulletPoint[]) => {
+      for (const bullet of bulletList) {
+        if (bullet.id === id) {
+          // Add all children IDs recursively
+          for (const child of bullet.children) {
+            childIds.push(child.id);
+            collectChildIds(child.id, bullet.children);
+          }
+          break;
+        } else if (bullet.children.length > 0) {
+          collectChildIds(id, bullet.children);
+        }
+      }
+    };
+    
+    collectChildIds(bulletId, bullets);
+    return childIds;
+  };
+
   const deleteBullet = useCallback(async (id: string) => {
     const visibleBullets = getAllVisibleBullets(bullets);
     const currentIndex = visibleBullets.findIndex(b => b.id === id);
     const previousBullet = visibleBullets[currentIndex - 1];
 
+    // Get all child IDs that need to be deleted
+    const childIds = getAllChildIds(id, bullets);
+    const allIdsToDelete = [id, ...childIds];
+
     // Update absolute positions for remaining bullets
-    const updatePromises = visibleBullets.slice(currentIndex + 1).map((b, index) => {
-      return supabase
-        .from('bullets')
-        .update({ absolute_position: currentIndex + index })
-        .eq('id', b.id);
-    });
+    const updatePromises = visibleBullets
+      .slice(currentIndex + 1)
+      .filter(b => !allIdsToDelete.includes(b.id))
+      .map((b, index) => {
+        return supabase
+          .from('bullets')
+          .update({ absolute_position: currentIndex + index })
+          .eq('id', b.id);
+      });
 
     const deleteBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.filter((bullet) => {
-        if (bullet.id === id) return false;
+        if (allIdsToDelete.includes(bullet.id)) return false;
         bullet.children = deleteBulletRecursive(bullet.children);
         return true;
       });
@@ -150,10 +179,21 @@ export const useBulletOperations = (
     setBullets(deleteBulletRecursive(bullets));
 
     try {
-      // Update positions of remaining bullets
-      await Promise.all(updatePromises);
+      // First delete all child bullets
+      if (childIds.length > 0) {
+        const { error: childDeleteError } = await supabase
+          .from('bullets')
+          .delete()
+          .in('id', childIds);
 
-      // Delete the bullet and its children
+        if (childDeleteError) {
+          console.error('Error deleting child bullets:', childDeleteError);
+          toast.error('Failed to delete child bullets');
+          return;
+        }
+      }
+
+      // Then delete the parent bullet
       const { error } = await supabase
         .from('bullets')
         .delete()
@@ -162,7 +202,11 @@ export const useBulletOperations = (
       if (error) {
         console.error('Error deleting bullet:', error);
         toast.error('Failed to delete bullet');
+        return;
       }
+
+      // Update positions of remaining bullets
+      await Promise.all(updatePromises);
     } catch (error) {
       console.error('Error in deleteBullet:', error);
       toast.error('Failed to delete bullet');
