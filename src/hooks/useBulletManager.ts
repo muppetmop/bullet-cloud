@@ -1,11 +1,50 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
+import { syncQueue } from "@/utils/SyncQueue";
+import { versionManager } from "@/utils/VersionManager";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useBulletManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([
     { id: crypto.randomUUID(), content: "", children: [], isCollapsed: false },
   ]);
+
+  const updateBulletContent = useCallback((id: string, content: string) => {
+    const version = versionManager.updateLocal(id, content);
+    
+    if (version) {
+      syncQueue.addOperation({
+        type: 'update',
+        bulletId: id,
+        data: { 
+          content,
+          updated_at: new Date().toISOString()
+        },
+        timestamp: Date.now(),
+        retryCount: 0
+      });
+    }
+  }, []);
+
+  const handleRealtimeUpdate = useCallback((id: string, content: string) => {
+    const updateBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
+      return bullets.map((bullet) => {
+        if (bullet.id === id) {
+          return { ...bullet, content };
+        }
+        return {
+          ...bullet,
+          children: updateBulletRecursive(bullet.children),
+        };
+      });
+    };
+
+    setBullets(prev => updateBulletRecursive(prev));
+  }, []);
+
+  useRealtimeSync(handleRealtimeUpdate);
 
   const createNewBullet = (id: string): string | null => {
     const [bullet, parent] = findBulletAndParent(id, bullets);
@@ -157,7 +196,7 @@ export const useBulletManager = () => {
     getAllVisibleBullets,
     createNewBullet,
     createNewRootBullet,
-    updateBullet,
+    updateBullet: updateBulletContent,
     deleteBullet,
     toggleCollapse,
     indentBullet,
