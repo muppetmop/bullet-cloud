@@ -64,42 +64,39 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   }, [pendingSplit, splitCompleted, onUpdate]);
 
+  // Second useEffect: Create new bullet with remaining content
   useEffect(() => {
     if (pendingSplit && splitCompleted) {
-      const createNewBullet = async () => {
-        const newBulletId = await onNewBullet(pendingSplit.originalBulletId);
-        
-        if (newBulletId) {
-          onUpdate(newBulletId, pendingSplit.afterCursor);
-
-          requestAnimationFrame(() => {
-            const newElement = document.querySelector(
-              `[data-id="${newBulletId}"] .bullet-content`
-            ) as HTMLElement;
-            
-            if (newElement) {
-              newElement.focus();
-              try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const textNode = newElement.firstChild || newElement;
-                range.setStart(textNode, 0);
-                range.setEnd(textNode, 0);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-              } catch (err) {
-                console.error('Failed to set cursor position:', err);
-              }
-            }
-          });
-
-          // Reset states after successful split
-          setPendingSplit(null);
-          setSplitCompleted(false);
-        }
-      };
+      const newBulletId = onNewBullet(pendingSplit.originalBulletId);
       
-      createNewBullet();
+      if (newBulletId) {
+        onUpdate(newBulletId, pendingSplit.afterCursor);
+
+        requestAnimationFrame(() => {
+          const newElement = document.querySelector(
+            `[data-id="${newBulletId}"] .bullet-content`
+          ) as HTMLElement;
+          
+          if (newElement) {
+            newElement.focus();
+            try {
+              const selection = window.getSelection();
+              const range = document.createRange();
+              const textNode = newElement.firstChild || newElement;
+              range.setStart(textNode, 0);
+              range.setEnd(textNode, 0);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            } catch (err) {
+              console.error('Failed to set cursor position:', err);
+            }
+          }
+        });
+
+        // Reset states after successful split
+        setPendingSplit(null);
+        setSplitCompleted(false);
+      }
     }
   }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
 

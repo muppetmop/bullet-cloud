@@ -3,12 +3,10 @@ import BulletItem from "./BulletItem";
 import { Plus } from "lucide-react";
 import { useBulletManager } from "@/hooks/useBulletManager";
 import { useBulletNavigation } from "@/hooks/useBulletNavigation";
-import { Skeleton } from "@/components/ui/skeleton";
 
 const TaskManager = () => {
   const {
     bullets,
-    isLoading,
     getAllVisibleBullets,
     createNewBullet,
     createNewRootBullet,
@@ -20,16 +18,6 @@ const TaskManager = () => {
   } = useBulletManager();
 
   const { handleNavigate } = useBulletNavigation(getAllVisibleBullets, bullets);
-
-  if (isLoading) {
-    return (
-      <div className="max-w-3xl mx-auto p-8 space-y-4">
-        <Skeleton className="h-6 w-full" />
-        <Skeleton className="h-6 w-3/4" />
-        <Skeleton className="h-6 w-5/6" />
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-3xl mx-auto p-8">
@@ -57,11 +45,11 @@ const TaskManager = () => {
           } else if (e.key === "ArrowUp" && bullets.length > 0) {
             const lastBullet = getAllVisibleBullets(bullets).pop();
             if (lastBullet) {
-              const element = document.querySelector(
+              const lastElement = document.querySelector(
                 `[data-id="${lastBullet.id}"] .bullet-content`
               ) as HTMLElement;
-              if (element) {
-                element.focus();
+              if (lastElement) {
+                lastElement.focus();
               }
             }
           }
