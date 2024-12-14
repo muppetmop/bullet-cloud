@@ -10,10 +10,22 @@ import { toast } from "sonner";
 export const useBulletManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Get user session on mount
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUserId(session?.user?.id || null);
+    };
+    getSession();
+  }, []);
 
   // Load bullets on mount
   useEffect(() => {
     const loadBullets = async () => {
+      if (!userId) return;
+      
       try {
         const { data: bulletData, error } = await supabase
           .from('bullets')
@@ -32,7 +44,8 @@ export const useBulletManager = () => {
             id: bullet.id,
             content: bullet.content || "",
             children: [],
-            isCollapsed: bullet.is_collapsed
+            isCollapsed: bullet.is_collapsed,
+            parent_id: bullet.parent_id
           });
         });
 
@@ -66,9 +79,11 @@ export const useBulletManager = () => {
     };
 
     loadBullets();
-  }, []);
+  }, [userId]);
 
   const updateBulletContent = useCallback(async (id: string, content: string) => {
+    if (!userId) return;
+    
     const version = versionManager.updateLocal(id, content);
     
     if (version) {
@@ -77,15 +92,18 @@ export const useBulletManager = () => {
         bulletId: id,
         data: { 
           content,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          user_id: userId
         },
         timestamp: Date.now(),
         retryCount: 0
       });
     }
-  }, []);
+  }, [userId]);
 
   const createNewBullet = async (id: string): Promise<string | null> => {
+    if (!userId) return null;
+    
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return null;
 
@@ -95,6 +113,7 @@ export const useBulletManager = () => {
       content: "",
       children: [],
       isCollapsed: false,
+      parent_id: bullet.parent_id
     };
 
     const index = parent.indexOf(bullet);
@@ -110,7 +129,8 @@ export const useBulletManager = () => {
           content: "",
           parent_id: bullet.parent_id,
           position: index + 1,
-          is_collapsed: false
+          is_collapsed: false,
+          user_id: userId
         });
 
       if (error) throw error;
@@ -123,12 +143,14 @@ export const useBulletManager = () => {
   };
 
   const createNewRootBullet = async (): Promise<string> => {
+    if (!userId) throw new Error("User not authenticated");
+    
     const newBulletId = crypto.randomUUID();
     const newBullet = {
       id: newBulletId,
       content: "",
       children: [],
-      isCollapsed: false,
+      isCollapsed: false
     };
 
     setBullets([...bullets, newBullet]);
@@ -141,7 +163,8 @@ export const useBulletManager = () => {
           id: newBulletId,
           content: "",
           position: bullets.length,
-          is_collapsed: false
+          is_collapsed: false,
+          user_id: userId
         });
 
       if (error) throw error;

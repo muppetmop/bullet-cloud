@@ -3,4 +3,5 @@ export interface BulletPoint {
   content: string;
   children: BulletPoint[];
   isCollapsed: boolean;
+  parent_id?: string;
 }
