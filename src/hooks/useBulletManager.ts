@@ -4,12 +4,16 @@ import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperati
 import { syncQueue } from "@/utils/SyncQueue";
 import { versionManager } from "@/utils/VersionManager";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { generateUbid } from "@/utils/idGenerator";
+import { useBulletOperations } from "@/hooks/useBulletOperations";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useBulletManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([
-    { id: crypto.randomUUID(), content: "", children: [], isCollapsed: false },
+    { id: generateUbid(), content: "", children: [], isCollapsed: false },
   ]);
+
+  const { toggleCollapse, indentBullet, outdentBullet } = useBulletOperations(bullets, setBullets);
 
   const updateBulletContent = useCallback((id: string, content: string) => {
     const version = versionManager.updateLocal(id, content);
@@ -51,7 +55,7 @@ export const useBulletManager = () => {
     if (!bullet || !parent) return null;
 
     const newBullet = {
-      id: crypto.randomUUID(),
+      id: generateUbid(),
       content: "",
       children: [],
       isCollapsed: false,
@@ -65,7 +69,7 @@ export const useBulletManager = () => {
 
   const createNewRootBullet = (): string => {
     const newBullet = {
-      id: crypto.randomUUID(),
+      id: generateUbid(),
       content: "",
       children: [],
       isCollapsed: false,
@@ -105,7 +109,6 @@ export const useBulletManager = () => {
 
     setBullets(deleteBulletRecursive(bullets));
 
-    // Focus on the previous bullet after deletion
     if (previousBullet) {
       setTimeout(() => {
         const previousElement = document.querySelector(
@@ -113,7 +116,6 @@ export const useBulletManager = () => {
         ) as HTMLElement;
         if (previousElement) {
           previousElement.focus();
-          // Set cursor at the end of the content
           const range = document.createRange();
           const selection = window.getSelection();
           range.selectNodeContents(previousElement);
@@ -123,71 +125,6 @@ export const useBulletManager = () => {
         }
       }, 0);
     }
-  };
-
-  const toggleCollapse = (id: string) => {
-    const toggleCollapseRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
-      return bullets.map((bullet) => {
-        if (bullet.id === id) {
-          return { ...bullet, isCollapsed: !bullet.isCollapsed };
-        }
-        return {
-          ...bullet,
-          children: toggleCollapseRecursive(bullet.children),
-        };
-      });
-    };
-
-    setBullets(toggleCollapseRecursive(bullets));
-  };
-
-  const indentBullet = (id: string) => {
-    const [bullet, parent] = findBulletAndParent(id, bullets);
-    if (!bullet || !parent) return;
-
-    const index = parent.indexOf(bullet);
-    if (index === 0) return;
-
-    const previousBullet = parent[index - 1];
-    parent.splice(index, 1);
-    previousBullet.children.push(bullet);
-    setBullets([...bullets]);
-  };
-
-  const outdentBullet = (id: string) => {
-    const findBulletAndGrandParent = (
-      id: string,
-      bullets: BulletPoint[],
-      parent: BulletPoint[] | null = null,
-      grandParent: BulletPoint[] | null = null
-    ): [BulletPoint | null, BulletPoint[] | null, BulletPoint[] | null] => {
-      for (let i = 0; i < bullets.length; i++) {
-        if (bullets[i].id === id) {
-          return [bullets[i], parent, grandParent];
-        }
-        const [found, foundParent, foundGrandParent] = findBulletAndGrandParent(
-          id,
-          bullets[i].children,
-          bullets[i].children,
-          parent || bullets
-        );
-        if (found) return [found, foundParent, foundGrandParent];
-      }
-      return [null, null, null];
-    };
-
-    const [bullet, parent, grandParent] = findBulletAndGrandParent(id, bullets);
-    if (!bullet || !parent || !grandParent) return;
-
-    const parentIndex = grandParent.findIndex((b) => 
-      b.children.includes(bullet)
-    );
-    if (parentIndex === -1) return;
-
-    const bulletIndex = parent.indexOf(bullet);
-    parent.splice(bulletIndex, 1);
-    grandParent.splice(parentIndex + 1, 0, bullet);
-    setBullets([...bullets]);
   };
 
   return {
