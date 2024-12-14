@@ -28,6 +28,7 @@ export const useBulletManager = () => {
         const { data: bulletData, error } = await supabase
           .from('bullets')
           .select('*')
+          .eq('user_id', session.session.user.id)
           .order('position');
 
         if (error) {
@@ -65,28 +66,36 @@ export const useBulletManager = () => {
           setBullets(rootBullets);
         } else {
           // Create initial bullet if none exist
+          const { data: session } = await supabase.auth.getSession();
+          if (!session.session) {
+            toast.error('Please log in to create bullets');
+            return;
+          }
+
           const newBullet = {
             id: generateUbid(),
             content: "",
             children: [],
             isCollapsed: false,
           };
-          setBullets([newBullet]);
           
-          // Save initial bullet to Supabase
           const { error: insertError } = await supabase
             .from('bullets')
             .insert([{
               id: newBullet.id,
               content: newBullet.content,
               position: 0,
-              is_collapsed: false
+              is_collapsed: false,
+              user_id: session.session.user.id
             }]);
 
           if (insertError) {
             console.error('Error creating initial bullet:', insertError);
             toast.error('Failed to create initial bullet');
+            return;
           }
+
+          setBullets([newBullet]);
         }
       } catch (error) {
         console.error('Error in loadBullets:', error);
@@ -103,12 +112,19 @@ export const useBulletManager = () => {
     const version = versionManager.updateLocal(id, content);
     
     if (version) {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        toast.error('Please log in to update bullets');
+        return;
+      }
+
       syncQueue.addOperation({
         type: 'update',
         bulletId: id,
         data: { 
           content,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          user_id: session.session.user.id
         },
         timestamp: Date.now(),
         retryCount: 0
@@ -138,6 +154,12 @@ export const useBulletManager = () => {
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return null;
 
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session) {
+      toast.error('Please log in to create bullets');
+      return null;
+    }
+
     const newBullet = {
       id: generateUbid(),
       content: "",
@@ -157,7 +179,8 @@ export const useBulletManager = () => {
           content: newBullet.content,
           parent_id: bullet.id,
           position: index + 1,
-          is_collapsed: false
+          is_collapsed: false,
+          user_id: session.session.user.id
         }]);
 
       if (error) {
@@ -175,6 +198,12 @@ export const useBulletManager = () => {
   };
 
   const createNewRootBullet = async (): Promise<string> => {
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session) {
+      toast.error('Please log in to create bullets');
+      return '';
+    }
+
     const newBullet = {
       id: generateUbid(),
       content: "",
@@ -191,7 +220,8 @@ export const useBulletManager = () => {
           id: newBullet.id,
           content: newBullet.content,
           position: bullets.length,
-          is_collapsed: false
+          is_collapsed: false,
+          user_id: session.session.user.id
         }]);
 
       if (error) {
@@ -204,22 +234,6 @@ export const useBulletManager = () => {
     }
 
     return newBullet.id;
-  };
-
-  const updateBullet = (id: string, content: string) => {
-    const updateBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
-      return bullets.map((bullet) => {
-        if (bullet.id === id) {
-          return { ...bullet, content };
-        }
-        return {
-          ...bullet,
-          children: updateBulletRecursive(bullet.children),
-        };
-      });
-    };
-
-    setBullets(updateBulletRecursive(bullets));
   };
 
   const deleteBullet = async (id: string) => {
