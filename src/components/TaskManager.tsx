@@ -31,11 +31,6 @@ const TaskManager = () => {
     );
   }
 
-  const handleNewBullet = async (id: string) => {
-    const newId = await createNewBullet(id);
-    return newId;
-  };
-
   return (
     <div className="max-w-3xl mx-auto p-8">
       {bullets.map((bullet) => (
@@ -45,7 +40,7 @@ const TaskManager = () => {
           level={0}
           onUpdate={updateBullet}
           onDelete={deleteBullet}
-          onNewBullet={handleNewBullet}
+          onNewBullet={createNewBullet}
           onCollapse={toggleCollapse}
           onNavigate={handleNavigate}
           onIndent={indentBullet}
