@@ -3,7 +3,7 @@ import { BulletPoint } from '@/types/bullet';
 import { generateUbid } from '@/utils/idGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { findBulletAndParent } from '@/utils/bulletOperations';
+import { findBulletAndParent, getAllVisibleBullets } from '@/utils/bulletOperations';
 
 export const useBulletOperations = (
   bullets: BulletPoint[],

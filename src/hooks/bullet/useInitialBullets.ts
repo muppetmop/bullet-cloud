@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BulletPoint } from '@/types/bullet';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { generateUbid } from '@/utils/idGenerator';
 
 export const useInitialBullets = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([]);
