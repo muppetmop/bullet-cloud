@@ -45,11 +45,12 @@ export const useInitialBullets = () => {
             });
           });
 
-          // Second pass: build the hierarchy
+          // Second pass: build the hierarchy based on tree_path
           bulletData.forEach(bullet => {
             const bulletNode = bulletMap.get(bullet.id);
-            if (bullet.parent_id) {
-              const parent = bulletMap.get(bullet.parent_id);
+            if (bullet.parent_id && bullet.tree_path && bullet.tree_path.length > 1) {
+              const parentId = bullet.tree_path[bullet.tree_path.length - 2]; // Get immediate parent from tree_path
+              const parent = bulletMap.get(parentId);
               if (parent) {
                 parent.children.push(bulletNode);
               }
