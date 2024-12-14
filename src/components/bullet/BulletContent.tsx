@@ -39,7 +39,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
-  const [splitCompleted, setSplitCompleted] = useState(false);
+  const [isSplitting, setIsSplitting] = useState(false);
 
   const { handleKeyDown } = useKeyboardHandlers({
     contentRef,
@@ -67,54 +67,53 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   }, [pendingDelete, onDelete]);
 
-  // Handle pending splits in two phases
-  useEffect(() => {
-    if (pendingSplit && !splitCompleted) {
-      // Phase 1: Update the original bullet with content before cursor
-      onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
-      setSplitCompleted(true);
-    }
-  }, [pendingSplit, splitCompleted, onUpdate]);
-
+  // Handle pending splits
   useEffect(() => {
     const handleSplit = async () => {
-      if (pendingSplit && splitCompleted) {
-        // Phase 2: Create new bullet with content after cursor
-        const newBulletId = await onNewBullet(pendingSplit.originalBulletId);
+      if (pendingSplit && !isSplitting) {
+        setIsSplitting(true);
         
-        if (newBulletId) {
-          onUpdate(newBulletId, pendingSplit.afterCursor);
+        try {
+          // Update the original bullet with content before cursor
+          await onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
           
-          // Focus the new bullet
-          requestAnimationFrame(() => {
-            const newElement = document.querySelector(
-              `[data-id="${newBulletId}"] .bullet-content`
-            ) as HTMLElement;
+          // Create new bullet with content after cursor
+          const newBulletId = await onNewBullet(pendingSplit.originalBulletId);
+          
+          if (newBulletId) {
+            await onUpdate(newBulletId, pendingSplit.afterCursor);
             
-            if (newElement) {
-              newElement.focus();
-              try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const textNode = newElement.firstChild || newElement;
-                range.setStart(textNode, 0);
-                range.setEnd(textNode, 0);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-              } catch (err) {
-                console.error('Failed to set cursor position:', err);
+            // Focus the new bullet
+            requestAnimationFrame(() => {
+              const newElement = document.querySelector(
+                `[data-id="${newBulletId}"] .bullet-content`
+              ) as HTMLElement;
+              
+              if (newElement) {
+                newElement.focus();
+                try {
+                  const selection = window.getSelection();
+                  const range = document.createRange();
+                  const textNode = newElement.firstChild || newElement;
+                  range.setStart(textNode, 0);
+                  range.setEnd(textNode, 0);
+                  selection?.removeAllRanges();
+                  selection?.addRange(range);
+                } catch (err) {
+                  console.error('Failed to set cursor position:', err);
+                }
               }
-            }
-          });
-          
+            });
+          }
+        } finally {
           setPendingSplit(null);
-          setSplitCompleted(false);
+          setIsSplitting(false);
         }
       }
     };
     
     handleSplit();
-  }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
+  }, [pendingSplit, isSplitting, onNewBullet, onUpdate]);
 
   const handleInput = () => {
     const content = contentRef.current?.textContent || "";

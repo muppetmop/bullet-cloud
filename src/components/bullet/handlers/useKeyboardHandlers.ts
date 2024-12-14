@@ -35,24 +35,28 @@ export const useKeyboardHandlers = ({
     if (e.key === "Enter" && !e.nativeEvent.isComposing && !e.shiftKey) {
       e.preventDefault();
       
-      // Only proceed if there's no pending split
-      if (!contentRef.current?.getAttribute('data-splitting')) {
-        contentRef.current?.setAttribute('data-splitting', 'true');
-        
-        const beforeCursor = content.slice(0, pos);
-        const afterCursor = content.slice(pos);
-        
-        setPendingSplit({
-          originalBulletId: bullet.id,
-          beforeCursor,
-          afterCursor,
-        });
-
-        // Clear the splitting flag after a short delay
-        setTimeout(() => {
-          contentRef.current?.removeAttribute('data-splitting');
-        }, 100);
+      // Check if we're already processing a split
+      if (contentRef.current?.getAttribute('data-splitting') === 'true') {
+        return;
       }
+      
+      // Set the splitting flag
+      contentRef.current?.setAttribute('data-splitting', 'true');
+      
+      const beforeCursor = content.slice(0, pos);
+      const afterCursor = content.slice(pos);
+      
+      // Update the original bullet with content before cursor
+      setPendingSplit({
+        originalBulletId: bullet.id,
+        beforeCursor,
+        afterCursor,
+      });
+      
+      // Clear the splitting flag after a delay
+      setTimeout(() => {
+        contentRef.current?.removeAttribute('data-splitting');
+      }, 100);
     } else if (e.key === "Tab") {
       e.preventDefault();
       onUpdate(bullet.id, content);

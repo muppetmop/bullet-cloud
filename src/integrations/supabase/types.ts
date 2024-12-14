@@ -11,30 +11,36 @@ export type Database = {
     Tables: {
       bullets: {
         Row: {
+          absolute_position: number
           content: string | null
           created_at: string
           id: string
           is_collapsed: boolean
+          level_position: number
           parent_id: string | null
           position: number
           updated_at: string
           user_id: string
         }
         Insert: {
+          absolute_position?: number
           content?: string | null
           created_at?: string
           id?: string
           is_collapsed?: boolean
+          level_position?: number
           parent_id?: string | null
           position?: number
           updated_at?: string
           user_id: string
         }
         Update: {
+          absolute_position?: number
           content?: string | null
           created_at?: string
           id?: string
           is_collapsed?: boolean
+          level_position?: number
           parent_id?: string | null
           position?: number
           updated_at?: string
