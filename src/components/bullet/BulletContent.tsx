@@ -10,7 +10,7 @@ interface BulletContentProps {
   bullet: BulletPoint;
   onUpdate: (id: string, content: string) => void;
   onDelete: (id: string) => void;
-  onNewBullet: (id: string) => string | null;
+  onNewBullet: (id: string) => Promise<string | null>;
   onCollapse: (id: string) => void;
   onNavigate: (direction: "up" | "down", id: string) => void;
   onIndent?: (id: string) => void;
@@ -100,7 +100,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = async (e: KeyboardEvent) => {
     const content = contentRef.current?.textContent || "";
     const selection = window.getSelection();
     const range = selection?.getRangeAt(0);
