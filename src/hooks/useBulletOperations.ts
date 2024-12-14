@@ -1,5 +1,6 @@
 import { BulletPoint } from "@/types/bullet";
 import { generateUbid } from "@/utils/idGenerator";
+import { findBulletAndParent } from "@/utils/bulletOperations";
 
 export const useBulletOperations = (
   bullets: BulletPoint[],
