@@ -32,7 +32,7 @@ export const useKeyboardHandlers = ({
     const range = selection?.getRangeAt(0);
     const pos = range?.startOffset || 0;
 
-    if (e.key === "Enter" && !e.isComposing && !e.shiftKey) {
+    if (e.key === "Enter" && !e.nativeEvent.isComposing && !e.shiftKey) {
       e.preventDefault();
       
       // Only proceed if there's no pending split
