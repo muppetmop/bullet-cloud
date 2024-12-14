@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
 import { syncQueue } from "@/utils/SyncQueue";
@@ -7,11 +7,66 @@ import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { generateUbid } from "@/utils/idGenerator";
 import { useBulletOperations } from "@/hooks/useBulletOperations";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const useBulletManager = () => {
-  const [bullets, setBullets] = useState<BulletPoint[]>([
-    { id: generateUbid(), content: "", children: [], isCollapsed: false },
-  ]);
+  const [bullets, setBullets] = useState<BulletPoint[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load initial bullets
+  useEffect(() => {
+    const loadBullets = async () => {
+      try {
+        const { data: supabaseBullets, error } = await supabase
+          .from('bullets')
+          .select('*')
+          .order('position');
+
+        if (error) throw error;
+
+        // Transform flat Supabase data into hierarchical structure
+        const bulletMap = new Map<string, BulletPoint>();
+        const rootBullets: BulletPoint[] = [];
+
+        supabaseBullets?.forEach(bullet => {
+          bulletMap.set(bullet.id, {
+            id: bullet.id,
+            content: bullet.content || "",
+            children: [],
+            isCollapsed: bullet.is_collapsed,
+          });
+        });
+
+        supabaseBullets?.forEach(bullet => {
+          const bulletNode = bulletMap.get(bullet.id);
+          if (bulletNode) {
+            if (bullet.parent_id) {
+              const parent = bulletMap.get(bullet.parent_id);
+              if (parent) {
+                parent.children.push(bulletNode);
+              }
+            } else {
+              rootBullets.push(bulletNode);
+            }
+          }
+        });
+
+        setBullets(rootBullets.length > 0 ? rootBullets : [{
+          id: generateUbid(),
+          content: "",
+          children: [],
+          isCollapsed: false,
+        }]);
+      } catch (error) {
+        console.error('Error loading bullets:', error);
+        toast.error("Failed to load bullets. Please refresh the page.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadBullets();
+  }, []);
 
   const { toggleCollapse, indentBullet, outdentBullet } = useBulletOperations(bullets, setBullets);
 
@@ -50,7 +105,7 @@ export const useBulletManager = () => {
 
   useRealtimeSync(handleRealtimeUpdate);
 
-  const createNewBullet = (id: string): string | null => {
+  const createNewBullet = async (id: string): Promise<string | null> => {
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return null;
 
@@ -60,9 +115,25 @@ export const useBulletManager = () => {
       children: [],
       isCollapsed: false,
     };
+
     const index = parent.indexOf(bullet);
     parent.splice(index + 1, 0, newBullet);
     setBullets([...bullets]);
+
+    // Add to sync queue
+    syncQueue.addOperation({
+      type: 'create',
+      bulletId: newBullet.id,
+      data: {
+        id: newBullet.id,
+        content: "",
+        parent_id: id,
+        position: index + 1,
+        is_collapsed: false
+      },
+      timestamp: Date.now(),
+      retryCount: 0
+    });
 
     return newBullet.id;
   };
@@ -74,7 +145,24 @@ export const useBulletManager = () => {
       children: [],
       isCollapsed: false,
     };
+
     setBullets([...bullets, newBullet]);
+
+    // Add to sync queue
+    syncQueue.addOperation({
+      type: 'create',
+      bulletId: newBullet.id,
+      data: {
+        id: newBullet.id,
+        content: "",
+        parent_id: null,
+        position: bullets.length,
+        is_collapsed: false
+      },
+      timestamp: Date.now(),
+      retryCount: 0
+    });
+
     return newBullet.id;
   };
 
@@ -101,7 +189,17 @@ export const useBulletManager = () => {
 
     const deleteBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.filter((bullet) => {
-        if (bullet.id === id) return false;
+        if (bullet.id === id) {
+          // Add delete operation to sync queue
+          syncQueue.addOperation({
+            type: 'delete',
+            bulletId: id,
+            data: null,
+            timestamp: Date.now(),
+            retryCount: 0
+          });
+          return false;
+        }
         bullet.children = deleteBulletRecursive(bullet.children);
         return true;
       });
@@ -129,6 +227,7 @@ export const useBulletManager = () => {
 
   return {
     bullets,
+    isLoading,
     findBulletAndParent,
     getAllVisibleBullets,
     createNewBullet,
