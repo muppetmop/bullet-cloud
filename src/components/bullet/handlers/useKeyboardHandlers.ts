@@ -32,16 +32,27 @@ export const useKeyboardHandlers = ({
     const range = selection?.getRangeAt(0);
     const pos = range?.startOffset || 0;
 
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !e.isComposing && !e.shiftKey) {
       e.preventDefault();
-      const beforeCursor = content.slice(0, pos);
-      const afterCursor = content.slice(pos);
       
-      setPendingSplit({
-        originalBulletId: bullet.id,
-        beforeCursor,
-        afterCursor,
-      });
+      // Only proceed if there's no pending split
+      if (!contentRef.current?.getAttribute('data-splitting')) {
+        contentRef.current?.setAttribute('data-splitting', 'true');
+        
+        const beforeCursor = content.slice(0, pos);
+        const afterCursor = content.slice(pos);
+        
+        setPendingSplit({
+          originalBulletId: bullet.id,
+          beforeCursor,
+          afterCursor,
+        });
+
+        // Clear the splitting flag after a short delay
+        setTimeout(() => {
+          contentRef.current?.removeAttribute('data-splitting');
+        }, 100);
+      }
     } else if (e.key === "Tab") {
       e.preventDefault();
       onUpdate(bullet.id, content);
