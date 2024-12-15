@@ -19,12 +19,8 @@ export const useCreateBullet = (
     const allBullets = getAllVisibleBullets(bullets);
     const currentIndex = allBullets.findIndex(b => b.id === id);
     const newAbsolutePosition = currentIndex + 1;
-    
-    // When creating a new bullet with Enter, level_position should match absolute_position
-    // This will be changed later if the bullet is indented
     const newLevelPosition = newAbsolutePosition;
 
-    // Shift all bullets after the new position
     const updatePromises = allBullets.slice(currentIndex + 1).map((b, index) => {
       return supabase
         .from('bullets')
@@ -32,20 +28,19 @@ export const useCreateBullet = (
         .eq('id', b.id);
     });
 
-    const newBullet = {
+    const newBullet: BulletPoint = {
       id: generateUbid(),
       content: "",
       children: [],
       isCollapsed: false,
       absolutePosition: newAbsolutePosition,
-      levelPosition: newLevelPosition
+      levelPosition: newLevelPosition,
+      parent_id: null
     };
 
     try {
-      // Update positions of existing bullets
       await Promise.all(updatePromises);
 
-      // Create the new bullet
       const { error } = await supabase
         .from('bullets')
         .insert([{
@@ -54,7 +49,8 @@ export const useCreateBullet = (
           absolute_position: newAbsolutePosition,
           level_position: newLevelPosition,
           is_collapsed: false,
-          user_id: session.session.user.id
+          user_id: session.session.user.id,
+          parent_id: null
         }]);
 
       if (error) {
@@ -63,7 +59,6 @@ export const useCreateBullet = (
         return null;
       }
 
-      // Update local state
       const updatedBullets = [...bullets];
       const parentIndex = bullets.findIndex(b => b.id === id);
       if (parentIndex !== -1) {
@@ -88,16 +83,16 @@ export const useCreateBullet = (
 
     const allBullets = getAllVisibleBullets(bullets);
     const newAbsolutePosition = allBullets.length;
-    // For root bullets, level_position matches absolute_position
     const newLevelPosition = newAbsolutePosition;
 
-    const newBullet = {
+    const newBullet: BulletPoint = {
       id: generateUbid(),
       content: "",
       children: [],
       isCollapsed: false,
       absolutePosition: newAbsolutePosition,
-      levelPosition: newLevelPosition
+      levelPosition: newLevelPosition,
+      parent_id: null
     };
     
     setBullets([...bullets, newBullet]);
@@ -111,7 +106,8 @@ export const useCreateBullet = (
           absolute_position: newAbsolutePosition,
           level_position: newLevelPosition,
           is_collapsed: false,
-          user_id: session.session.user.id
+          user_id: session.session.user.id,
+          parent_id: null
         }]);
 
       if (error) {

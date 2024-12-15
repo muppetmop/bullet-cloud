@@ -33,7 +33,6 @@ export const useInitialBullets = () => {
           const bulletMap = new Map();
           const rootBullets: BulletPoint[] = [];
 
-          // First pass: create all bullet objects
           bulletData.forEach(bullet => {
             bulletMap.set(bullet.id, {
               id: bullet.id,
@@ -41,17 +40,16 @@ export const useInitialBullets = () => {
               children: [],
               isCollapsed: bullet.is_collapsed,
               absolutePosition: bullet.absolute_position,
-              levelPosition: bullet.level_position
+              levelPosition: bullet.level_position,
+              parent_id: bullet.parent_id
             });
           });
 
-          // Second pass: build hierarchy based on parent_id
           bulletData.forEach(bullet => {
             const bulletNode = bulletMap.get(bullet.id);
             if (bullet.parent_id) {
               const parent = bulletMap.get(bullet.parent_id);
               if (parent) {
-                // Insert at the correct position based on level_position
                 const insertIndex = parent.children.findIndex(
                   child => child.levelPosition > bulletNode.levelPosition
                 );
@@ -62,7 +60,6 @@ export const useInitialBullets = () => {
                 }
               }
             } else {
-              // Insert root bullet at correct position based on absolute_position
               const insertIndex = rootBullets.findIndex(
                 b => b.absolutePosition > bulletNode.absolutePosition
               );
@@ -82,13 +79,14 @@ export const useInitialBullets = () => {
             return;
           }
 
-          const newBullet = {
+          const newBullet: BulletPoint = {
             id: generateUbid(),
             content: "",
             children: [],
             isCollapsed: false,
             absolutePosition: 0,
-            levelPosition: 0
+            levelPosition: 0,
+            parent_id: null
           };
           
           const { error: insertError } = await supabase
@@ -99,7 +97,8 @@ export const useInitialBullets = () => {
               absolute_position: 0,
               level_position: 0,
               is_collapsed: false,
-              user_id: session.session.user.id
+              user_id: session.session.user.id,
+              parent_id: null
             }]);
 
           if (insertError) {
