@@ -5,4 +5,5 @@ export interface BulletPoint {
   isCollapsed: boolean;
   absolutePosition: number;
   levelPosition: number;
+  parent_id: string | null;
 }
