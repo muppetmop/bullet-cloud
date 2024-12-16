@@ -4,18 +4,28 @@ import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperati
 import { addToQueue } from "@/utils/queueManager";
 import { startSyncService } from "@/services/syncService";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const useBulletManager = () => {
-  const [bullets, setBullets] = useState<BulletPoint[]>([
-    { 
-      id: crypto.randomUUID(), 
-      content: "", 
-      children: [], 
-      isCollapsed: false,
-      position: 0,
-      level: 0
-    },
-  ]);
+  const [bullets, setBullets] = useState<BulletPoint[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Get user ID on mount
+  useEffect(() => {
+    const getUserId = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        setUserId(session.user.id);
+      }
+    };
+    getUserId();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Start sync service
   useEffect(() => {
@@ -26,13 +36,17 @@ export const useBulletManager = () => {
   // Load initial bullets from Supabase
   useEffect(() => {
     const loadBullets = async () => {
+      if (!userId) return;
+
       const { data, error } = await supabase
         .from('bullets')
         .select('*')
+        .eq('user_id', userId)
         .order('position');
       
       if (error) {
         console.error('Error loading bullets:', error);
+        toast.error("Failed to load bullets");
         return;
       }
       
@@ -62,13 +76,29 @@ export const useBulletManager = () => {
         });
         
         setBullets(rootBullets);
+      } else {
+        // Create initial bullet if none exist
+        const initialBullet: BulletPoint = {
+          id: crypto.randomUUID(),
+          content: "",
+          children: [],
+          isCollapsed: false,
+          position: 0,
+          level: 0
+        };
+        setBullets([initialBullet]);
       }
     };
     
     loadBullets();
-  }, []);
+  }, [userId]);
 
   const createNewBullet = (id: string): string | null => {
+    if (!userId) {
+      toast.error("Please sign in to create bullets");
+      return null;
+    }
+
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return null;
 
@@ -85,7 +115,7 @@ export const useBulletManager = () => {
       level: newLevel
     };
     
-    // Queue the create operation
+    // Queue the create operation with user_id
     addToQueue({
       id: newBullet.id,
       type: 'create',
@@ -95,7 +125,8 @@ export const useBulletManager = () => {
         parent_id: bullet.id,
         is_collapsed: newBullet.isCollapsed,
         position: newBullet.position,
-        level: newBullet.level
+        level: newBullet.level,
+        user_id: userId
       }
     });
 
@@ -116,6 +147,11 @@ export const useBulletManager = () => {
   };
 
   const createNewRootBullet = (): string => {
+    if (!userId) {
+      toast.error("Please sign in to create bullets");
+      return "";
+    }
+
     const lastBullet = getAllVisibleBullets(bullets).pop();
     const newPosition = lastBullet ? lastBullet.position + 1 : 0;
 
@@ -125,8 +161,22 @@ export const useBulletManager = () => {
       children: [],
       isCollapsed: false,
       position: newPosition,
-      level: 0  // Root bullets are always at level 0
+      level: 0
     };
+
+    // Queue the create operation with user_id
+    addToQueue({
+      id: newBullet.id,
+      type: 'create',
+      data: {
+        id: newBullet.id,
+        content: newBullet.content,
+        is_collapsed: newBullet.isCollapsed,
+        position: newPosition,
+        level: 0,
+        user_id: userId
+      }
+    });
     
     setBullets([...bullets, newBullet]);
     return newBullet.id;

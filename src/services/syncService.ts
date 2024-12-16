@@ -6,6 +6,18 @@ let syncInProgress = false;
 
 const processBulletOperation = async (operation: any) => {
   try {
+    // Get current user
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) {
+      console.error('No user session found');
+      return false;
+    }
+
+    // Ensure user_id is set for all operations
+    if (operation.type === 'create' || operation.type === 'update') {
+      operation.data.user_id = session.user.id;
+    }
+
     switch (operation.type) {
       case 'create':
         await supabase.from('bullets').insert(operation.data);
@@ -14,13 +26,15 @@ const processBulletOperation = async (operation: any) => {
         await supabase
           .from('bullets')
           .update(operation.data)
-          .eq('id', operation.id);
+          .eq('id', operation.id)
+          .eq('user_id', session.user.id);
         break;
       case 'delete':
         await supabase
           .from('bullets')
           .delete()
-          .eq('id', operation.id);
+          .eq('id', operation.id)
+          .eq('user_id', session.user.id);
         break;
     }
     removeFromQueue(operation.id);
