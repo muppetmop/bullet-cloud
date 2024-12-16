@@ -105,7 +105,7 @@ export const useBulletManager = () => {
 
     const index = parent.indexOf(bullet);
     const newPosition = bullet.position + 1;
-    const newLevel = bullet.level;
+    const newLevel = bullet.level; // Keep the same level as the current bullet
 
     const newBullet: BulletPoint = {
       id: generateBulletId(),
@@ -116,17 +116,16 @@ export const useBulletManager = () => {
       level: newLevel
     };
     
-    // Queue the create operation with user_id
+    // Queue the create operation with user_id, but no parent_id since it's at the same level
     addToQueue({
       id: newBullet.id,
       type: 'create',
       data: {
         id: newBullet.id,
         content: newBullet.content,
-        parent_id: bullet.id,
         is_collapsed: newBullet.isCollapsed,
-        position: newBullet.position,
-        level: newBullet.level,
+        position: newPosition,
+        level: newLevel,
         user_id: userId
       }
     });
