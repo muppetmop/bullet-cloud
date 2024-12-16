@@ -116,7 +116,11 @@ export const useBulletManager = () => {
       level: newLevel
     };
     
-    // Queue the create operation with user_id, but no parent_id since it's at the same level
+    // Find the actual parent ID for the new bullet
+    const [_, grandParent] = findBulletAndParent(bullet.id, bullets);
+    const parentId = grandParent === bullets ? null : bullet.id;
+    
+    // Queue the create operation with user_id and parent_id
     addToQueue({
       id: newBullet.id,
       type: 'create',
@@ -126,7 +130,8 @@ export const useBulletManager = () => {
         is_collapsed: newBullet.isCollapsed,
         position: newPosition,
         level: newLevel,
-        user_id: userId
+        user_id: userId,
+        parent_id: parentId
       }
     });
 
