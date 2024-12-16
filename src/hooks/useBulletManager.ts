@@ -4,33 +4,63 @@ import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperati
 
 export const useBulletManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([
-    { id: crypto.randomUUID(), content: "", children: [], isCollapsed: false },
+    { 
+      id: crypto.randomUUID(), 
+      content: "", 
+      children: [], 
+      isCollapsed: false,
+      position: 0,  // Initial bullet starts at position 0
+      level: 0     // Root bullet starts at level 0
+    },
   ]);
 
   const createNewBullet = (id: string): string | null => {
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return null;
 
-    const newBullet = {
+    const index = parent.indexOf(bullet);
+    const newPosition = bullet.position + 1; // New bullet goes after the current one
+    const newLevel = bullet.level; // Same level as the current bullet
+
+    const newBullet: BulletPoint = {
       id: crypto.randomUUID(),
       content: "",
       children: [],
       isCollapsed: false,
+      position: newPosition,
+      level: newLevel
     };
-    const index = parent.indexOf(bullet);
+    
+    // Update positions of all bullets after the new one
+    const updatePositions = (bullets: BulletPoint[]): BulletPoint[] => {
+      return bullets.map(b => {
+        if (b.position >= newPosition && b.id !== newBullet.id) {
+          return { ...b, position: b.position + 1 };
+        }
+        return b;
+      });
+    };
+
     parent.splice(index + 1, 0, newBullet);
-    setBullets([...bullets]);
+    const updatedBullets = updatePositions(bullets);
+    setBullets([...updatedBullets]);
 
     return newBullet.id;
   };
 
   const createNewRootBullet = (): string => {
-    const newBullet = {
+    const lastBullet = getAllVisibleBullets(bullets).pop();
+    const newPosition = lastBullet ? lastBullet.position + 1 : 0;
+
+    const newBullet: BulletPoint = {
       id: crypto.randomUUID(),
       content: "",
       children: [],
       isCollapsed: false,
+      position: newPosition,
+      level: 0  // Root bullets are always at level 0
     };
+    
     setBullets([...bullets, newBullet]);
     return newBullet.id;
   };
@@ -111,7 +141,10 @@ export const useBulletManager = () => {
 
     const previousBullet = parent[index - 1];
     parent.splice(index, 1);
-    previousBullet.children.push(bullet);
+    previousBullet.children.push({
+      ...bullet,
+      level: bullet.level + 1  // Increase level when indenting
+    });
     setBullets([...bullets]);
   };
 
@@ -147,7 +180,10 @@ export const useBulletManager = () => {
 
     const bulletIndex = parent.indexOf(bullet);
     parent.splice(bulletIndex, 1);
-    grandParent.splice(parentIndex + 1, 0, bullet);
+    grandParent.splice(parentIndex + 1, 0, {
+      ...bullet,
+      level: Math.max(0, bullet.level - 1)  // Decrease level when outdenting, but not below 0
+    });
     setBullets([...bullets]);
   };
 
