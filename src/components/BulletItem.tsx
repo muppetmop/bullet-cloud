@@ -7,11 +7,11 @@ interface BulletItemProps {
   level: number;
   onUpdate: (id: string, content: string) => void;
   onDelete: (id: string) => void;
-  onNewBullet: (id: string) => string | null;
+  onNewBullet: (id: string) => Promise<string>;  // Updated to handle Promise
   onCollapse: (id: string) => void;
-  onNavigate: (direction: "up" | "down", id: string) => void;
-  onIndent?: (id: string) => void;
-  onOutdent?: (id: string) => void;
+  onNavigate: (direction: "up" | "down", currentId: string) => void;
+  onIndent: (id: string) => void;
+  onOutdent: (id: string) => void;
 }
 
 const BulletItem: React.FC<BulletItemProps> = ({

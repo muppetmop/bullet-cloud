@@ -19,6 +19,11 @@ const TaskManager = () => {
 
   const { handleNavigate } = useBulletNavigation(getAllVisibleBullets, bullets);
 
+  const handleNewBullet = async (id: string) => {
+    const newBulletId = await createNewBullet(id);
+    return newBulletId || "";
+  };
+
   return (
     <div className="max-w-3xl mx-auto p-8">
       {bullets.map((bullet) => (
@@ -28,7 +33,7 @@ const TaskManager = () => {
           level={0}
           onUpdate={updateBullet}
           onDelete={deleteBullet}
-          onNewBullet={createNewBullet}
+          onNewBullet={handleNewBullet}
           onCollapse={toggleCollapse}
           onNavigate={handleNavigate}
           onIndent={indentBullet}
