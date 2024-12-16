@@ -11,6 +11,7 @@ export const useBulletManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
+  // Get user ID on mount
   useEffect(() => {
     const getUserId = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -93,7 +94,7 @@ export const useBulletManager = () => {
     loadBullets();
   }, [userId]);
 
-  const createNewBullet = async (id: string): Promise<string | null> => {
+  const createNewBullet = (id: string): string | null => {
     if (!userId) {
       toast.error("Please sign in to create bullets");
       return null;
@@ -106,19 +107,6 @@ export const useBulletManager = () => {
     const newPosition = bullet.position + 1;
     const newLevel = bullet.level;
 
-    // First, verify the parent bullet exists in the database
-    const { data: parentBullet, error: parentError } = await supabase
-      .from('bullets')
-      .select('id')
-      .eq('id', id)
-      .single();
-
-    if (parentError || !parentBullet) {
-      console.error('Parent bullet not found:', parentError);
-      toast.error("Failed to create bullet: parent not found");
-      return null;
-    }
-
     const newBullet: BulletPoint = {
       id: generateBulletId(),
       content: "",
@@ -128,14 +116,14 @@ export const useBulletManager = () => {
       level: newLevel
     };
     
-    // Queue the create operation with user_id and verified parent_id
+    // Queue the create operation with user_id
     addToQueue({
       id: newBullet.id,
       type: 'create',
       data: {
         id: newBullet.id,
         content: newBullet.content,
-        parent_id: parentBullet.id,
+        parent_id: bullet.id,
         is_collapsed: newBullet.isCollapsed,
         position: newBullet.position,
         level: newBullet.level,
