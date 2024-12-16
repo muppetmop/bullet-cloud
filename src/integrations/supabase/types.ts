@@ -15,6 +15,7 @@ export type Database = {
           created_at: string
           id: string
           is_collapsed: boolean
+          level: number
           parent_id: string | null
           position: number
           updated_at: string
@@ -25,6 +26,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_collapsed?: boolean
+          level?: number
           parent_id?: string | null
           position?: number
           updated_at?: string
@@ -35,6 +37,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_collapsed?: boolean
+          level?: number
           parent_id?: string | null
           position?: number
           updated_at?: string
