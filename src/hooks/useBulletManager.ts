@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
+import { addToQueue } from "@/utils/queueManager";
+import { startSyncService } from "@/services/syncService";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useBulletManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([
@@ -9,18 +12,69 @@ export const useBulletManager = () => {
       content: "", 
       children: [], 
       isCollapsed: false,
-      position: 0,  // Initial bullet starts at position 0
-      level: 0     // Root bullet starts at level 0
+      position: 0,
+      level: 0
     },
   ]);
+
+  // Start sync service
+  useEffect(() => {
+    const cleanup = startSyncService();
+    return () => cleanup();
+  }, []);
+
+  // Load initial bullets from Supabase
+  useEffect(() => {
+    const loadBullets = async () => {
+      const { data, error } = await supabase
+        .from('bullets')
+        .select('*')
+        .order('position');
+      
+      if (error) {
+        console.error('Error loading bullets:', error);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        // Convert flat structure to hierarchical
+        const bulletMap = new Map<string, BulletPoint>();
+        const rootBullets: BulletPoint[] = [];
+        
+        data.forEach(bullet => {
+          bulletMap.set(bullet.id, {
+            ...bullet,
+            children: [],
+            isCollapsed: bullet.is_collapsed
+          });
+        });
+        
+        data.forEach(bullet => {
+          const bulletPoint = bulletMap.get(bullet.id)!;
+          if (bullet.parent_id) {
+            const parent = bulletMap.get(bullet.parent_id);
+            if (parent) {
+              parent.children.push(bulletPoint);
+            }
+          } else {
+            rootBullets.push(bulletPoint);
+          }
+        });
+        
+        setBullets(rootBullets);
+      }
+    };
+    
+    loadBullets();
+  }, []);
 
   const createNewBullet = (id: string): string | null => {
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return null;
 
     const index = parent.indexOf(bullet);
-    const newPosition = bullet.position + 1; // New bullet goes after the current one
-    const newLevel = bullet.level; // Same level as the current bullet
+    const newPosition = bullet.position + 1;
+    const newLevel = bullet.level;
 
     const newBullet: BulletPoint = {
       id: crypto.randomUUID(),
@@ -31,7 +85,20 @@ export const useBulletManager = () => {
       level: newLevel
     };
     
-    // Update positions of all bullets after the new one
+    // Queue the create operation
+    addToQueue({
+      id: newBullet.id,
+      type: 'create',
+      data: {
+        id: newBullet.id,
+        content: newBullet.content,
+        parent_id: bullet.id,
+        is_collapsed: newBullet.isCollapsed,
+        position: newBullet.position,
+        level: newBullet.level
+      }
+    });
+
     const updatePositions = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.map(b => {
         if (b.position >= newPosition && b.id !== newBullet.id) {
@@ -69,7 +136,21 @@ export const useBulletManager = () => {
     const updateBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.map((bullet) => {
         if (bullet.id === id) {
-          return { ...bullet, content };
+          const updatedBullet = { ...bullet, content };
+          
+          // Queue the update operation
+          addToQueue({
+            id: bullet.id,
+            type: 'update',
+            data: {
+              content: content,
+              is_collapsed: bullet.isCollapsed,
+              position: bullet.position,
+              level: bullet.level
+            }
+          });
+          
+          return updatedBullet;
         }
         return {
           ...bullet,
@@ -86,6 +167,13 @@ export const useBulletManager = () => {
     const currentIndex = visibleBullets.findIndex(b => b.id === id);
     const previousBullet = visibleBullets[currentIndex - 1];
 
+    // Queue the delete operation
+    addToQueue({
+      id,
+      type: 'delete',
+      data: null
+    });
+
     const deleteBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.filter((bullet) => {
         if (bullet.id === id) return false;
@@ -96,7 +184,6 @@ export const useBulletManager = () => {
 
     setBullets(deleteBulletRecursive(bullets));
 
-    // Focus on the previous bullet after deletion
     if (previousBullet) {
       setTimeout(() => {
         const previousElement = document.querySelector(
@@ -104,7 +191,6 @@ export const useBulletManager = () => {
         ) as HTMLElement;
         if (previousElement) {
           previousElement.focus();
-          // Set cursor at the end of the content
           const range = document.createRange();
           const selection = window.getSelection();
           range.selectNodeContents(previousElement);
