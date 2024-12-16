@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useEffect } from "react";
 import BulletItem from "./BulletItem";
 import { Plus } from "lucide-react";
 import { useBulletManager } from "@/hooks/useBulletManager";
 import { useBulletNavigation } from "@/hooks/useBulletNavigation";
+import { Button } from "./ui/button";
+import { toast } from "sonner";
 
 const TaskManager = () => {
   const {
@@ -19,8 +21,23 @@ const TaskManager = () => {
 
   const { handleNavigate } = useBulletNavigation(getAllVisibleBullets, bullets);
 
+  const handleClearLocalStorage = () => {
+    localStorage.clear();
+    window.location.reload();
+    toast.success("Local storage cleared. Reloading data from server.");
+  };
+
   return (
     <div className="max-w-3xl mx-auto p-8">
+      <div className="mb-4">
+        <Button 
+          variant="outline" 
+          onClick={handleClearLocalStorage}
+          className="text-sm"
+        >
+          Reset Local Data
+        </Button>
+      </div>
       {bullets.map((bullet) => (
         <BulletItem
           key={bullet.id}
