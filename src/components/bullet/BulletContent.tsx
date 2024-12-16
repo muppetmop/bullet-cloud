@@ -56,7 +56,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   }, [pendingDelete, onDelete]);
 
-  // First useEffect: Update original bullet content
   useEffect(() => {
     if (pendingSplit && !splitCompleted) {
       onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
@@ -64,7 +63,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   }, [pendingSplit, splitCompleted, onUpdate]);
 
-  // Second useEffect: Create new bullet with remaining content
   useEffect(() => {
     if (pendingSplit && splitCompleted) {
       const newBulletId = onNewBullet(pendingSplit.originalBulletId);
@@ -80,11 +78,20 @@ const BulletContent: React.FC<BulletContentProps> = ({
           if (newElement) {
             newElement.focus();
             try {
+              // Set text content first
+              newElement.textContent = pendingSplit.afterCursor;
+              
+              // Then set cursor position
               const selection = window.getSelection();
               const range = document.createRange();
-              const textNode = newElement.firstChild || newElement;
-              range.setStart(textNode, 0);
-              range.setEnd(textNode, 0);
+              
+              // Make sure we have a text node
+              if (!newElement.firstChild) {
+                newElement.appendChild(document.createTextNode(''));
+              }
+              
+              range.setStart(newElement.firstChild!, 0);
+              range.setEnd(newElement.firstChild!, 0);
               selection?.removeAllRanges();
               selection?.addRange(range);
             } catch (err) {
@@ -93,7 +100,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
           }
         });
 
-        // Reset states after successful split
         setPendingSplit(null);
         setSplitCompleted(false);
       }
@@ -102,12 +108,21 @@ const BulletContent: React.FC<BulletContentProps> = ({
 
   const handleKeyDown = (e: KeyboardEvent) => {
     const content = contentRef.current?.textContent || "";
+    
+    // Get accurate cursor position
     const selection = window.getSelection();
-    const range = selection?.getRangeAt(0);
-    const pos = range?.startOffset || 0;
+    if (!selection || !selection.rangeCount) return;
+    
+    const range = selection.getRangeAt(0);
+    if (!range.startContainer.textContent) return;
+    
+    // Calculate the actual cursor position within the text
+    const pos = range.startOffset;
 
     if (e.key === "Enter") {
       e.preventDefault();
+      
+      // Ensure we're getting the correct content split
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
       
