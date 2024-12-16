@@ -5,8 +5,16 @@ import { useBulletManager } from "@/hooks/useBulletManager";
 import { useBulletNavigation } from "@/hooks/useBulletNavigation";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
+import { useQueuedSync } from "@/hooks/useQueuedSync";
+import { initializeQueue } from "@/utils/queueManager";
 
 const TaskManager = () => {
+  const queueHook = useQueuedSync();
+  
+  useEffect(() => {
+    initializeQueue(queueHook);
+  }, [queueHook]);
+
   const {
     bullets,
     getAllVisibleBullets,
