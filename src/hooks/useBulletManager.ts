@@ -277,9 +277,24 @@ export const useBulletManager = () => {
 
     const previousBullet = parent[index - 1];
     parent.splice(index, 1);
+    const newLevel = bullet.level + 1;
+
+    // Queue the update operation with new parent_id and level
+    addToQueue({
+      id: bullet.id,
+      type: 'update',
+      data: {
+        parent_id: previousBullet.id,
+        level: newLevel,
+        content: bullet.content,
+        is_collapsed: bullet.isCollapsed,
+        position: bullet.position
+      }
+    });
+
     previousBullet.children.push({
       ...bullet,
-      level: bullet.level + 1  // Increase level when indenting
+      level: newLevel
     });
     setBullets([...bullets]);
   };
@@ -316,9 +331,24 @@ export const useBulletManager = () => {
 
     const bulletIndex = parent.indexOf(bullet);
     parent.splice(bulletIndex, 1);
+    const newLevel = Math.max(0, bullet.level - 1);
+
+    // Queue the update operation with removed parent_id and updated level
+    addToQueue({
+      id: bullet.id,
+      type: 'update',
+      data: {
+        parent_id: null,  // Remove parent when outdenting
+        level: newLevel,
+        content: bullet.content,
+        is_collapsed: bullet.isCollapsed,
+        position: bullet.position
+      }
+    });
+
     grandParent.splice(parentIndex + 1, 0, {
       ...bullet,
-      level: Math.max(0, bullet.level - 1)  // Decrease level when outdenting, but not below 0
+      level: newLevel
     });
     setBullets([...bullets]);
   };
