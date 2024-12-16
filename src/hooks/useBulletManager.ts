@@ -5,6 +5,7 @@ import { addToQueue } from "@/utils/queueManager";
 import { startSyncService } from "@/services/syncService";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { generateBulletId } from "@/utils/idGenerator";
 
 export const useBulletManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([]);
@@ -79,7 +80,7 @@ export const useBulletManager = () => {
       } else {
         // Create initial bullet if none exist
         const initialBullet: BulletPoint = {
-          id: crypto.randomUUID(),
+          id: generateBulletId(),
           content: "",
           children: [],
           isCollapsed: false,
@@ -107,7 +108,7 @@ export const useBulletManager = () => {
     const newLevel = bullet.level;
 
     const newBullet: BulletPoint = {
-      id: crypto.randomUUID(),
+      id: generateBulletId(),
       content: "",
       children: [],
       isCollapsed: false,
@@ -156,7 +157,7 @@ export const useBulletManager = () => {
     const newPosition = lastBullet ? lastBullet.position + 1 : 0;
 
     const newBullet: BulletPoint = {
-      id: crypto.randomUUID(),
+      id: generateBulletId(),
       content: "",
       children: [],
       isCollapsed: false,
