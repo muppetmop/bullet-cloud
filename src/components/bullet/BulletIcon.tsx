@@ -12,25 +12,21 @@ const BulletIcon: React.FC<BulletIconProps> = ({
   isCollapsed,
   onCollapse,
 }) => {
-  if (hasChildren) {
-    return (
-      <button
-        className="collapse-button mt-1"
-        onClick={onCollapse}
-      >
-        {isCollapsed ? (
-          <ChevronRight className="w-3 h-3" />
-        ) : (
-          <ChevronDown className="w-3 h-3" />
-        )}
-      </button>
-    );
+  if (!hasChildren) {
+    return <div className="w-4" />;
   }
 
   return (
-    <span className="w-4 h-4 inline-flex items-center justify-center mt-1">
-      •
-    </span>
+    <button
+      className="collapse-button"
+      onClick={onCollapse}
+    >
+      {isCollapsed ? (
+        <ChevronRight className="w-3 h-3" />
+      ) : (
+        <ChevronDown className="w-3 h-3" />
+      )}
+    </button>
   );
 };
 
