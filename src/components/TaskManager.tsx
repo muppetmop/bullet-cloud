@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import BulletItem from "./BulletItem";
 import { Plus } from "lucide-react";
 import { useBulletManager } from "@/hooks/useBulletManager";
@@ -7,9 +7,13 @@ import { Button } from "./ui/button";
 import { toast } from "sonner";
 import { useQueuedSync } from "@/hooks/useQueuedSync";
 import { initializeQueue } from "@/utils/queueManager";
+import BreadcrumbNav from "./navigation/BreadcrumbNav";
+import { BulletPoint } from "@/types/bullet";
 
 const TaskManager = () => {
   const queueHook = useQueuedSync();
+  const [currentBulletId, setCurrentBulletId] = useState<string | null>(null);
+  const [breadcrumbPath, setBreadcrumbPath] = useState<{ id: string; content: string }[]>([]);
   
   useEffect(() => {
     initializeQueue(queueHook);
@@ -35,6 +39,55 @@ const TaskManager = () => {
     toast.success("Local storage cleared. Reloading data from server.");
   };
 
+  const findBulletPath = (id: string | null, bullets: BulletPoint[]): BulletPoint[] => {
+    if (!id) return [];
+    
+    for (const bullet of bullets) {
+      if (bullet.id === id) {
+        return [bullet];
+      }
+      const path = findBulletPath(id, bullet.children);
+      if (path.length > 0) {
+        return [bullet, ...path];
+      }
+    }
+    return [];
+  };
+
+  const handleZoom = async (id: string | null) => {
+    if (id === currentBulletId) return;
+    
+    setCurrentBulletId(id);
+    
+    if (id) {
+      const path = findBulletPath(id, bullets);
+      setBreadcrumbPath(path.map(b => ({ id: b.id, content: b.content })));
+      
+      // If the zoomed bullet has no children, create a new nested bullet
+      const [bullet] = findBulletPath(id, bullets).slice(-1);
+      if (bullet && bullet.children.length === 0) {
+        const newBulletId = createNewBullet(id);
+        if (newBulletId) {
+          // Focus will be handled by the BulletContent component
+          // when it detects it's a newly created bullet
+        }
+      }
+    } else {
+      setBreadcrumbPath([]);
+    }
+  };
+
+  const getVisibleBullets = () => {
+    if (!currentBulletId) return bullets;
+    
+    const path = findBulletPath(currentBulletId, bullets);
+    if (path.length > 0) {
+      const currentBullet = path[path.length - 1];
+      return currentBullet.children;
+    }
+    return [];
+  };
+
   return (
     <div className="max-w-3xl mx-auto p-8">
       <div className="mb-4">
@@ -46,7 +99,19 @@ const TaskManager = () => {
           Reset Local Data
         </Button>
       </div>
-      {bullets.map((bullet) => (
+
+      <BreadcrumbNav 
+        path={breadcrumbPath} 
+        onNavigate={handleZoom}
+      />
+
+      {currentBulletId && (
+        <h1 className="text-2xl font-semibold mb-6">
+          {breadcrumbPath[breadcrumbPath.length - 1]?.content || "Untitled"}
+        </h1>
+      )}
+
+      {getVisibleBullets().map((bullet) => (
         <BulletItem
           key={bullet.id}
           bullet={bullet}
@@ -58,17 +123,23 @@ const TaskManager = () => {
           onNavigate={handleNavigate}
           onIndent={indentBullet}
           onOutdent={outdentBullet}
+          onZoom={handleZoom}
         />
       ))}
+
       <button
-        onClick={createNewRootBullet}
+        onClick={currentBulletId ? () => createNewBullet(currentBulletId) : createNewRootBullet}
         className="new-bullet-button w-full flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 transition-colors"
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
-            createNewRootBullet();
+            if (currentBulletId) {
+              createNewBullet(currentBulletId);
+            } else {
+              createNewRootBullet();
+            }
           } else if (e.key === "ArrowUp" && bullets.length > 0) {
-            const lastBullet = getAllVisibleBullets(bullets).pop();
+            const lastBullet = getAllVisibleBullets(getVisibleBullets()).pop();
             if (lastBullet) {
               const lastElement = document.querySelector(
                 `[data-id="${lastBullet.id}"] .bullet-content`

@@ -12,6 +12,7 @@ interface BulletItemProps {
   onNavigate: (direction: "up" | "down", id: string) => void;
   onIndent?: (id: string) => void;
   onOutdent?: (id: string) => void;
+  onZoom: (id: string) => void;
 }
 
 const BulletItem: React.FC<BulletItemProps> = ({
@@ -24,6 +25,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
   onNavigate,
   onIndent,
   onOutdent,
+  onZoom,
 }) => {
   return (
     <div 
@@ -39,6 +41,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
         onNavigate={onNavigate}
         onIndent={onIndent}
         onOutdent={onOutdent}
+        onZoom={onZoom}
       />
       {!bullet.isCollapsed && bullet.children.length > 0 && (
         <div className="bullet-children">
@@ -54,6 +57,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
               onNavigate={onNavigate}
               onIndent={onIndent}
               onOutdent={onOutdent}
+              onZoom={onZoom}
             />
           ))}
         </div>

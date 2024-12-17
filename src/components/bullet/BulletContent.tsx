@@ -15,6 +15,7 @@ interface BulletContentProps {
   onNavigate: (direction: "up" | "down", id: string) => void;
   onIndent?: (id: string) => void;
   onOutdent?: (id: string) => void;
+  onZoom: (id: string) => void;
 }
 
 interface PendingDelete {
@@ -38,6 +39,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
   onNavigate,
   onIndent,
   onOutdent,
+  onZoom,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
@@ -125,7 +127,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const handleBackspace = (e: KeyboardEvent, content: string, pos: number) => {
     const selection = window.getSelection();
     
-    // If there's selected text, let the default behavior handle it
     if (selection && !selection.isCollapsed) {
       return;
     }
@@ -200,12 +201,23 @@ const BulletContent: React.FC<BulletContentProps> = ({
     onUpdate(bullet.id, content);
   };
 
+  const handleBulletClick = (e: React.MouseEvent) => {
+    // Only trigger zoom when clicking the bullet icon or collapse button
+    const target = e.target as HTMLElement;
+    if (target.closest('.collapse-button') || target.closest('.bullet-icon')) {
+      onZoom(bullet.id);
+    }
+  };
+
   return (
     <div className="flex items-start gap-1">
       {bullet.children.length > 0 ? (
         <button
           className="collapse-button mt-1"
-          onClick={() => onCollapse(bullet.id)}
+          onClick={() => {
+            onCollapse(bullet.id);
+            handleBulletClick;
+          }}
         >
           {bullet.isCollapsed ? (
             <ChevronRight className="w-3 h-3" />
@@ -214,8 +226,11 @@ const BulletContent: React.FC<BulletContentProps> = ({
           )}
         </button>
       ) : (
-        <span className="w-4 h-4 inline-flex items-center justify-center mt-1">
-          •
+        <span 
+          className="w-4 h-4 inline-flex items-center justify-center mt-1 cursor-pointer bullet-icon"
+          onClick={handleBulletClick}
+        >
+          ✤
         </span>
       )}
       <div
