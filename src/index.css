@@ -44,15 +44,15 @@
 }
 
 .bullet-item:hover {
-  @apply bg-gray-50;
-}
-
-.bullet-item:hover > .bullet-children {
   @apply bg-gray-50/50;
 }
 
+.bullet-item:hover > .bullet-children {
+  @apply bg-gray-50/25;
+}
+
 .bullet-item:hover > div:first-child {
-  @apply bg-gray-100;
+  @apply bg-gray-50/50;
 }
 
 .bullet-item:focus-within {
@@ -70,6 +70,10 @@
   left: -1.25rem;
   top: 0.45rem;
   font-size: 12px;
+}
+
+.collapse-button span {
+  @apply text-gray-400 hover:text-[#9b87f5] transition-colors;
 }
 
 .bullet-children {
