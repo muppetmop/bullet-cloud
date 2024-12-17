@@ -46,10 +46,12 @@
   @apply bg-accent/50 rounded-md;
 }
 
+/* Add hover effect for individual bullet lines */
 .bullet-item:hover > div:first-child {
   @apply bg-gray-50;
 }
 
+/* Add hover effect for bullet items with children */
 .bullet-item:has(.bullet-children):hover {
   @apply bg-gray-50/50;
 }
@@ -60,7 +62,6 @@
 
 .collapse-button {
   @apply w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors;
-  margin-bottom: 1px;
 }
 
 .bullet-children {
