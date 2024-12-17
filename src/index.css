@@ -67,7 +67,7 @@
   @apply w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors;
   position: absolute;
   left: -1.25rem;
-  top: 0.35rem;
+  top: 0.5rem;
 }
 
 .bullet-children {
@@ -87,10 +87,10 @@
 
 .bullet-icon {
   @apply text-gray-400 hover:text-gray-600 transition-colors;
-  font-size: 0.875rem; /* Changed from 1.1rem to 14px (0.875rem) */
+  font-size: 0.875rem;
 }
 
 .bullet-wrapper {
   @apply flex items-start gap-1;
-  padding-top: 0.125rem;
+  padding-top: 0.5rem;
 }
