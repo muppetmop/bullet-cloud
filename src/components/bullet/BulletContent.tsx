@@ -125,7 +125,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const handleBackspace = (e: KeyboardEvent, content: string, pos: number) => {
     const selection = window.getSelection();
     
-    // If there's selected text, let the default behavior handle it
     if (selection && !selection.isCollapsed) {
       return;
     }
@@ -220,10 +219,17 @@ const BulletContent: React.FC<BulletContentProps> = ({
       )}
       <div
         ref={contentRef}
-        className="bullet-content py-1"
+        className="bullet-content py-1 hover:cursor-pointer"
         contentEditable
         onInput={handleInput}
         onKeyDown={handleKeyDown}
+        onClick={(e) => {
+          // Only zoom if not selecting text
+          const selection = window.getSelection();
+          if (selection?.toString() === '') {
+            window.location.hash = `#${bullet.id}`;
+          }
+        }}
         suppressContentEditableWarning
       />
     </div>
