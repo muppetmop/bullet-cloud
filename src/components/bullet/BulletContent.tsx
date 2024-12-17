@@ -9,8 +9,8 @@ import {
 interface BulletContentProps {
   bullet: BulletPoint;
   onUpdate: (id: string, content: string) => void;
-  onDelete: (id: string) => void;
-  onNewBullet: (id: string) => string | null;
+  onDelete: (id: string) => Promise<void>;  // Updated to handle async
+  onNewBullet: (id: string) => Promise<string | null>;  // Updated to handle async
   onCollapse: (id: string) => void;
   onNavigate: (direction: "up" | "down", id: string) => void;
   onIndent?: (id: string) => void;
@@ -125,7 +125,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   };
 
-  const handleBackspace = (e: KeyboardEvent, content: string, pos: number) => {
+  const handleBackspace = async (e: KeyboardEvent, content: string, pos: number) => {
     if (pos === 0) {
       const visibleBullets = Array.from(
         document.querySelectorAll('.bullet-content')
@@ -143,7 +143,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
         if (previousBulletId) {
           if (content.length === 0) {
             if (visibleBullets.length > 1 && bullet.children.length === 0) {
-              onDelete(bullet.id);
+              await onDelete(bullet.id);
               
               requestAnimationFrame(() => {
                 previousElement.focus();
@@ -164,11 +164,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
           } else {
             e.preventDefault();
             onUpdate(previousBulletId, previousContent + content);
-            setPendingDelete({ 
-              bulletId: bullet.id, 
-              previousContent: previousContent + content,
-              previousBulletId
-            });
+            await onDelete(bullet.id);
             
             requestAnimationFrame(() => {
               previousElement.focus();
