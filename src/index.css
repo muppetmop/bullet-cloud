@@ -55,7 +55,12 @@
 }
 
 .bullet-icon {
-  @apply w-5 h-5 inline-flex items-center justify-center rounded-full hover:bg-accent/50 transition-colors cursor-pointer;
+  @apply w-5 h-5 inline-flex items-center justify-center rounded-full transition-colors cursor-pointer;
+  background-color: transparent;
+}
+
+.bullet-icon:hover {
+  background-color: #e5e7eb;
 }
 
 .bullet-icon::before {

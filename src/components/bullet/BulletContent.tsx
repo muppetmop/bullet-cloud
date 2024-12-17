@@ -197,24 +197,26 @@ const BulletContent: React.FC<BulletContentProps> = ({
 
   return (
     <div className="flex items-start gap-1 group relative py-0.5">
-      {bullet.children.length > 0 && (
+      <div className="flex items-center gap-1">
+        {bullet.children.length > 0 && (
+          <button
+            className="collapse-button"
+            onClick={() => onCollapse(bullet.id)}
+            aria-label={bullet.isCollapsed ? "Expand" : "Collapse"}
+          >
+            {bullet.isCollapsed ? (
+              <ChevronRight className="w-3 h-3 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-3 h-3 text-gray-400" />
+            )}
+          </button>
+        )}
         <button
-          className="collapse-button"
-          onClick={() => onCollapse(bullet.id)}
-          aria-label={bullet.isCollapsed ? "Expand" : "Collapse"}
-        >
-          {bullet.isCollapsed ? (
-            <ChevronRight className="w-3 h-3 text-gray-400" />
-          ) : (
-            <ChevronDown className="w-3 h-3 text-gray-400" />
-          )}
-        </button>
-      )}
-      <button
-        className="bullet-icon"
-        onClick={() => onFocus(bullet.id)}
-        aria-label="Focus on bullet"
-      />
+          className="bullet-icon"
+          onClick={() => onFocus(bullet.id)}
+          aria-label="Focus on bullet"
+        />
+      </div>
       <div
         ref={contentRef}
         className="bullet-content flex-grow"
