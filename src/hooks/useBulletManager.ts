@@ -107,9 +107,8 @@ export const useBulletManager = () => {
     const newPosition = bullet.position + 1;
     const newLevel = bullet.level;
 
-    // Get the parent_id from the bullet above (if it's nested)
-    // This ensures we maintain the same parent for bullets created with Enter
-    const parentId = bullet.level > 0 ? bullet.parent_id : null;
+    // Get the parent_id based on the level
+    const parentId = newLevel > 0 ? bullet.parent_id : null;
 
     const newBullet: BulletPoint = {
       id: generateBulletId(),
@@ -120,8 +119,12 @@ export const useBulletManager = () => {
       level: newLevel,
       parent_id: parentId
     };
-    
-    // Queue the create operation with user_id and parent_id
+
+    // First update local state
+    parent.splice(index + 1, 0, newBullet);
+    setBullets([...bullets]);
+
+    // Then queue the create operation
     addToQueue({
       id: newBullet.id,
       type: 'create',
@@ -135,19 +138,6 @@ export const useBulletManager = () => {
         parent_id: parentId
       }
     });
-
-    const updatePositions = (bullets: BulletPoint[]): BulletPoint[] => {
-      return bullets.map(b => {
-        if (b.position >= newPosition && b.id !== newBullet.id) {
-          return { ...b, position: b.position + 1 };
-        }
-        return b;
-      });
-    };
-
-    parent.splice(index + 1, 0, newBullet);
-    const updatedBullets = updatePositions(bullets);
-    setBullets([...updatedBullets]);
 
     return newBullet.id;
   };
@@ -285,7 +275,16 @@ export const useBulletManager = () => {
     parent.splice(index, 1);
     const newLevel = bullet.level + 1;
 
-    // Queue the update operation with new parent_id and level
+    // Update local state first
+    const updatedBullet = {
+      ...bullet,
+      level: newLevel,
+      parent_id: previousBullet.id
+    };
+    previousBullet.children.push(updatedBullet);
+    setBullets([...bullets]);
+
+    // Then queue the update
     addToQueue({
       id: bullet.id,
       type: 'update',
@@ -297,12 +296,6 @@ export const useBulletManager = () => {
         position: bullet.position
       }
     });
-
-    previousBullet.children.push({
-      ...bullet,
-      level: newLevel
-    });
-    setBullets([...bullets]);
   };
 
   const outdentBullet = (id: string) => {
@@ -339,24 +332,27 @@ export const useBulletManager = () => {
     parent.splice(bulletIndex, 1);
     const newLevel = Math.max(0, bullet.level - 1);
 
-    // Queue the update operation with removed parent_id and updated level
+    // Update local state first
+    const updatedBullet = {
+      ...bullet,
+      level: newLevel,
+      parent_id: null
+    };
+    grandParent.splice(parentIndex + 1, 0, updatedBullet);
+    setBullets([...bullets]);
+
+    // Then queue the update
     addToQueue({
       id: bullet.id,
       type: 'update',
       data: {
-        parent_id: null,  // Remove parent when outdenting
+        parent_id: null,
         level: newLevel,
         content: bullet.content,
         is_collapsed: bullet.isCollapsed,
         position: bullet.position
       }
     });
-
-    grandParent.splice(parentIndex + 1, 0, {
-      ...bullet,
-      level: newLevel
-    });
-    setBullets([...bullets]);
   };
 
   return {
