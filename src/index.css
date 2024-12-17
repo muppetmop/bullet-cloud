@@ -44,7 +44,7 @@
 }
 
 .bullet-item:hover {
-  @apply bg-gray-50/50;
+  @apply bg-gray-50/50 rounded-md;
 }
 
 .bullet-item:hover > .bullet-children {
