@@ -87,7 +87,7 @@
 
 .bullet-icon {
   @apply text-gray-400 hover:text-gray-600 transition-colors;
-  font-size: 1.1rem;
+  font-size: 0.875rem; /* Changed from 1.1rem to 14px (0.875rem) */
 }
 
 .bullet-wrapper {
