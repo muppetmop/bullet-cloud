@@ -37,12 +37,12 @@ const EditableContent: React.FC<EditableContentProps> = ({
       e.preventDefault();
       onNewBullet();
     } else if (e.key === "Tab") {
-      handleTabKey(e, content, { content }, pos, onUpdate, onIndent, onOutdent);
+      handleTabKey(e, content, pos, onUpdate, onIndent, onOutdent);
     } else if (e.key === "Backspace" && pos === 0 && content.length === 0) {
       e.preventDefault();
       onDelete();
     } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      handleArrowKeys(e, content, { content }, onUpdate, onNavigate);
+      handleArrowKeys(e, content, onUpdate, onNavigate);
     }
   };
 
