@@ -10,12 +10,11 @@ interface BulletContentProps {
   bullet: BulletPoint;
   onUpdate: (id: string, content: string) => void;
   onDelete: (id: string) => void;
-  onNewBullet: (id: string) => Promise<string | null>;
+  onNewBullet: (id: string) => string | null;
   onCollapse: (id: string) => void;
   onNavigate: (direction: "up" | "down", id: string) => void;
   onIndent?: (id: string) => void;
   onOutdent?: (id: string) => void;
-  onFocus: (id: string) => void;
 }
 
 interface PendingDelete {
@@ -39,7 +38,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
   onNavigate,
   onIndent,
   onOutdent,
-  onFocus,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
@@ -200,13 +198,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
 
   return (
     <div className="flex items-start gap-1">
-      <button
-        className="bullet-icon mt-1 w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors"
-        onClick={() => onFocus(bullet.id)}
-      >
-        •
-      </button>
-      {bullet.children.length > 0 && (
+      {bullet.children.length > 0 ? (
         <button
           className="collapse-button mt-1"
           onClick={() => onCollapse(bullet.id)}
@@ -217,6 +209,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
             <ChevronDown className="w-3 h-3" />
           )}
         </button>
+      ) : (
+        <span className="w-4 h-4 inline-flex items-center justify-center mt-1">
+          •
+        </span>
       )}
       <div
         ref={contentRef}
