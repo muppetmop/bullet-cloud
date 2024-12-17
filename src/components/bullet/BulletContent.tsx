@@ -1,6 +1,5 @@
 import React, { useRef, KeyboardEvent, useEffect, useState } from "react";
 import { BulletPoint } from "@/types/bullet";
-import { ChevronRight, ChevronDown } from "lucide-react";
 import {
   handleTabKey,
   handleArrowKeys,
@@ -202,10 +201,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
   };
 
   return (
-    <div className="flex items-start gap-1">
+    <>
       {bullet.children.length > 0 && (
         <button
-          className="collapse-button mt-1"
+          className="collapse-button"
           onClick={() => onCollapse(bullet.id)}
         >
           {bullet.isCollapsed ? (
@@ -215,21 +214,23 @@ const BulletContent: React.FC<BulletContentProps> = ({
           )}
         </button>
       )}
-      <span 
-        className="w-4 h-4 inline-flex items-center justify-center mt-1 cursor-pointer bullet-icon"
-        onClick={() => onZoom(bullet.id)}
-      >
-        ✤
-      </span>
-      <div
-        ref={contentRef}
-        className="bullet-content py-1"
-        contentEditable
-        onInput={handleInput}
-        onKeyDown={handleKeyDown}
-        suppressContentEditableWarning
-      />
-    </div>
+      <div className="bullet-wrapper">
+        <span 
+          className="w-4 h-4 inline-flex items-center justify-center mt-1 cursor-pointer bullet-icon"
+          onClick={() => onZoom(bullet.id)}
+        >
+          ✤
+        </span>
+        <div
+          ref={contentRef}
+          className="bullet-content py-1"
+          contentEditable
+          onInput={handleInput}
+          onKeyDown={handleKeyDown}
+          suppressContentEditableWarning
+        />
+      </div>
+    </>
   );
 };
 

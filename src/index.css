@@ -64,6 +64,8 @@
 
 .collapse-button {
   @apply w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors;
+  position: absolute;
+  left: -1.5rem;
 }
 
 .bullet-children {
@@ -73,4 +75,9 @@
 .bullet-icon {
   @apply text-gray-400 hover:text-gray-600 transition-colors;
   font-size: 1.1rem;
+}
+
+.bullet-wrapper {
+  @apply flex items-start gap-1;
+  margin-left: 1.5rem;
 }
