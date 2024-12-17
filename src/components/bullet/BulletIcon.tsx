@@ -18,7 +18,7 @@ const BulletIcon: React.FC<BulletIconProps> = ({
 
   return (
     <button
-      className="collapse-button flex items-center justify-center"
+      className="collapse-button flex items-center justify-center pb-[2px]"
       onClick={onCollapse}
     >
       {isCollapsed ? (
