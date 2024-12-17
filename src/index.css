@@ -88,7 +88,7 @@
 }
 
 .bullet-icon {
-  @apply text-gray-400 hover:text-gray-600 transition-colors;
+  @apply text-gray-400 hover:text-[#9b87f5] transition-colors;
   font-size: 0.875rem;
   margin-bottom: 6px;
 }
