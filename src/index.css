@@ -52,6 +52,11 @@
 
 .collapse-button {
   @apply w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors opacity-0 group-hover:opacity-100;
+  background-color: transparent;
+}
+
+.collapse-button:hover {
+  background-color: #e5e7eb;
 }
 
 .bullet-icon {
@@ -70,4 +75,14 @@
 
 .bullet-children {
   @apply pl-6;
+}
+
+/* New styles for expandable bullets */
+.bullet-expandable .collapse-button {
+  @apply opacity-100;
+  background-color: #f3f4f6;
+}
+
+.bullet-expandable .collapse-button:hover {
+  background-color: #e5e7eb;
 }

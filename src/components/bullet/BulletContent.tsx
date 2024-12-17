@@ -196,7 +196,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
   };
 
   return (
-    <div className="flex items-start gap-1 group relative py-0.5">
+    <div className={`flex items-start gap-1 group relative py-0.5 ${bullet.children.length > 0 ? 'bullet-expandable' : ''}`}>
       <div className="flex items-center gap-1">
         {bullet.children.length > 0 && (
           <button
