@@ -79,17 +79,7 @@ const TaskManager = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-8">
-      <div className="mb-4">
-        <Button 
-          variant="outline" 
-          onClick={handleClearLocalStorage}
-          className="text-sm"
-        >
-          Reset Local Data
-        </Button>
-      </div>
-
+    <div className="max-w-3xl mx-auto p-8 relative min-h-screen">
       <BreadcrumbNav 
         path={breadcrumbPath} 
         onNavigate={handleZoom}
@@ -144,6 +134,16 @@ const TaskManager = () => {
         <Plus className="w-4 h-4" />
         <span className="text-sm">Add new bullet</span>
       </button>
+
+      <div className="fixed bottom-8 right-8">
+        <Button 
+          variant="outline" 
+          onClick={handleClearLocalStorage}
+          className="text-sm"
+        >
+          Reset Local Data
+        </Button>
+      </div>
     </div>
   );
 };
