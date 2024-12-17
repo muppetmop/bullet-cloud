@@ -55,7 +55,7 @@
 }
 
 .bullet-icon {
-  @apply w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors cursor-pointer;
+  @apply w-6 h-6 inline-flex items-center justify-center rounded-full hover:bg-accent/50 transition-colors cursor-pointer border border-gray-200;
 }
 
 .bullet-children {
