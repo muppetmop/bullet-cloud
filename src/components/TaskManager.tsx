@@ -10,7 +10,11 @@ import { initializeQueue } from "@/utils/queueManager";
 import Breadcrumb from "./navigation/Breadcrumb";
 import { BulletPoint } from "@/types/bullet";
 
-const TaskManager = () => {
+interface TaskManagerProps {
+  onBreadcrumbChange: (path: BulletPoint[]) => void;
+}
+
+const TaskManager = ({ onBreadcrumbChange }: TaskManagerProps) => {
   const queueHook = useQueuedSync();
   const [focusedBulletId, setFocusedBulletId] = useState<string | null>(null);
   const [breadcrumbPath, setBreadcrumbPath] = useState<BulletPoint[]>([]);
@@ -18,6 +22,10 @@ const TaskManager = () => {
   useEffect(() => {
     initializeQueue(queueHook);
   }, [queueHook]);
+
+  useEffect(() => {
+    onBreadcrumbChange(breadcrumbPath);
+  }, [breadcrumbPath, onBreadcrumbChange]);
 
   const {
     bullets,
@@ -71,7 +79,7 @@ const TaskManager = () => {
 
   return (
     <div className="max-w-3xl mx-auto p-8">
-      <div className="mb-6 space-y-4">
+      <div className="mb-6">
         <Button 
           variant="ghost" 
           onClick={handleClearLocalStorage}
@@ -79,10 +87,6 @@ const TaskManager = () => {
         >
           Reset Local Data
         </Button>
-        <Breadcrumb 
-          path={breadcrumbPath} 
-          onNavigate={handleBreadcrumbNavigate} 
-        />
       </div>
       <div className="space-y-0.5">
         {visibleBullets.map((bullet) => (
