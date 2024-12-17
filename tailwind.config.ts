@@ -54,7 +54,7 @@ export default {
         },
       },
       fontFamily: {
-        roboto: ["Roboto", "sans-serif"],
+        sans: ["Inter", "sans-serif"],
       },
       keyframes: {
         "collapse-down": {

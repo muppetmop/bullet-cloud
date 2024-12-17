@@ -10,8 +10,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import Breadcrumb from "@/components/navigation/Breadcrumb";
-import { BulletPoint } from "@/types/bullet";
 
 const supabase = createClient(
   "https://pxmthjryoxoifxdtcevd.supabase.co",
@@ -21,7 +19,6 @@ const supabase = createClient(
 const Index = () => {
   const navigate = useNavigate();
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [breadcrumbPath, setBreadcrumbPath] = useState<BulletPoint[]>([]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -40,10 +37,7 @@ const Index = () => {
     <div className="min-h-screen bg-[#F6F6F7]">
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-[#1EAEDB]">BullBook</h1>
-            <Breadcrumb path={breadcrumbPath} onNavigate={(id) => setBreadcrumbPath(id ? [breadcrumbPath.find(b => b.id === id)!] : [])} />
-          </div>
+          <h1 className="text-2xl font-bold text-[#1EAEDB]">BullBook</h1>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -62,7 +56,7 @@ const Index = () => {
           </DropdownMenu>
         </div>
       </nav>
-      <TaskManager onBreadcrumbChange={setBreadcrumbPath} />
+      <TaskManager />
     </div>
   );
 };
