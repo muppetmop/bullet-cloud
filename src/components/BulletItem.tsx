@@ -7,11 +7,12 @@ interface BulletItemProps {
   level: number;
   onUpdate: (id: string, content: string) => void;
   onDelete: (id: string) => void;
-  onNewBullet: (id: string) => string | null;
+  onNewBullet: (id: string) => Promise<string | null>;
   onCollapse: (id: string) => void;
   onNavigate: (direction: "up" | "down", id: string) => void;
   onIndent?: (id: string) => void;
   onOutdent?: (id: string) => void;
+  onFocus: (id: string) => void;
 }
 
 const BulletItem: React.FC<BulletItemProps> = ({
@@ -24,6 +25,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
   onNavigate,
   onIndent,
   onOutdent,
+  onFocus,
 }) => {
   return (
     <div 
@@ -39,6 +41,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
         onNavigate={onNavigate}
         onIndent={onIndent}
         onOutdent={onOutdent}
+        onFocus={onFocus}
       />
       {!bullet.isCollapsed && bullet.children.length > 0 && (
         <div className="bullet-children">
@@ -54,6 +57,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
               onNavigate={onNavigate}
               onIndent={onIndent}
               onOutdent={onOutdent}
+              onFocus={onFocus}
             />
           ))}
         </div>

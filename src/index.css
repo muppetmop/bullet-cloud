@@ -27,7 +27,7 @@
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
   }
- 
+
   * {
     @apply border-border;
   }
@@ -52,6 +52,10 @@
 
 .collapse-button {
   @apply w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors;
+}
+
+.bullet-icon {
+  @apply w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors cursor-pointer;
 }
 
 .bullet-children {
