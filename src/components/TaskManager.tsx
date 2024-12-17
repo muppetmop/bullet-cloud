@@ -63,7 +63,7 @@ const TaskManager = () => {
       const path = findBulletPath(id, bullets);
       setBreadcrumbPath(path.map(b => ({ id: b.id, content: b.content })));
       
-      // If the zoomed bullet has no children, create a new nested bullet
+      // Only create a new bullet if there are no children
       const [bullet] = findBulletPath(id, bullets).slice(-1);
       if (bullet && bullet.children.length === 0) {
         const newBulletId = createNewBullet(id);
