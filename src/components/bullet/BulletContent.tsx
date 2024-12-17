@@ -56,7 +56,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   }, [pendingDelete, onDelete]);
 
-  // First useEffect: Update original bullet content
   useEffect(() => {
     if (pendingSplit && !splitCompleted) {
       onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
@@ -64,7 +63,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   }, [pendingSplit, splitCompleted, onUpdate]);
 
-  // Second useEffect: Create new bullet with remaining content
   useEffect(() => {
     if (pendingSplit && splitCompleted) {
       const newBulletId = onNewBullet(pendingSplit.originalBulletId);
@@ -93,7 +91,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
           }
         });
 
-        // Reset states after successful split
         setPendingSplit(null);
         setSplitCompleted(false);
       }
@@ -126,6 +123,13 @@ const BulletContent: React.FC<BulletContentProps> = ({
   };
 
   const handleBackspace = (e: KeyboardEvent, content: string, pos: number) => {
+    const selection = window.getSelection();
+    
+    // If there's selected text, let the default behavior handle it
+    if (selection && !selection.isCollapsed) {
+      return;
+    }
+    
     if (pos === 0) {
       const visibleBullets = Array.from(
         document.querySelectorAll('.bullet-content')
