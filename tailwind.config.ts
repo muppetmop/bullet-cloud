@@ -54,7 +54,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
+        sans: ["Roboto", "sans-serif"],
       },
       keyframes: {
         "collapse-down": {
