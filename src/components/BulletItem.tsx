@@ -6,8 +6,8 @@ interface BulletItemProps {
   bullet: BulletPoint;
   level: number;
   onUpdate: (id: string, content: string) => void;
-  onDelete: (id: string) => void;
-  onNewBullet: (id: string) => string | null;
+  onDelete: (id: string) => void;  // Changed back to sync
+  onNewBullet: (id: string) => string | null;  // Changed back to sync
   onCollapse: (id: string) => void;
   onNavigate: (direction: "up" | "down", id: string) => void;
   onIndent?: (id: string) => void;
