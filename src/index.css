@@ -61,15 +61,13 @@
 
 .bullet-content {
   @apply outline-none w-full;
-  line-height: 1.5;
-  padding: 0.125rem 0;
 }
 
 .collapse-button {
   @apply w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors;
   position: absolute;
   left: -1.25rem;
-  top: 0.125rem;
+  top: 0.45rem;
   font-size: 12px;
 }
 
@@ -94,6 +92,6 @@
 }
 
 .bullet-wrapper {
-  @apply flex items-center gap-1;
-  padding: 0.125rem 0;
+  @apply flex items-start gap-1;
+  padding-top: 0.25rem;
 }
