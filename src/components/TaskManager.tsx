@@ -67,6 +67,18 @@ const TaskManager = () => {
     }
   };
 
+  const handleTitleChange = (event: React.FocusEvent<HTMLHeadingElement>) => {
+    const newContent = event.target.textContent || "";
+    if (currentBulletId) {
+      updateBullet(currentBulletId, newContent);
+      setBreadcrumbPath(prev => {
+        const newPath = [...prev];
+        newPath[newPath.length - 1].content = newContent;
+        return newPath;
+      });
+    }
+  };
+
   const getVisibleBullets = () => {
     if (!currentBulletId) return bullets;
     
@@ -86,7 +98,12 @@ const TaskManager = () => {
       />
 
       {currentBulletId && (
-        <h1 className="text-2xl font-semibold mb-6">
+        <h1 
+          className="text-2xl font-semibold mb-6 outline-none"
+          contentEditable
+          suppressContentEditableWarning
+          onBlur={handleTitleChange}
+        >
           {breadcrumbPath[breadcrumbPath.length - 1]?.content || "Untitled"}
         </h1>
       )}
