@@ -33,13 +33,21 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-white text-foreground font-sans;
   }
 }
 
 .bullet-item {
   @apply transition-all duration-200;
   position: relative;
+}
+
+.bullet-item:hover {
+  @apply bg-gray-50;
+}
+
+.bullet-item:hover > .bullet-children {
+  @apply bg-gray-50/50;
 }
 
 .bullet-item:focus-within {
@@ -55,5 +63,5 @@
 }
 
 .bullet-children {
-  @apply pl-6;
+  @apply pl-6 transition-colors duration-200;
 }
