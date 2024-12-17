@@ -62,16 +62,6 @@ const TaskManager = () => {
     if (id) {
       const path = findBulletPath(id, bullets);
       setBreadcrumbPath(path.map(b => ({ id: b.id, content: b.content })));
-      
-      // Only create a new bullet if there are no children
-      const [bullet] = findBulletPath(id, bullets).slice(-1);
-      if (bullet && bullet.children.length === 0) {
-        const newBulletId = createNewBullet(id);
-        if (newBulletId) {
-          // Focus will be handled by the BulletContent component
-          // when it detects it's a newly created bullet
-        }
-      }
     } else {
       setBreadcrumbPath([]);
     }
