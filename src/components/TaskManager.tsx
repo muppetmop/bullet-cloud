@@ -3,8 +3,11 @@ import BulletItem from "./BulletItem";
 import { Plus } from "lucide-react";
 import { useBulletManager } from "@/hooks/useBulletManager";
 import { useBulletNavigation } from "@/hooks/useBulletNavigation";
-import { initializeQueue } from "@/utils/queueManager";
+import { Button } from "./ui/button";
+import { toast } from "sonner";
 import { useQueuedSync } from "@/hooks/useQueuedSync";
+import { initializeQueue } from "@/utils/queueManager";
+import Breadcrumb from "./navigation/Breadcrumb";
 import { BulletPoint } from "@/types/bullet";
 
 const TaskManager = () => {
@@ -30,6 +33,12 @@ const TaskManager = () => {
   } = useBulletManager();
 
   const { handleNavigate } = useBulletNavigation(getAllVisibleBullets, bullets);
+
+  const handleClearLocalStorage = () => {
+    localStorage.clear();
+    window.location.reload();
+    toast.success("Local storage cleared. Reloading data from server.");
+  };
 
   const getBulletPath = (bulletId: string): BulletPoint[] => {
     const path: BulletPoint[] = [];
@@ -60,16 +69,22 @@ const TaskManager = () => {
     ? findBulletAndParent(focusedBulletId, bullets)[0]?.children || []
     : bullets;
 
-  const focusedBullet = focusedBulletId 
-    ? findBulletAndParent(focusedBulletId, bullets)[0] 
-    : null;
-
   return (
     <div className="max-w-3xl mx-auto p-8">
+      <div className="mb-6 space-y-4">
+        <Button 
+          variant="ghost" 
+          onClick={handleClearLocalStorage}
+          className="text-sm text-gray-500 hover:text-gray-700"
+        >
+          Reset Local Data
+        </Button>
+        <Breadcrumb 
+          path={breadcrumbPath} 
+          onNavigate={handleBreadcrumbNavigate} 
+        />
+      </div>
       <div className="space-y-0.5">
-        {focusedBullet && (
-          <h1 className="text-2xl font-medium mb-6">{focusedBullet.content}</h1>
-        )}
         {visibleBullets.map((bullet) => (
           <BulletItem
             key={bullet.id}
