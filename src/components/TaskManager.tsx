@@ -90,6 +90,14 @@ const TaskManager = () => {
     return [];
   };
 
+  const handleNewBullet = () => {
+    if (currentBulletId) {
+      createNewBullet(currentBulletId);
+    } else {
+      createNewRootBullet();
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto p-8 relative min-h-screen">
       <BreadcrumbNav 
@@ -125,16 +133,12 @@ const TaskManager = () => {
       ))}
 
       <button
-        onClick={currentBulletId ? () => createNewBullet(currentBulletId) : createNewRootBullet}
+        onClick={handleNewBullet}
         className="new-bullet-button w-full flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 transition-colors"
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
-            if (currentBulletId) {
-              createNewBullet(currentBulletId);
-            } else {
-              createNewRootBullet();
-            }
+            handleNewBullet();
           } else if (e.key === "ArrowUp" && bullets.length > 0) {
             const lastBullet = getAllVisibleBullets(getVisibleBullets()).pop();
             if (lastBullet) {
