@@ -105,7 +105,11 @@ export const useBulletManager = () => {
 
     const index = parent.indexOf(bullet);
     const newPosition = bullet.position + 1;
-    const newLevel = bullet.level; // Keep the same level as the current bullet
+    const newLevel = bullet.level;
+
+    // Get the parent_id from the bullet above (if it's nested)
+    // This ensures we maintain the same parent for bullets created with Enter
+    const parentId = bullet.level > 0 ? bullet.parent_id : null;
 
     const newBullet: BulletPoint = {
       id: generateBulletId(),
@@ -113,12 +117,9 @@ export const useBulletManager = () => {
       children: [],
       isCollapsed: false,
       position: newPosition,
-      level: newLevel
+      level: newLevel,
+      parent_id: parentId
     };
-    
-    // Use the same parent ID as the bullet above (the one we're creating from)
-    // This ensures nested bullets maintain the same parent
-    const parentId = bullet.level > 0 ? bullet.parent_id : null;
     
     // Queue the create operation with user_id and parent_id
     addToQueue({
