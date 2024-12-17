@@ -61,6 +61,7 @@
 
 .bullet-content {
   @apply outline-none w-full;
+  margin-bottom: 2px;
 }
 
 .collapse-button {
