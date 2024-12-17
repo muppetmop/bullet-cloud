@@ -94,7 +94,7 @@ export const useBulletManager = () => {
     loadBullets();
   }, [userId]);
 
-  const createNewBullet = async (id: string): Promise<string | null> => {
+  const createNewBullet = (id: string): string | null => {
     if (!userId) {
       toast.error("Please sign in to create bullets");
       return null;
@@ -107,19 +107,9 @@ export const useBulletManager = () => {
     const newPosition = bullet.position + 1;
     const newLevel = bullet.level;
 
-    // Get the parent_id from the database record if it exists
-    const getBulletFromDB = async () => {
-      const { data } = await supabase
-        .from('bullets')
-        .select('parent_id')
-        .eq('id', bullet.id)
-        .single();
-      return data?.parent_id;
-    };
-
-    // For nested bullets (level > 0), use the parent_id from the database
-    // This ensures we maintain the correct hierarchy
-    const parentId = bullet.level > 0 ? await getBulletFromDB() || bullet.parent_id : null;
+    // Get the parent_id from the bullet above (if it's nested)
+    // This ensures we maintain the same parent for bullets created with Enter
+    const parentId = bullet.level > 0 ? bullet.parent_id : null;
 
     const newBullet: BulletPoint = {
       id: generateBulletId(),
