@@ -94,7 +94,7 @@ export const useBulletManager = () => {
     loadBullets();
   }, [userId]);
 
-  const createNewBullet = async (id: string): Promise<string | null> => {
+  const createNewBullet = (id: string): string | null => {
     if (!userId) {
       toast.error("Please sign in to create bullets");
       return null;
@@ -106,6 +106,9 @@ export const useBulletManager = () => {
     const index = parent.indexOf(bullet);
     const newPosition = bullet.position + 1;
     const newLevel = bullet.level;
+
+    // Get the parent_id from the bullet above (if it's nested)
+    // This ensures we maintain the same parent for bullets created with Enter
     const parentId = bullet.level > 0 ? bullet.parent_id : null;
 
     const newBullet: BulletPoint = {
@@ -118,6 +121,7 @@ export const useBulletManager = () => {
       parent_id: parentId
     };
     
+    // Queue the create operation with user_id and parent_id
     addToQueue({
       id: newBullet.id,
       type: 'create',
@@ -214,29 +218,17 @@ export const useBulletManager = () => {
     setBullets(updateBulletRecursive(bullets));
   };
 
-  const deleteBullet = async (id: string) => {
-    const deleteRecursively = async (bulletId: string) => {
-      const [bullet] = findBulletAndParent(bulletId, bullets);
-      if (!bullet) return;
-
-      // First, recursively delete all children
-      for (const child of bullet.children) {
-        await deleteRecursively(child.id);
-      }
-
-      // Then delete the bullet itself
-      addToQueue({
-        id: bulletId,
-        type: 'delete',
-        data: null
-      });
-    };
-
-    await deleteRecursively(id);
-
+  const deleteBullet = (id: string) => {
     const visibleBullets = getAllVisibleBullets(bullets);
     const currentIndex = visibleBullets.findIndex(b => b.id === id);
     const previousBullet = visibleBullets[currentIndex - 1];
+
+    // Queue the delete operation
+    addToQueue({
+      id,
+      type: 'delete',
+      data: null
+    });
 
     const deleteBulletRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.filter((bullet) => {
