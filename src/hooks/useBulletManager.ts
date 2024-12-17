@@ -252,7 +252,22 @@ export const useBulletManager = () => {
     const toggleCollapseRecursive = (bullets: BulletPoint[]): BulletPoint[] => {
       return bullets.map((bullet) => {
         if (bullet.id === id) {
-          return { ...bullet, isCollapsed: !bullet.isCollapsed };
+          const newIsCollapsed = !bullet.isCollapsed;
+          
+          // Queue the update operation for collapse state
+          addToQueue({
+            id: bullet.id,
+            type: 'update',
+            data: {
+              is_collapsed: newIsCollapsed,
+              content: bullet.content,
+              position: bullet.position,
+              level: bullet.level,
+              parent_id: bullet.parent_id
+            }
+          });
+          
+          return { ...bullet, isCollapsed: newIsCollapsed };
         }
         return {
           ...bullet,
