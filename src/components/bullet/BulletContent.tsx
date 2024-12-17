@@ -116,7 +116,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
 
   return (
     <div className="flex items-start">
-      <div className="flex items-center gap-1 mr-1">
+      <div className="flex items-end gap-1 mr-1 pb-[3px]">
         <BulletIcon
           hasChildren={bullet.children.length > 0}
           isCollapsed={bullet.isCollapsed}
@@ -124,7 +124,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
         />
       </div>
       <div className="flex items-start gap-1 flex-grow">
-        <span className="w-4 h-4 inline-flex items-center justify-center mt-1">
+        <span className="w-4 h-4 inline-flex items-center justify-center">
           •
         </span>
         <div
