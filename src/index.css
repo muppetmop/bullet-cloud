@@ -40,6 +40,7 @@
 .bullet-item {
   @apply transition-all duration-200;
   position: relative;
+  margin-left: 0.5rem;
 }
 
 .bullet-item:hover {
