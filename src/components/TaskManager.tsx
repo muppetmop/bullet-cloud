@@ -70,66 +70,60 @@ const TaskManager = () => {
     : bullets;
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="fixed top-0 left-0 right-0 bg-white border-b z-10">
-        <div className="max-w-3xl mx-auto px-8 py-4">
-          <div className="flex items-center justify-between">
-            <Breadcrumb 
-              path={breadcrumbPath} 
-              onNavigate={handleBreadcrumbNavigate} 
-            />
-            <Button 
-              variant="ghost" 
-              onClick={handleClearLocalStorage}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              Reset Local Data
-            </Button>
-          </div>
-        </div>
+    <div className="max-w-3xl mx-auto p-8">
+      <div className="mb-6 space-y-4">
+        <Button 
+          variant="ghost" 
+          onClick={handleClearLocalStorage}
+          className="text-sm text-gray-500 hover:text-gray-700"
+        >
+          Reset Local Data
+        </Button>
+        <Breadcrumb 
+          path={breadcrumbPath} 
+          onNavigate={handleBreadcrumbNavigate} 
+        />
       </div>
-      <div className="mt-20 px-8">
-        <div className="space-y-0.5">
-          {visibleBullets.map((bullet) => (
-            <BulletItem
-              key={bullet.id}
-              bullet={bullet}
-              level={0}
-              onUpdate={updateBullet}
-              onDelete={deleteBullet}
-              onNewBullet={createNewBullet}
-              onCollapse={toggleCollapse}
-              onNavigate={handleNavigate}
-              onIndent={indentBullet}
-              onOutdent={outdentBullet}
-              onFocus={handleBulletFocus}
-            />
-          ))}
-        </div>
-        <button
-          onClick={focusedBulletId ? () => createNewBullet(focusedBulletId) : createNewRootBullet}
-          className="w-full flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 transition-colors mt-2"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              focusedBulletId ? createNewBullet(focusedBulletId) : createNewRootBullet();
-            } else if (e.key === "ArrowUp" && visibleBullets.length > 0) {
-              const lastBullet = getAllVisibleBullets(visibleBullets).pop();
-              if (lastBullet) {
-                const lastElement = document.querySelector(
-                  `[data-id="${lastBullet.id}"] .bullet-content`
-                ) as HTMLElement;
-                if (lastElement) {
-                  lastElement.focus();
-                }
+      <div className="space-y-0.5">
+        {visibleBullets.map((bullet) => (
+          <BulletItem
+            key={bullet.id}
+            bullet={bullet}
+            level={0}
+            onUpdate={updateBullet}
+            onDelete={deleteBullet}
+            onNewBullet={createNewBullet}
+            onCollapse={toggleCollapse}
+            onNavigate={handleNavigate}
+            onIndent={indentBullet}
+            onOutdent={outdentBullet}
+            onFocus={handleBulletFocus}
+          />
+        ))}
+      </div>
+      <button
+        onClick={focusedBulletId ? () => createNewBullet(focusedBulletId) : createNewRootBullet}
+        className="w-full flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 transition-colors mt-2"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            focusedBulletId ? createNewBullet(focusedBulletId) : createNewRootBullet();
+          } else if (e.key === "ArrowUp" && visibleBullets.length > 0) {
+            const lastBullet = getAllVisibleBullets(visibleBullets).pop();
+            if (lastBullet) {
+              const lastElement = document.querySelector(
+                `[data-id="${lastBullet.id}"] .bullet-content`
+              ) as HTMLElement;
+              if (lastElement) {
+                lastElement.focus();
               }
             }
-          }}
-        >
-          <Plus className="w-4 h-4" />
-          <span className="text-sm">Add new bullet</span>
-        </button>
-      </div>
+          }
+        }}
+      >
+        <Plus className="w-4 h-4" />
+        <span className="text-sm">Add new bullet</span>
+      </button>
     </div>
   );
 };

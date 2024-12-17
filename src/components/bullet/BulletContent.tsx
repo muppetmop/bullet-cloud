@@ -30,7 +30,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
   onFocus,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const [isFocused, setIsFocused] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{
     bulletId: string;
     previousContent: string;
@@ -196,11 +195,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
     onUpdate(bullet.id, content);
   };
 
-  const handleBulletClick = () => {
-    setIsFocused(true);
-    onFocus(bullet.id);
-  };
-
   return (
     <div className={`flex items-start gap-1 group relative py-0.5 ${bullet.children.length > 0 ? 'bullet-expandable' : ''}`}>
       <div className="flex items-center gap-1">
@@ -219,13 +213,13 @@ const BulletContent: React.FC<BulletContentProps> = ({
         )}
         <button
           className="bullet-icon"
-          onClick={handleBulletClick}
+          onClick={() => onFocus(bullet.id)}
           aria-label="Focus on bullet"
         />
       </div>
       <div
         ref={contentRef}
-        className={`bullet-content ${isFocused ? 'is-focused' : ''}`}
+        className="bullet-content flex-grow"
         contentEditable
         onInput={handleInput}
         onKeyDown={handleKeyDown}

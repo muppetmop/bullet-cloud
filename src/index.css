@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -50,18 +50,22 @@
   @apply outline-none w-full py-0.5;
 }
 
-.bullet-content.is-focused {
-  @apply text-2xl font-semibold mb-4;
+.collapse-button {
+  @apply w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors opacity-0 group-hover:opacity-100;
+  background-color: transparent;
 }
 
-.collapse-button {
-  @apply w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-gray-200 transition-colors opacity-0 group-hover:opacity-100;
-  background-color: #f3f4f6;
+.collapse-button:hover {
+  background-color: #e5e7eb;
 }
 
 .bullet-icon {
-  @apply w-5 h-5 inline-flex items-center justify-center rounded-full transition-colors cursor-pointer hover:bg-gray-200;
+  @apply w-5 h-5 inline-flex items-center justify-center rounded-full transition-colors cursor-pointer;
   background-color: transparent;
+}
+
+.bullet-icon:hover {
+  background-color: #e5e7eb;
 }
 
 .bullet-icon::before {
@@ -73,19 +77,12 @@
   @apply pl-6;
 }
 
-.bullet-expandable {
-  position: relative;
+/* New styles for expandable bullets */
+.bullet-expandable .collapse-button {
+  @apply opacity-100;
+  background-color: #f3f4f6;
 }
 
-.bullet-expandable::before {
-  content: '';
-  @apply absolute w-7 h-7 bg-gray-100 rounded-full -left-1 top-0.5 transition-colors;
-}
-
-.bullet-expandable:hover::before {
-  @apply bg-gray-200;
-}
-
-.bullet-expandable .bullet-icon {
-  @apply bg-gray-100 hover:bg-gray-200;
+.bullet-expandable .collapse-button:hover {
+  background-color: #e5e7eb;
 }
