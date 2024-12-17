@@ -33,7 +33,7 @@
   }
 
   body {
-    @apply bg-white text-foreground font-sans;
+    @apply bg-background text-foreground font-sans;
   }
 }
 
@@ -46,16 +46,6 @@
   @apply bg-accent/50 rounded-md;
 }
 
-/* Add hover effect for individual bullet lines */
-.bullet-item:hover > div:first-child {
-  @apply bg-gray-50;
-}
-
-/* Add hover effect for bullet items with children */
-.bullet-item:has(.bullet-children):hover {
-  @apply bg-gray-50/50;
-}
-
 .bullet-content {
   @apply outline-none w-full;
 }
@@ -66,9 +56,4 @@
 
 .bullet-children {
   @apply pl-6;
-}
-
-/* Update bullet point size */
-.bullet-content span {
-  @apply text-xl leading-none;
 }

@@ -1,7 +1,6 @@
 import React, { useRef, KeyboardEvent, useEffect, useState } from "react";
 import { BulletPoint } from "@/types/bullet";
-import BulletIcon from "./BulletIcon";
-import { handleBackspaceKey } from "@/utils/bulletKeyboardHandlers";
+import { ChevronRight, ChevronDown } from "lucide-react";
 import {
   handleTabKey,
   handleArrowKeys,
@@ -16,6 +15,12 @@ interface BulletContentProps {
   onNavigate: (direction: "up" | "down", id: string) => void;
   onIndent?: (id: string) => void;
   onOutdent?: (id: string) => void;
+}
+
+interface PendingDelete {
+  bulletId: string;
+  previousContent: string;
+  previousBulletId: string;
 }
 
 interface PendingSplit {
@@ -35,6 +40,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
   onOutdent,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
   const [splitCompleted, setSplitCompleted] = useState(false);
 
@@ -42,6 +48,13 @@ const BulletContent: React.FC<BulletContentProps> = ({
     if (!contentRef.current) return;
     contentRef.current.textContent = bullet.content;
   }, [bullet.content]);
+
+  useEffect(() => {
+    if (pendingDelete) {
+      onDelete(pendingDelete.bulletId);
+      setPendingDelete(null);
+    }
+  }, [pendingDelete, onDelete]);
 
   useEffect(() => {
     if (pendingSplit && !splitCompleted) {
@@ -103,9 +116,82 @@ const BulletContent: React.FC<BulletContentProps> = ({
     } else if (e.key === "Tab") {
       handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
     } else if (e.key === "Backspace") {
-      handleBackspaceKey(e, content, bullet, pos, contentRef, onUpdate, onDelete);
+      handleBackspace(e, content, pos);
     } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
+    }
+  };
+
+  const handleBackspace = (e: KeyboardEvent, content: string, pos: number) => {
+    const selection = window.getSelection();
+    
+    // If there's selected text, let the default behavior handle it
+    if (selection && !selection.isCollapsed) {
+      return;
+    }
+    
+    if (pos === 0) {
+      const visibleBullets = Array.from(
+        document.querySelectorAll('.bullet-content')
+      ) as HTMLElement[];
+      
+      const currentIndex = visibleBullets.findIndex(
+        el => el === contentRef.current
+      );
+      
+      if (currentIndex > 0) {
+        const previousElement = visibleBullets[currentIndex - 1];
+        const previousContent = previousElement.textContent || '';
+        const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
+        
+        if (previousBulletId) {
+          if (content.length === 0) {
+            if (visibleBullets.length > 1 && bullet.children.length === 0) {
+              onDelete(bullet.id);
+              
+              requestAnimationFrame(() => {
+                previousElement.focus();
+                try {
+                  const selection = window.getSelection();
+                  const range = document.createRange();
+                  const textNode = previousElement.firstChild || previousElement;
+                  const position = previousContent.length;
+                  range.setStart(textNode, position);
+                  range.setEnd(textNode, position);
+                  selection?.removeAllRanges();
+                  selection?.addRange(range);
+                } catch (err) {
+                  console.error('Failed to set cursor position:', err);
+                }
+              });
+            }
+          } else {
+            e.preventDefault();
+            onUpdate(previousBulletId, previousContent + content);
+            setPendingDelete({ 
+              bulletId: bullet.id, 
+              previousContent: previousContent + content,
+              previousBulletId
+            });
+            
+            requestAnimationFrame(() => {
+              previousElement.focus();
+              try {
+                const selection = window.getSelection();
+                const range = document.createRange();
+                const textNode = previousElement.firstChild || previousElement;
+                const position = previousContent.length;
+                range.setStart(textNode, position);
+                range.setEnd(textNode, position);
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+              } catch (err) {
+                console.error('Failed to set cursor position:', err);
+              }
+            });
+          }
+        }
+      }
     }
   };
 
@@ -115,27 +201,31 @@ const BulletContent: React.FC<BulletContentProps> = ({
   };
 
   return (
-    <div className="flex items-start">
-      <div className="flex items-end mr-1">
-        <BulletIcon
-          hasChildren={bullet.children.length > 0}
-          isCollapsed={bullet.isCollapsed}
-          onCollapse={() => onCollapse(bullet.id)}
-        />
-      </div>
-      <div className="flex items-center gap-1 flex-grow pt-[2px]">
-        <span className="w-4 h-4 inline-flex items-center justify-center">
+    <div className="flex items-start gap-1">
+      {bullet.children.length > 0 ? (
+        <button
+          className="collapse-button mt-1"
+          onClick={() => onCollapse(bullet.id)}
+        >
+          {bullet.isCollapsed ? (
+            <ChevronRight className="w-3 h-3" />
+          ) : (
+            <ChevronDown className="w-3 h-3" />
+          )}
+        </button>
+      ) : (
+        <span className="w-4 h-4 inline-flex items-center justify-center mt-1">
           •
         </span>
-        <div
-          ref={contentRef}
-          className="bullet-content py-1"
-          contentEditable
-          onInput={handleInput}
-          onKeyDown={handleKeyDown}
-          suppressContentEditableWarning
-        />
-      </div>
+      )}
+      <div
+        ref={contentRef}
+        className="bullet-content py-1"
+        contentEditable
+        onInput={handleInput}
+        onKeyDown={handleKeyDown}
+        suppressContentEditableWarning
+      />
     </div>
   );
 };
