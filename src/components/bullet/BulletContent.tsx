@@ -1,6 +1,6 @@
 import React, { useRef, KeyboardEvent, useEffect, useState } from "react";
 import { BulletPoint } from "@/types/bullet";
-import { ChevronRight, ChevronDown, Circle } from "lucide-react";
+import { ChevronRight, ChevronDown } from "lucide-react";
 import {
   handleTabKey,
   handleArrowKeys,
@@ -196,33 +196,33 @@ const BulletContent: React.FC<BulletContentProps> = ({
   };
 
   return (
-    <div className="flex items-start gap-2">
+    <div className="flex items-start gap-1 group relative py-0.5">
       {bullet.children.length > 0 && (
         <button
-          className="collapse-button mt-1"
+          className="collapse-button"
           onClick={() => onCollapse(bullet.id)}
+          aria-label={bullet.isCollapsed ? "Expand" : "Collapse"}
         >
           {bullet.isCollapsed ? (
-            <ChevronRight className="w-3 h-3" />
+            <ChevronRight className="w-3 h-3 text-gray-400" />
           ) : (
-            <ChevronDown className="w-3 h-3" />
+            <ChevronDown className="w-3 h-3 text-gray-400" />
           )}
         </button>
       )}
+      <button
+        className="bullet-icon"
+        onClick={() => onFocus(bullet.id)}
+        aria-label="Focus on bullet"
+      />
       <div
         ref={contentRef}
-        className="bullet-content py-1 flex-grow"
+        className="bullet-content flex-grow"
         contentEditable
         onInput={handleInput}
         onKeyDown={handleKeyDown}
         suppressContentEditableWarning
       />
-      <button
-        className="bullet-icon mt-1"
-        onClick={() => onFocus(bullet.id)}
-      >
-        <Circle className="w-4 h-4 text-gray-400" />
-      </button>
     </div>
   );
 };
