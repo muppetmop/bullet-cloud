@@ -201,38 +201,26 @@ const BulletContent: React.FC<BulletContentProps> = ({
     onUpdate(bullet.id, content);
   };
 
-  const handleBulletClick = (e: React.MouseEvent) => {
-    // Only trigger zoom when clicking the bullet icon or collapse button
-    const target = e.target as HTMLElement;
-    if (target.closest('.collapse-button') || target.closest('.bullet-icon')) {
-      onZoom(bullet.id);
-    }
-  };
-
   return (
     <div className="flex items-start gap-1">
-      {bullet.children.length > 0 ? (
+      {bullet.children.length > 0 && (
         <button
           className="collapse-button mt-1"
-          onClick={() => {
-            onCollapse(bullet.id);
-            handleBulletClick;
-          }}
+          onClick={() => onCollapse(bullet.id)}
         >
           {bullet.isCollapsed ? (
-            <ChevronRight className="w-3 h-3" />
+            <span className="text-gray-400">▶</span>
           ) : (
-            <ChevronDown className="w-3 h-3" />
+            <span className="text-gray-400">▼</span>
           )}
         </button>
-      ) : (
-        <span 
-          className="w-4 h-4 inline-flex items-center justify-center mt-1 cursor-pointer bullet-icon"
-          onClick={handleBulletClick}
-        >
-          ✤
-        </span>
       )}
+      <span 
+        className="w-4 h-4 inline-flex items-center justify-center mt-1 cursor-pointer bullet-icon"
+        onClick={() => onZoom(bullet.id)}
+      >
+        ✤
+      </span>
       <div
         ref={contentRef}
         className="bullet-content py-1"
