@@ -48,7 +48,7 @@
 }
 
 .bullet-item:hover > .bullet-children {
-  @apply bg-gray-50/25;
+  @apply bg-gray-50/40;
 }
 
 .bullet-item:hover > div:first-child {
