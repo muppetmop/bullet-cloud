@@ -79,7 +79,7 @@
   content: '';
   position: absolute;
   left: 0.5rem;
-  top: -0.75rem;
+  top: 0.5rem;
   bottom: 0.75rem;
   width: 1px;
   @apply bg-gray-200;
