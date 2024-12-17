@@ -72,6 +72,17 @@
 
 .bullet-children {
   @apply pl-8 transition-colors duration-200;
+  position: relative;
+}
+
+.bullet-children::before {
+  content: '';
+  position: absolute;
+  left: 0.5rem;
+  top: -0.75rem;
+  bottom: 0.75rem;
+  width: 1px;
+  @apply bg-gray-200;
 }
 
 .bullet-icon {
