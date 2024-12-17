@@ -71,11 +71,11 @@ const TaskManager = () => {
 
   return (
     <div className="max-w-3xl mx-auto p-8">
-      <div className="mb-6 space-y-4">
+      <div className="mb-4 space-y-4">
         <Button 
-          variant="ghost" 
+          variant="outline" 
           onClick={handleClearLocalStorage}
-          className="text-sm text-gray-500 hover:text-gray-700"
+          className="text-sm"
         >
           Reset Local Data
         </Button>
@@ -84,26 +84,24 @@ const TaskManager = () => {
           onNavigate={handleBreadcrumbNavigate} 
         />
       </div>
-      <div className="space-y-0.5">
-        {visibleBullets.map((bullet) => (
-          <BulletItem
-            key={bullet.id}
-            bullet={bullet}
-            level={0}
-            onUpdate={updateBullet}
-            onDelete={deleteBullet}
-            onNewBullet={createNewBullet}
-            onCollapse={toggleCollapse}
-            onNavigate={handleNavigate}
-            onIndent={indentBullet}
-            onOutdent={outdentBullet}
-            onFocus={handleBulletFocus}
-          />
-        ))}
-      </div>
+      {visibleBullets.map((bullet) => (
+        <BulletItem
+          key={bullet.id}
+          bullet={bullet}
+          level={0}
+          onUpdate={updateBullet}
+          onDelete={deleteBullet}
+          onNewBullet={createNewBullet}
+          onCollapse={toggleCollapse}
+          onNavigate={handleNavigate}
+          onIndent={indentBullet}
+          onOutdent={outdentBullet}
+          onFocus={handleBulletFocus}
+        />
+      ))}
       <button
         onClick={focusedBulletId ? () => createNewBullet(focusedBulletId) : createNewRootBullet}
-        className="w-full flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 transition-colors mt-2"
+        className="new-bullet-button w-full flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 transition-colors"
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "Enter") {

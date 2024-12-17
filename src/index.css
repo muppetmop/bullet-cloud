@@ -12,7 +12,7 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221 83% 53%;
+    --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -47,42 +47,17 @@
 }
 
 .bullet-content {
-  @apply outline-none w-full py-0.5;
+  @apply outline-none w-full;
 }
 
 .collapse-button {
-  @apply w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors opacity-0 group-hover:opacity-100;
-  background-color: transparent;
-}
-
-.collapse-button:hover {
-  background-color: #e5e7eb;
+  @apply w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors;
 }
 
 .bullet-icon {
-  @apply w-5 h-5 inline-flex items-center justify-center rounded-full transition-colors cursor-pointer;
-  background-color: transparent;
-}
-
-.bullet-icon:hover {
-  background-color: #e5e7eb;
-}
-
-.bullet-icon::before {
-  content: '';
-  @apply w-1.5 h-1.5 bg-gray-700 rounded-full;
+  @apply w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors cursor-pointer;
 }
 
 .bullet-children {
   @apply pl-6;
-}
-
-/* New styles for expandable bullets */
-.bullet-expandable .collapse-button {
-  @apply opacity-100;
-  background-color: #f3f4f6;
-}
-
-.bullet-expandable .collapse-button:hover {
-  background-color: #e5e7eb;
 }

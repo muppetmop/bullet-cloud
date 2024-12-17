@@ -18,6 +18,18 @@ interface BulletContentProps {
   onFocus: (id: string) => void;
 }
 
+interface PendingDelete {
+  bulletId: string;
+  previousContent: string;
+  previousBulletId: string;
+}
+
+interface PendingSplit {
+  originalBulletId: string;
+  beforeCursor: string;
+  afterCursor: string;
+}
+
 const BulletContent: React.FC<BulletContentProps> = ({
   bullet,
   onUpdate,
@@ -30,16 +42,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
   onFocus,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const [pendingDelete, setPendingDelete] = useState<{
-    bulletId: string;
-    previousContent: string;
-    previousBulletId: string;
-  } | null>(null);
-  const [pendingSplit, setPendingSplit] = useState<{
-    originalBulletId: string;
-    beforeCursor: string;
-    afterCursor: string;
-  } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
   const [splitCompleted, setSplitCompleted] = useState(false);
 
   useEffect(() => {
@@ -54,6 +58,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   }, [pendingDelete, onDelete]);
 
+  // First useEffect: Update original bullet content
   useEffect(() => {
     if (pendingSplit && !splitCompleted) {
       onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
@@ -61,42 +66,40 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   }, [pendingSplit, splitCompleted, onUpdate]);
 
+  // Second useEffect: Create new bullet with remaining content
   useEffect(() => {
-    const handleNewBullet = async () => {
-      if (pendingSplit && splitCompleted) {
-        const newBulletId = await onNewBullet(pendingSplit.originalBulletId);
-        
-        if (newBulletId) {
-          onUpdate(newBulletId, pendingSplit.afterCursor);
-  
-          requestAnimationFrame(() => {
-            const newElement = document.querySelector(
-              `[data-id="${newBulletId}"] .bullet-content`
-            ) as HTMLElement;
-            
-            if (newElement) {
-              newElement.focus();
-              try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const textNode = newElement.firstChild || newElement;
-                range.setStart(textNode, 0);
-                range.setEnd(textNode, 0);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-              } catch (err) {
-                console.error('Failed to set cursor position:', err);
-              }
-            }
-          });
-  
-          setPendingSplit(null);
-          setSplitCompleted(false);
-        }
-      }
-    };
+    if (pendingSplit && splitCompleted) {
+      const newBulletId = onNewBullet(pendingSplit.originalBulletId);
+      
+      if (newBulletId) {
+        onUpdate(newBulletId, pendingSplit.afterCursor);
 
-    handleNewBullet();
+        requestAnimationFrame(() => {
+          const newElement = document.querySelector(
+            `[data-id="${newBulletId}"] .bullet-content`
+          ) as HTMLElement;
+          
+          if (newElement) {
+            newElement.focus();
+            try {
+              const selection = window.getSelection();
+              const range = document.createRange();
+              const textNode = newElement.firstChild || newElement;
+              range.setStart(textNode, 0);
+              range.setEnd(textNode, 0);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            } catch (err) {
+              console.error('Failed to set cursor position:', err);
+            }
+          }
+        });
+
+        // Reset states after successful split
+        setPendingSplit(null);
+        setSplitCompleted(false);
+      }
+    }
   }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -196,30 +199,28 @@ const BulletContent: React.FC<BulletContentProps> = ({
   };
 
   return (
-    <div className={`flex items-start gap-1 group relative py-0.5 ${bullet.children.length > 0 ? 'bullet-expandable' : ''}`}>
-      <div className="flex items-center gap-1">
-        {bullet.children.length > 0 && (
-          <button
-            className="collapse-button"
-            onClick={() => onCollapse(bullet.id)}
-            aria-label={bullet.isCollapsed ? "Expand" : "Collapse"}
-          >
-            {bullet.isCollapsed ? (
-              <ChevronRight className="w-3 h-3 text-gray-400" />
-            ) : (
-              <ChevronDown className="w-3 h-3 text-gray-400" />
-            )}
-          </button>
-        )}
+    <div className="flex items-start gap-1">
+      <button
+        className="bullet-icon mt-1 w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors"
+        onClick={() => onFocus(bullet.id)}
+      >
+        •
+      </button>
+      {bullet.children.length > 0 && (
         <button
-          className="bullet-icon"
-          onClick={() => onFocus(bullet.id)}
-          aria-label="Focus on bullet"
-        />
-      </div>
+          className="collapse-button mt-1"
+          onClick={() => onCollapse(bullet.id)}
+        >
+          {bullet.isCollapsed ? (
+            <ChevronRight className="w-3 h-3" />
+          ) : (
+            <ChevronDown className="w-3 h-3" />
+          )}
+        </button>
+      )}
       <div
         ref={contentRef}
-        className="bullet-content flex-grow"
+        className="bullet-content py-1"
         contentEditable
         onInput={handleInput}
         onKeyDown={handleKeyDown}
