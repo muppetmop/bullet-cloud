@@ -67,3 +67,8 @@
 .bullet-children {
   @apply pl-6;
 }
+
+/* Update bullet point size */
+.bullet-content span {
+  @apply text-xl leading-none;
+}
