@@ -71,7 +71,7 @@
 }
 
 .bullet-children {
-  @apply pl-6 transition-colors duration-200;
+  @apply pl-8 transition-colors duration-200;
 }
 
 .bullet-icon {
