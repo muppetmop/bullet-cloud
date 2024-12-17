@@ -78,22 +78,6 @@ const TaskManager = () => {
     return [];
   };
 
-  const handleTitleChange = (e: React.FormEvent<HTMLHeadingElement>) => {
-    if (!currentBulletId) return;
-    const newContent = e.currentTarget.textContent || "";
-    updateBullet(currentBulletId, newContent);
-    
-    // Update breadcrumb path with new content
-    setBreadcrumbPath(prev => {
-      const newPath = [...prev];
-      newPath[newPath.length - 1] = {
-        ...newPath[newPath.length - 1],
-        content: newContent
-      };
-      return newPath;
-    });
-  };
-
   return (
     <div className="max-w-3xl mx-auto p-8 relative min-h-screen">
       <BreadcrumbNav 
@@ -102,12 +86,7 @@ const TaskManager = () => {
       />
 
       {currentBulletId && (
-        <h1 
-          className="text-2xl font-semibold mb-6 outline-none"
-          contentEditable
-          onInput={handleTitleChange}
-          suppressContentEditableWarning
-        >
+        <h1 className="text-2xl font-semibold mb-6">
           {breadcrumbPath[breadcrumbPath.length - 1]?.content || "Untitled"}
         </h1>
       )}
