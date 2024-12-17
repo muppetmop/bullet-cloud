@@ -68,6 +68,7 @@
   position: absolute;
   left: -1.25rem;
   top: 0.45rem;
+  font-size: 12px;
 }
 
 .bullet-children {
