@@ -67,7 +67,7 @@
   @apply w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors;
   position: absolute;
   left: -1.25rem;
-  top: 0.5rem;
+  top: 0.45rem;
 }
 
 .bullet-children {
@@ -92,5 +92,5 @@
 
 .bullet-wrapper {
   @apply flex items-start gap-1;
-  padding-top: 0.5rem;
+  padding-top: 0.25rem;
 }
