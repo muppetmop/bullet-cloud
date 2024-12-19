@@ -91,10 +91,33 @@ const TaskManager = () => {
   };
 
   const handleNewBullet = () => {
+    // If we're zoomed in, create a child bullet under the current bullet
     if (currentBulletId) {
-      createNewBullet(currentBulletId);
+      const newBulletId = createNewBullet(currentBulletId);
+      if (newBulletId) {
+        // Focus the new bullet after it's created
+        requestAnimationFrame(() => {
+          const newElement = document.querySelector(
+            `[data-id="${newBulletId}"] .bullet-content`
+          ) as HTMLElement;
+          if (newElement) {
+            newElement.focus();
+          }
+        });
+      }
     } else {
-      createNewRootBullet();
+      // At root level, create a root bullet
+      const newBulletId = createNewRootBullet();
+      if (newBulletId) {
+        requestAnimationFrame(() => {
+          const newElement = document.querySelector(
+            `[data-id="${newBulletId}"] .bullet-content`
+          ) as HTMLElement;
+          if (newElement) {
+            newElement.focus();
+          }
+        });
+      }
     }
   };
 
