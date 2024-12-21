@@ -1,8 +1,5 @@
-import React, { useState } from "react";
+import React, { useRef, KeyboardEvent, useEffect, useState } from "react";
 import { BulletPoint } from "@/types/bullet";
-import CollapseButton from "./CollapseButton";
-import BulletIcon from "./BulletIcon";
-import ContentEditor from "./ContentEditor";
 import {
   handleTabKey,
   handleArrowKeys,
@@ -20,6 +17,18 @@ interface BulletContentProps {
   onZoom: (id: string) => void;
 }
 
+interface PendingDelete {
+  bulletId: string;
+  previousContent: string;
+  previousBulletId: string;
+}
+
+interface PendingSplit {
+  originalBulletId: string;
+  beforeCursor: string;
+  afterCursor: string;
+}
+
 const BulletContent: React.FC<BulletContentProps> = ({
   bullet,
   onUpdate,
@@ -31,20 +40,66 @@ const BulletContent: React.FC<BulletContentProps> = ({
   onOutdent,
   onZoom,
 }) => {
-  const [pendingDelete, setPendingDelete] = useState<{
-    bulletId: string;
-    previousContent: string;
-    previousBulletId: string;
-  } | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
+  const [splitCompleted, setSplitCompleted] = useState(false);
 
-  const [pendingSplit, setPendingSplit] = useState<{
-    originalBulletId: string;
-    beforeCursor: string;
-    afterCursor: string;
-  } | null>(null);
+  useEffect(() => {
+    if (!contentRef.current) return;
+    contentRef.current.textContent = bullet.content;
+  }, [bullet.content]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    const content = e.currentTarget.textContent || "";
+  useEffect(() => {
+    if (pendingDelete) {
+      onDelete(pendingDelete.bulletId);
+      setPendingDelete(null);
+    }
+  }, [pendingDelete, onDelete]);
+
+  useEffect(() => {
+    if (pendingSplit && !splitCompleted) {
+      onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
+      setSplitCompleted(true);
+    }
+  }, [pendingSplit, splitCompleted, onUpdate]);
+
+  useEffect(() => {
+    if (pendingSplit && splitCompleted) {
+      const newBulletId = onNewBullet(pendingSplit.originalBulletId);
+      
+      if (newBulletId) {
+        onUpdate(newBulletId, pendingSplit.afterCursor);
+
+        requestAnimationFrame(() => {
+          const newElement = document.querySelector(
+            `[data-id="${newBulletId}"] .bullet-content`
+          ) as HTMLElement;
+          
+          if (newElement) {
+            newElement.focus();
+            try {
+              const selection = window.getSelection();
+              const range = document.createRange();
+              const textNode = newElement.firstChild || newElement;
+              range.setStart(textNode, 0);
+              range.setEnd(textNode, 0);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            } catch (err) {
+              console.error('Failed to set cursor position:', err);
+            }
+          }
+        });
+
+        setPendingSplit(null);
+        setSplitCompleted(false);
+      }
+    }
+  }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    const content = contentRef.current?.textContent || "";
     const selection = window.getSelection();
     const range = selection?.getRangeAt(0);
     const pos = range?.startOffset || 0;
@@ -59,86 +114,120 @@ const BulletContent: React.FC<BulletContentProps> = ({
         beforeCursor,
         afterCursor,
       });
-
-      onUpdate(bullet.id, beforeCursor);
-      const newBulletId = onNewBullet(bullet.id);
-      
-      if (newBulletId) {
-        onUpdate(newBulletId, afterCursor);
-        requestAnimationFrame(() => {
-          const newElement = document.querySelector(
-            `[data-id="${newBulletId}"] .bullet-content`
-          ) as HTMLElement;
-          if (newElement) {
-            newElement.focus();
-          }
-        });
-      }
     } else if (e.key === "Tab") {
       handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
-    } else if (e.key === "Backspace" && pos === 0) {
-      handleBackspace(e, content);
+    } else if (e.key === "Backspace") {
+      handleBackspace(e, content, pos);
     } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
     }
   };
 
-  const handleBackspace = (e: React.KeyboardEvent, content: string) => {
-    const visibleBullets = Array.from(
-      document.querySelectorAll('.bullet-content')
-    ) as HTMLElement[];
+  const handleBackspace = (e: KeyboardEvent, content: string, pos: number) => {
+    const selection = window.getSelection();
     
-    const currentIndex = visibleBullets.findIndex(
-      el => el === e.currentTarget
-    );
+    if (selection && !selection.isCollapsed) {
+      return;
+    }
     
-    if (currentIndex > 0) {
-      const previousElement = visibleBullets[currentIndex - 1];
-      const previousContent = previousElement.textContent || '';
-      const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
+    if (pos === 0) {
+      const visibleBullets = Array.from(
+        document.querySelectorAll('.bullet-content')
+      ) as HTMLElement[];
       
-      if (previousBulletId) {
-        if (content.length === 0) {
-          if (visibleBullets.length > 1 && bullet.children.length === 0) {
-            onDelete(bullet.id);
+      const currentIndex = visibleBullets.findIndex(
+        el => el === contentRef.current
+      );
+      
+      if (currentIndex > 0) {
+        const previousElement = visibleBullets[currentIndex - 1];
+        const previousContent = previousElement.textContent || '';
+        const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
+        
+        if (previousBulletId) {
+          if (content.length === 0) {
+            if (visibleBullets.length > 1 && bullet.children.length === 0) {
+              onDelete(bullet.id);
+              
+              requestAnimationFrame(() => {
+                previousElement.focus();
+                try {
+                  const selection = window.getSelection();
+                  const range = document.createRange();
+                  const textNode = previousElement.firstChild || previousElement;
+                  const position = previousContent.length;
+                  range.setStart(textNode, position);
+                  range.setEnd(textNode, position);
+                  selection?.removeAllRanges();
+                  selection?.addRange(range);
+                } catch (err) {
+                  console.error('Failed to set cursor position:', err);
+                }
+              });
+            }
+          } else {
+            e.preventDefault();
+            onUpdate(previousBulletId, previousContent + content);
+            setPendingDelete({ 
+              bulletId: bullet.id, 
+              previousContent: previousContent + content,
+              previousBulletId
+            });
+            
             requestAnimationFrame(() => {
               previousElement.focus();
+              try {
+                const selection = window.getSelection();
+                const range = document.createRange();
+                const textNode = previousElement.firstChild || previousElement;
+                const position = previousContent.length;
+                range.setStart(textNode, position);
+                range.setEnd(textNode, position);
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+              } catch (err) {
+                console.error('Failed to set cursor position:', err);
+              }
             });
           }
-        } else {
-          e.preventDefault();
-          onUpdate(previousBulletId, previousContent + content);
-          setPendingDelete({ 
-            bulletId: bullet.id, 
-            previousContent: previousContent + content,
-            previousBulletId
-          });
-          
-          requestAnimationFrame(() => {
-            previousElement.focus();
-          });
         }
       }
     }
   };
 
-  const handleContentUpdate = (newContent: string) => {
-    onUpdate(bullet.id, newContent);
+  const handleInput = () => {
+    const content = contentRef.current?.textContent || "";
+    onUpdate(bullet.id, content);
   };
 
   return (
     <>
-      <CollapseButton
-        isCollapsed={bullet.isCollapsed}
-        hasChildren={bullet.children.length > 0}
-        onCollapse={() => onCollapse(bullet.id)}
-      />
+      {bullet.children.length > 0 && (
+        <button
+          className="collapse-button"
+          onClick={() => onCollapse(bullet.id)}
+        >
+          {bullet.isCollapsed ? (
+            <span className="text-gray-400">▶</span>
+          ) : (
+            <span className="text-gray-400">▼</span>
+          )}
+        </button>
+      )}
       <div className="bullet-wrapper">
-        <BulletIcon onZoom={() => onZoom(bullet.id)} />
-        <ContentEditor
-          content={bullet.content}
-          onUpdate={handleContentUpdate}
+        <span 
+          className="w-4 h-4 inline-flex items-center justify-center mt-1 cursor-pointer bullet-icon"
+          onClick={() => onZoom(bullet.id)}
+        >
+          ✤
+        </span>
+        <div
+          ref={contentRef}
+          className="bullet-content py-1"
+          contentEditable
+          onInput={handleInput}
           onKeyDown={handleKeyDown}
+          suppressContentEditableWarning
         />
       </div>
     </>
