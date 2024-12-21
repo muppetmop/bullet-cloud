@@ -23,13 +23,21 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
     }
   }, [content]);
 
-  const handleInput = useCallback(() => {
-    const newContent = contentRef.current?.textContent || "";
+  const handleInput = useCallback((e: React.FormEvent<HTMLDivElement>) => {
+    const newContent = e.currentTarget.textContent || "";
     if (newContent !== lastContentRef.current) {
       lastContentRef.current = newContent;
       onUpdate(newContent);
     }
   }, [onUpdate]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    // On mobile, let the browser handle most key events naturally
+    if (isTouch && !['Enter', 'Backspace', 'Tab'].includes(e.key)) {
+      return;
+    }
+    onKeyDown(e);
+  }, [isTouch, onKeyDown]);
 
   return (
     <div
@@ -37,7 +45,7 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
       className="bullet-content py-1"
       contentEditable
       onInput={handleInput}
-      onKeyDown={onKeyDown}
+      onKeyDown={handleKeyDown}
       suppressContentEditableWarning
       dir="ltr"
     />
