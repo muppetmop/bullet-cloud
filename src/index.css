@@ -62,9 +62,6 @@
 .bullet-content {
   @apply outline-none w-full;
   margin-bottom: 2px;
-  direction: ltr;
-  text-align: left;
-  unicode-bidi: plaintext;
 }
 
 .collapse-button {

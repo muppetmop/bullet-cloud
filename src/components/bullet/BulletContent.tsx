@@ -1,8 +1,10 @@
 import React, { useRef, KeyboardEvent, useEffect, useState } from "react";
 import { BulletPoint } from "@/types/bullet";
-import { handleTabKey, handleArrowKeys } from "@/utils/keyboardHandlers";
+import {
+  handleTabKey,
+  handleArrowKeys,
+} from "@/utils/keyboardHandlers";
 
-// Separate interfaces into their own file later for better organization
 interface BulletContentProps {
   bullet: BulletPoint;
   onUpdate: (id: string, content: string) => void;
@@ -68,13 +70,25 @@ const BulletContent: React.FC<BulletContentProps> = ({
       
       if (newBulletId) {
         onUpdate(newBulletId, pendingSplit.afterCursor);
-        
+
         requestAnimationFrame(() => {
           const newElement = document.querySelector(
             `[data-id="${newBulletId}"] .bullet-content`
           ) as HTMLElement;
+          
           if (newElement) {
             newElement.focus();
+            try {
+              const selection = window.getSelection();
+              const range = document.createRange();
+              const textNode = newElement.firstChild || newElement;
+              range.setStart(textNode, 0);
+              range.setEnd(textNode, 0);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            } catch (err) {
+              console.error('Failed to set cursor position:', err);
+            }
           }
         });
 
@@ -137,6 +151,18 @@ const BulletContent: React.FC<BulletContentProps> = ({
               
               requestAnimationFrame(() => {
                 previousElement.focus();
+                try {
+                  const selection = window.getSelection();
+                  const range = document.createRange();
+                  const textNode = previousElement.firstChild || previousElement;
+                  const position = previousContent.length;
+                  range.setStart(textNode, position);
+                  range.setEnd(textNode, position);
+                  selection?.removeAllRanges();
+                  selection?.addRange(range);
+                } catch (err) {
+                  console.error('Failed to set cursor position:', err);
+                }
               });
             }
           } else {
@@ -150,6 +176,18 @@ const BulletContent: React.FC<BulletContentProps> = ({
             
             requestAnimationFrame(() => {
               previousElement.focus();
+              try {
+                const selection = window.getSelection();
+                const range = document.createRange();
+                const textNode = previousElement.firstChild || previousElement;
+                const position = previousContent.length;
+                range.setStart(textNode, position);
+                range.setEnd(textNode, position);
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+              } catch (err) {
+                console.error('Failed to set cursor position:', err);
+              }
             });
           }
         }
@@ -190,11 +228,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
           onInput={handleInput}
           onKeyDown={handleKeyDown}
           suppressContentEditableWarning
-          style={{
-            direction: 'ltr',
-            textAlign: 'left',
-            unicodeBidi: 'plaintext'
-          }}
         />
       </div>
     </>
