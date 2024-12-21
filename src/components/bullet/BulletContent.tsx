@@ -69,7 +69,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
       if (newBulletId) {
         onUpdate(newBulletId, pendingSplit.afterCursor);
         
-        // Let the browser handle focus naturally
         requestAnimationFrame(() => {
           const newElement = document.querySelector(
             `[data-id="${newBulletId}"] .bullet-content`
@@ -136,7 +135,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
             if (visibleBullets.length > 1 && bullet.children.length === 0) {
               onDelete(bullet.id);
               
-              // Let the browser handle focus naturally
               requestAnimationFrame(() => {
                 previousElement.focus();
               });
@@ -150,7 +148,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
               previousBulletId
             });
             
-            // Let the browser handle focus naturally
             requestAnimationFrame(() => {
               previousElement.focus();
             });
@@ -193,6 +190,11 @@ const BulletContent: React.FC<BulletContentProps> = ({
           onInput={handleInput}
           onKeyDown={handleKeyDown}
           suppressContentEditableWarning
+          style={{
+            direction: 'ltr',
+            textAlign: 'left',
+            unicodeBidi: 'plaintext'
+          }}
         />
       </div>
     </>
