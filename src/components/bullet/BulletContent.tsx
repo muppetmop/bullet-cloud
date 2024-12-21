@@ -1,9 +1,10 @@
-import React, { useRef, KeyboardEvent, useEffect, useState } from "react";
+import React, { useState } from "react";
 import { BulletPoint } from "@/types/bullet";
-import {
-  handleTabKey,
-  handleArrowKeys,
-} from "@/utils/keyboardHandlers";
+import { handleTabKey, handleArrowKeys } from "@/utils/keyboardHandlers";
+import CollapseButton from "./CollapseButton";
+import BulletIcon from "./BulletIcon";
+import ContentEditor from "./ContentEditor";
+import { isTouchDevice } from "@/utils/deviceDetection";
 
 interface BulletContentProps {
   bullet: BulletPoint;
@@ -17,18 +18,6 @@ interface BulletContentProps {
   onZoom: (id: string) => void;
 }
 
-interface PendingDelete {
-  bulletId: string;
-  previousContent: string;
-  previousBulletId: string;
-}
-
-interface PendingSplit {
-  originalBulletId: string;
-  beforeCursor: string;
-  afterCursor: string;
-}
-
 const BulletContent: React.FC<BulletContentProps> = ({
   bullet,
   onUpdate,
@@ -40,66 +29,11 @@ const BulletContent: React.FC<BulletContentProps> = ({
   onOutdent,
   onZoom,
 }) => {
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
-  const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
   const [splitCompleted, setSplitCompleted] = useState(false);
+  const isTouch = isTouchDevice();
 
-  useEffect(() => {
-    if (!contentRef.current) return;
-    contentRef.current.textContent = bullet.content;
-  }, [bullet.content]);
-
-  useEffect(() => {
-    if (pendingDelete) {
-      onDelete(pendingDelete.bulletId);
-      setPendingDelete(null);
-    }
-  }, [pendingDelete, onDelete]);
-
-  useEffect(() => {
-    if (pendingSplit && !splitCompleted) {
-      onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
-      setSplitCompleted(true);
-    }
-  }, [pendingSplit, splitCompleted, onUpdate]);
-
-  useEffect(() => {
-    if (pendingSplit && splitCompleted) {
-      const newBulletId = onNewBullet(pendingSplit.originalBulletId);
-      
-      if (newBulletId) {
-        onUpdate(newBulletId, pendingSplit.afterCursor);
-
-        requestAnimationFrame(() => {
-          const newElement = document.querySelector(
-            `[data-id="${newBulletId}"] .bullet-content`
-          ) as HTMLElement;
-          
-          if (newElement) {
-            newElement.focus();
-            try {
-              const selection = window.getSelection();
-              const range = document.createRange();
-              const textNode = newElement.firstChild || newElement;
-              range.setStart(textNode, 0);
-              range.setEnd(textNode, 0);
-              selection?.removeAllRanges();
-              selection?.addRange(range);
-            } catch (err) {
-              console.error('Failed to set cursor position:', err);
-            }
-          }
-        });
-
-        setPendingSplit(null);
-        setSplitCompleted(false);
-      }
-    }
-  }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    const content = contentRef.current?.textContent || "";
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    const content = e.currentTarget.textContent || "";
     const selection = window.getSelection();
     const range = selection?.getRangeAt(0);
     const pos = range?.startOffset || 0;
@@ -109,34 +43,43 @@ const BulletContent: React.FC<BulletContentProps> = ({
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
       
-      setPendingSplit({
-        originalBulletId: bullet.id,
-        beforeCursor,
-        afterCursor,
-      });
+      // Update current bullet with content before cursor
+      onUpdate(bullet.id, beforeCursor);
+      
+      // Create new bullet with content after cursor
+      const newBulletId = onNewBullet(bullet.id);
+      if (newBulletId) {
+        onUpdate(newBulletId, afterCursor);
+        setSplitCompleted(true);
+        
+        // Focus new bullet after render
+        requestAnimationFrame(() => {
+          const newElement = document.querySelector(
+            `[data-id="${newBulletId}"] .bullet-content`
+          ) as HTMLElement;
+          if (newElement) {
+            newElement.focus();
+          }
+        });
+      }
     } else if (e.key === "Tab") {
       handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
-    } else if (e.key === "Backspace") {
-      handleBackspace(e, content, pos);
+    } else if (e.key === "Backspace" && !isTouch) {
+      // Only handle backspace manually on desktop
+      handleBackspaceOnDesktop(e, content, pos);
     } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
     }
   };
 
-  const handleBackspace = (e: KeyboardEvent, content: string, pos: number) => {
-    const selection = window.getSelection();
-    
-    if (selection && !selection.isCollapsed) {
-      return;
-    }
-    
+  const handleBackspaceOnDesktop = (e: React.KeyboardEvent, content: string, pos: number) => {
     if (pos === 0) {
       const visibleBullets = Array.from(
         document.querySelectorAll('.bullet-content')
       ) as HTMLElement[];
       
       const currentIndex = visibleBullets.findIndex(
-        el => el === contentRef.current
+        el => el === e.currentTarget
       );
       
       if (currentIndex > 0) {
@@ -148,46 +91,16 @@ const BulletContent: React.FC<BulletContentProps> = ({
           if (content.length === 0) {
             if (visibleBullets.length > 1 && bullet.children.length === 0) {
               onDelete(bullet.id);
-              
               requestAnimationFrame(() => {
                 previousElement.focus();
-                try {
-                  const selection = window.getSelection();
-                  const range = document.createRange();
-                  const textNode = previousElement.firstChild || previousElement;
-                  const position = previousContent.length;
-                  range.setStart(textNode, position);
-                  range.setEnd(textNode, position);
-                  selection?.removeAllRanges();
-                  selection?.addRange(range);
-                } catch (err) {
-                  console.error('Failed to set cursor position:', err);
-                }
               });
             }
           } else {
             e.preventDefault();
             onUpdate(previousBulletId, previousContent + content);
-            setPendingDelete({ 
-              bulletId: bullet.id, 
-              previousContent: previousContent + content,
-              previousBulletId
-            });
-            
+            onDelete(bullet.id);
             requestAnimationFrame(() => {
               previousElement.focus();
-              try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const textNode = previousElement.firstChild || previousElement;
-                const position = previousContent.length;
-                range.setStart(textNode, position);
-                range.setEnd(textNode, position);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-              } catch (err) {
-                console.error('Failed to set cursor position:', err);
-              }
             });
           }
         }
@@ -195,39 +108,19 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   };
 
-  const handleInput = () => {
-    const content = contentRef.current?.textContent || "";
-    onUpdate(bullet.id, content);
-  };
-
   return (
     <>
-      {bullet.children.length > 0 && (
-        <button
-          className="collapse-button"
-          onClick={() => onCollapse(bullet.id)}
-        >
-          {bullet.isCollapsed ? (
-            <span className="text-gray-400">▶</span>
-          ) : (
-            <span className="text-gray-400">▼</span>
-          )}
-        </button>
-      )}
+      <CollapseButton 
+        isCollapsed={bullet.isCollapsed}
+        hasChildren={bullet.children.length > 0}
+        onCollapse={() => onCollapse(bullet.id)}
+      />
       <div className="bullet-wrapper">
-        <span 
-          className="w-4 h-4 inline-flex items-center justify-center mt-1 cursor-pointer bullet-icon"
-          onClick={() => onZoom(bullet.id)}
-        >
-          ✤
-        </span>
-        <div
-          ref={contentRef}
-          className="bullet-content py-1"
-          contentEditable
-          onInput={handleInput}
+        <BulletIcon onZoom={() => onZoom(bullet.id)} />
+        <ContentEditor
+          content={bullet.content}
+          onUpdate={(content) => onUpdate(bullet.id, content)}
           onKeyDown={handleKeyDown}
-          suppressContentEditableWarning
         />
       </div>
     </>
