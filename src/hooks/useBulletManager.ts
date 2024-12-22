@@ -94,11 +94,44 @@ export const useBulletManager = () => {
     loadBullets();
   }, [userId]);
 
+  const updateBulletTreeRecursively = (
+    bullets: BulletPoint[],
+    parentId: string,
+    newBullet: BulletPoint
+  ): BulletPoint[] => {
+    return bullets.map(bullet => {
+      if (bullet.id === parentId) {
+        console.log('Found parent bullet, updating children:', {
+          parentId,
+          currentChildren: bullet.children,
+          newBullet
+        });
+        return {
+          ...bullet,
+          children: [...bullet.children, newBullet]
+        };
+      }
+      if (bullet.children.length > 0) {
+        return {
+          ...bullet,
+          children: updateBulletTreeRecursively(bullet.children, parentId, newBullet)
+        };
+      }
+      return bullet;
+    });
+  };
+
   const createNewBullet = (id: string, forcedLevel?: number): string | null => {
     if (!userId) {
       toast.error("Please sign in to create bullets");
       return null;
     }
+
+    console.log('Creating new bullet with parent:', {
+      parentId: id,
+      forcedLevel,
+      currentBullets: bullets
+    });
 
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return null;
@@ -106,8 +139,6 @@ export const useBulletManager = () => {
     const index = parent.indexOf(bullet);
     const newPosition = bullet.position + 1;
     const newLevel = forcedLevel !== undefined ? forcedLevel : bullet.level;
-
-    // Get the parent_id based on the level
     const parentId = newLevel > bullet.level ? bullet.id : bullet.parent_id;
 
     const newBullet: BulletPoint = {
@@ -120,11 +151,28 @@ export const useBulletManager = () => {
       parent_id: parentId
     };
 
-    // First update local state
-    parent.splice(index + 1, 0, newBullet);
-    setBullets([...bullets]);
+    console.log('New bullet created:', {
+      newBullet,
+      parentBullet: bullet,
+      parentChildren: {
+        message: bullet.children.length > 0 ? "[Circular Reference to root.parentBullet.children]" : "[]"
+      }
+    });
 
-    // Then queue the create operation
+    // Update local state with new bullet
+    if (parentId) {
+      setBullets(prevBullets => updateBulletTreeRecursively(prevBullets, parentId, newBullet));
+    } else {
+      setBullets(prevBullets => [...prevBullets, newBullet]);
+    }
+
+    console.log('Final bullets state:', {
+      bullets,
+      newBulletId: newBullet.id,
+      parentId
+    });
+
+    // Queue the create operation
     addToQueue({
       id: newBullet.id,
       type: 'create',
