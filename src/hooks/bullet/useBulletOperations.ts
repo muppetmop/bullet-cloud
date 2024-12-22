@@ -13,12 +13,24 @@ export const useBulletOperations = (
     if (!userId) return null;
 
     const [bullet, parent] = findBulletAndParent(id, bullets);
-    if (!bullet || !parent) return null;
+    if (!bullet || !parent) {
+      console.error('Parent bullet not found:', id);
+      return null;
+    }
 
     const index = parent.indexOf(bullet);
     const newPosition = bullet.position + 1;
     const newLevel = forcedLevel !== undefined ? forcedLevel : bullet.level;
     const parentId = newLevel > bullet.level ? bullet.id : bullet.parent_id;
+
+    // Validate that parentId exists in bullets if it's set
+    if (parentId) {
+      const [parentBullet] = findBulletAndParent(parentId, bullets);
+      if (!parentBullet) {
+        console.error('Invalid parent ID:', parentId);
+        return null;
+      }
+    }
 
     const newBullet: BulletPoint = {
       id: generateBulletId(),
@@ -54,11 +66,23 @@ export const useBulletOperations = (
     if (!userId) return null;
 
     const [bullet, parent] = findBulletAndParent(id, bullets);
-    if (!bullet || !parent) return null;
+    if (!bullet || !parent) {
+      console.error('Parent bullet not found:', id);
+      return null;
+    }
 
     const newPosition = bullet.position + 1;
     const newLevel = forcedLevel !== undefined ? forcedLevel : bullet.level;
     const parentId = newLevel > bullet.level ? bullet.id : bullet.parent_id;
+
+    // Validate that parentId exists in bullets if it's set
+    if (parentId) {
+      const [parentBullet] = findBulletAndParent(parentId, bullets);
+      if (!parentBullet) {
+        console.error('Invalid parent ID:', parentId);
+        return null;
+      }
+    }
 
     const newBullet: BulletPoint = {
       id: generateBulletId(),
