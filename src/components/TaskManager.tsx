@@ -18,7 +18,9 @@ import { useTheirsBulletState } from "@/hooks/useTheirsBulletState";
 const TaskManager = () => {
   const queueHook = useQueuedSync();
   const [currentBulletId, setCurrentBulletId] = useState<string | null>(null);
+  const [theirsCurrentBulletId, setTheirsCurrentBulletId] = useState<string | null>(null);
   const [breadcrumbPath, setBreadcrumbPath] = useState<{ id: string; content: string }[]>([]);
+  const [theirsBreadcrumbPath, setTheirsBreadcrumbPath] = useState<{ id: string; content: string }[]>([]);
   const [mode, setMode] = useState<"yours" | "theirs">("yours");
   const { users, loading, error } = useUsersAndBullets();
   const { theirsBullets, updateTheirsBullet, setUserBullets } = useTheirsBulletState();
@@ -111,7 +113,7 @@ const TaskManager = () => {
     console.log('Handling collapse:', {
       mode,
       bulletId: id,
-      currentBulletId
+      currentBulletId: mode === "yours" ? currentBulletId : theirsCurrentBulletId
     });
 
     if (mode === "yours") {
@@ -149,28 +151,44 @@ const TaskManager = () => {
   const handleZoom = async (id: string | null) => {
     console.log('Zooming to bullet:', {
       targetId: id,
-      currentId: currentBulletId,
+      currentId: mode === "yours" ? currentBulletId : theirsCurrentBulletId,
       mode
     });
     
-    if (id === currentBulletId) {
-      console.log('Already zoomed to this bullet, no change needed');
-      return;
-    }
-    
-    setCurrentBulletId(id);
-    
-    if (id) {
-      let path;
-      if (mode === "yours") {
-        path = findBulletPath(id, bullets);
+    if (mode === "yours") {
+      if (id === currentBulletId) {
+        console.log('Already zoomed to this bullet in yours mode, no change needed');
+        return;
+      }
+      setCurrentBulletId(id);
+      
+      if (id) {
+        const path = findBulletPath(id, bullets);
+        if (path) {
+          console.log('Setting yours breadcrumb path:', path.map(b => ({
+            id: b.id,
+            content: b.content,
+            level: b.level
+          })));
+          setBreadcrumbPath(path.map(b => ({ id: b.id, content: b.content })));
+        }
       } else {
+        console.log('Returning to root level in yours mode');
+        setBreadcrumbPath([]);
+      }
+    } else {
+      if (id === theirsCurrentBulletId) {
+        console.log('Already zoomed to this bullet in theirs mode, no change needed');
+        return;
+      }
+      setTheirsCurrentBulletId(id);
+      
+      if (id) {
         console.log('Finding bullet in users bullets:', {
           targetId: id,
           userCount: users.length
         });
         
-        // Find the bullet in users' bullets
         for (const user of users) {
           const userBullets = theirsBullets[user.id] || [];
           const userBullet = transformUserToRootBullet({
@@ -179,70 +197,58 @@ const TaskManager = () => {
           });
           
           if (userBullet.id === id) {
-            path = [userBullet];
             console.log('Found matching user:', {
               userId: user.id,
               nomDePlume: user.nom_de_plume
             });
+            setTheirsBreadcrumbPath([{ id: userBullet.id, content: userBullet.content }]);
             break;
           }
           
-          path = findBulletPath(id, userBullet.children);
+          const path = findBulletPath(id, userBullet.children);
           if (path.length > 0) {
-            path = [userBullet, ...path];
+            const fullPath = [userBullet, ...path];
             console.log('Found bullet in user children:', {
               userId: user.id,
               nomDePlume: user.nom_de_plume,
-              pathLength: path.length,
-              path: path.map(b => ({
+              pathLength: fullPath.length,
+              path: fullPath.map(b => ({
                 id: b.id,
                 content: b.content,
                 level: b.level
               }))
             });
+            setTheirsBreadcrumbPath(fullPath.map(b => ({ id: b.id, content: b.content })));
             break;
           }
         }
-      }
-      
-      if (path) {
-        console.log('Setting breadcrumb path:', path.map(b => ({
-          id: b.id,
-          content: b.content,
-          level: b.level
-        })));
-        
-        setBreadcrumbPath(path.map(b => ({ id: b.id, content: b.content })));
       } else {
-        console.log('No path found for bullet:', id);
+        console.log('Returning to root level in theirs mode');
+        setTheirsBreadcrumbPath([]);
       }
-    } else {
-      console.log('Returning to root level');
-      setBreadcrumbPath([]);
     }
   };
 
   const getVisibleBullets = () => {
     if (mode === "theirs") {
-      if (!currentBulletId) {
+      if (!theirsCurrentBulletId) {
         return users.map(user => transformUserToRootBullet({
           ...user,
           bullets: theirsBullets[user.id] || []
         }));
       }
       
-      // Find the current user's bullets
       for (const user of users) {
         const userBullet = transformUserToRootBullet({
           ...user,
           bullets: theirsBullets[user.id] || []
         });
         
-        if (userBullet.id === currentBulletId) {
+        if (userBullet.id === theirsCurrentBulletId) {
           return userBullet.children;
         }
         
-        const path = findBulletPath(currentBulletId, userBullet.children);
+        const path = findBulletPath(theirsCurrentBulletId, userBullet.children);
         if (path.length > 0) {
           const currentBullet = path[path.length - 1];
           return currentBullet.children;
@@ -383,7 +389,7 @@ const TaskManager = () => {
       <ModeToggle mode={mode} onModeChange={setMode} />
       
       <BreadcrumbNav 
-        path={breadcrumbPath} 
+        path={mode === "yours" ? breadcrumbPath : theirsBreadcrumbPath}
         onNavigate={handleZoom}
         mode={mode}
       />
