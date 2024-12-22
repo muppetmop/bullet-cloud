@@ -78,37 +78,46 @@ const TaskManager = () => {
     }
   };
 
-  const handleTitleChange = (event: React.FocusEvent<HTMLHeadingElement>) => {
-    const newContent = event.target.textContent || "";
-    if (currentBulletId) {
-      updateBullet(currentBulletId, newContent);
-      setBreadcrumbPath(prev => {
-        const newPath = [...prev];
-        newPath[newPath.length - 1].content = newContent;
-        return newPath;
-      });
-    }
-  };
-
-  const getVisibleBullets = () => {
-    if (!currentBulletId) return bullets;
-    
-    const path = findBulletPath(currentBulletId, bullets);
-    console.log('Getting visible bullets for current bullet:', {
+  const handleNewBullet = () => {
+    console.log('Creating new bullet. Current state:', {
       currentBulletId,
-      pathLength: path.length,
-      lastBulletInPath: path.length > 0 ? {
-        id: path[path.length - 1].id,
-        content: path[path.length - 1].content,
-        level: path[path.length - 1].level
-      } : null
+      isEmptyZoomed: isEmptyZoomedState()
     });
-    
-    if (path.length > 0) {
-      const currentBullet = path[path.length - 1];
-      return currentBullet.children;
+
+    if (currentBulletId) {
+      const path = findBulletPath(currentBulletId, bullets);
+      console.log('Path for new bullet:', {
+        pathLength: path.length,
+        currentBulletId,
+        newLevel: path.length
+      });
+
+      // Create new bullet with level based on path length
+      const newBulletId = createNewBullet(currentBulletId, path.length);
+      if (newBulletId) {
+        requestAnimationFrame(() => {
+          const newElement = document.querySelector(
+            `[data-id="${newBulletId}"] .bullet-content`
+          ) as HTMLElement;
+          if (newElement) {
+            newElement.focus();
+          }
+        });
+      }
+    } else {
+      console.log('Creating root bullet');
+      const newBulletId = createNewRootBullet();
+      if (newBulletId) {
+        requestAnimationFrame(() => {
+          const newElement = document.querySelector(
+            `[data-id="${newBulletId}"] .bullet-content`
+          ) as HTMLElement;
+          if (newElement) {
+            newElement.focus();
+          }
+        });
+      }
     }
-    return [];
   };
 
   const isEmptyZoomedState = () => {
@@ -126,65 +135,6 @@ const TaskManager = () => {
       return currentBullet.children.length === 0;
     }
     return false;
-  };
-
-  const handleNewBullet = () => {
-    console.log('Creating new bullet. Current state:', {
-      currentBulletId,
-      isEmptyZoomed: isEmptyZoomedState()
-    });
-
-    if (currentBulletId) {
-      if (isEmptyZoomedState()) {
-        const path = findBulletPath(currentBulletId, bullets);
-        if (path.length > 0) {
-          const currentBullet = path[path.length - 1];
-          console.log('Creating indented bullet for empty zoomed state:', {
-            parentId: currentBullet.id,
-            parentLevel: currentBullet.level,
-            newLevel: currentBullet.level + 1
-          });
-          
-          const newBulletId = createNewBullet(currentBulletId, currentBullet.level + 1);
-          if (newBulletId) {
-            requestAnimationFrame(() => {
-              const newElement = document.querySelector(
-                `[data-id="${newBulletId}"] .bullet-content`
-              ) as HTMLElement;
-              if (newElement) {
-                newElement.focus();
-              }
-            });
-          }
-        }
-      } else {
-        console.log('Creating bullet at same level, parent:', currentBulletId);
-        const newBulletId = createNewBullet(currentBulletId);
-        if (newBulletId) {
-          requestAnimationFrame(() => {
-            const newElement = document.querySelector(
-              `[data-id="${newBulletId}"] .bullet-content`
-            ) as HTMLElement;
-            if (newElement) {
-              newElement.focus();
-            }
-          });
-        }
-      }
-    } else {
-      console.log('Creating root bullet');
-      const newBulletId = createNewRootBullet();
-      if (newBulletId) {
-        requestAnimationFrame(() => {
-          const newElement = document.querySelector(
-            `[data-id="${newBulletId}"] .bullet-content`
-          ) as HTMLElement;
-          if (newElement) {
-            newElement.focus();
-          }
-        });
-      }
-    }
   };
 
   return (
