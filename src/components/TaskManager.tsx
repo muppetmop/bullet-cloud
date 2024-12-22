@@ -114,7 +114,8 @@ const TaskManager = () => {
   const handleNewBullet = () => {
     console.log('Creating new bullet. Current state:', {
       currentBulletId,
-      isEmptyZoomed: isEmptyZoomedState()
+      isEmptyZoomed: isEmptyZoomedState(),
+      breadcrumbPath: breadcrumbPath.map(b => ({ id: b.id, content: b.content }))
     });
 
     if (currentBulletId) {
@@ -134,7 +135,6 @@ const TaskManager = () => {
         }))
       });
 
-      // Create new bullet with level one more than parent's level
       const newBulletId = createNewBullet(currentBulletId, newLevel);
       console.log('Created new bullet:', {
         newBulletId,
@@ -142,32 +142,35 @@ const TaskManager = () => {
         level: newLevel
       });
 
-      // Force a re-render by updating the current bullet's children
       if (newBulletId) {
-        // Update the visible bullets immediately
-        setBreadcrumbPath(prev => [...prev]); // Trigger re-render
+        // Force immediate state updates
+        setBreadcrumbPath(prev => [...prev]);
+        setCurrentBulletId(prev => prev); // Force re-render of current bullet context
         
-        requestAnimationFrame(() => {
+        // Schedule focus after state updates and re-render
+        setTimeout(() => {
           const newElement = document.querySelector(
             `[data-id="${newBulletId}"] .bullet-content`
           ) as HTMLElement;
           if (newElement) {
             newElement.focus();
+          } else {
+            console.log('Could not find new bullet element:', newBulletId);
           }
-        });
+        }, 0);
       }
     } else {
       console.log('Creating root bullet');
       const newBulletId = createNewRootBullet();
       if (newBulletId) {
-        requestAnimationFrame(() => {
+        setTimeout(() => {
           const newElement = document.querySelector(
             `[data-id="${newBulletId}"] .bullet-content`
           ) as HTMLElement;
           if (newElement) {
             newElement.focus();
           }
-        });
+        }, 0);
       }
     }
   };
