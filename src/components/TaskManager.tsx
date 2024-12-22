@@ -55,14 +55,25 @@ const TaskManager = () => {
   };
 
   const handleZoom = async (id: string | null) => {
-    if (id === currentBulletId) return;
+    console.log('Zooming to bullet:', id);
+    
+    if (id === currentBulletId) {
+      console.log('Already zoomed to this bullet, no change needed');
+      return;
+    }
     
     setCurrentBulletId(id);
     
     if (id) {
       const path = findBulletPath(id, bullets);
+      console.log('Found bullet path:', path.map(b => ({
+        id: b.id,
+        content: b.content,
+        level: b.level
+      })));
       setBreadcrumbPath(path.map(b => ({ id: b.id, content: b.content })));
     } else {
+      console.log('Returning to root level');
       setBreadcrumbPath([]);
     }
   };
@@ -83,6 +94,16 @@ const TaskManager = () => {
     if (!currentBulletId) return bullets;
     
     const path = findBulletPath(currentBulletId, bullets);
+    console.log('Getting visible bullets for current bullet:', {
+      currentBulletId,
+      pathLength: path.length,
+      lastBulletInPath: path.length > 0 ? {
+        id: path[path.length - 1].id,
+        content: path[path.length - 1].content,
+        level: path[path.length - 1].level
+      } : null
+    });
+    
     if (path.length > 0) {
       const currentBullet = path[path.length - 1];
       return currentBullet.children;
@@ -95,18 +116,35 @@ const TaskManager = () => {
     const path = findBulletPath(currentBulletId, bullets);
     if (path.length > 0) {
       const currentBullet = path[path.length - 1];
+      console.log('Checking empty zoomed state:', {
+        bulletId: currentBullet.id,
+        content: currentBullet.content,
+        level: currentBullet.level,
+        childrenCount: currentBullet.children.length,
+        isEmpty: currentBullet.children.length === 0
+      });
       return currentBullet.children.length === 0;
     }
     return false;
   };
 
   const handleNewBullet = () => {
+    console.log('Creating new bullet. Current state:', {
+      currentBulletId,
+      isEmptyZoomed: isEmptyZoomedState()
+    });
+
     if (currentBulletId) {
-      // If we're in empty zoomed state, create an indented bullet
       if (isEmptyZoomedState()) {
         const path = findBulletPath(currentBulletId, bullets);
         if (path.length > 0) {
           const currentBullet = path[path.length - 1];
+          console.log('Creating indented bullet for empty zoomed state:', {
+            parentId: currentBullet.id,
+            parentLevel: currentBullet.level,
+            newLevel: currentBullet.level + 1
+          });
+          
           const newBulletId = createNewBullet(currentBulletId, currentBullet.level + 1);
           if (newBulletId) {
             requestAnimationFrame(() => {
@@ -120,7 +158,7 @@ const TaskManager = () => {
           }
         }
       } else {
-        // Regular behavior for non-empty zoomed state
+        console.log('Creating bullet at same level, parent:', currentBulletId);
         const newBulletId = createNewBullet(currentBulletId);
         if (newBulletId) {
           requestAnimationFrame(() => {
@@ -134,7 +172,7 @@ const TaskManager = () => {
         }
       }
     } else {
-      // At root level, create a root bullet
+      console.log('Creating root bullet');
       const newBulletId = createNewRootBullet();
       if (newBulletId) {
         requestAnimationFrame(() => {
