@@ -88,6 +88,25 @@ const TaskManager = () => {
     return [];
   };
 
+  const findUserForBullet = (bulletId: string) => {
+    for (const user of users) {
+      const userBullet = transformUserToRootBullet({
+        ...user,
+        bullets: theirsBullets[user.id] || []
+      });
+      
+      if (userBullet.id === bulletId) {
+        return user;
+      }
+      
+      const path = findBulletPath(bulletId, userBullet.children);
+      if (path.length > 0) {
+        return user;
+      }
+    }
+    return null;
+  };
+
   const handleCollapse = (id: string) => {
     console.log('Handling collapse:', {
       mode,
@@ -98,20 +117,31 @@ const TaskManager = () => {
     if (mode === "yours") {
       toggleCollapse(id);
     } else {
-      // Find the user that owns this bullet
-      for (const user of users) {
-        const userBullet = transformUserToRootBullet(user);
+      const user = findUserForBullet(id);
+      if (user) {
+        const userBullet = transformUserToRootBullet({
+          ...user,
+          bullets: theirsBullets[user.id] || []
+        });
+        
+        let isCollapsed = false;
         if (userBullet.id === id) {
-          updateTheirsBullet(user.id, id, { isCollapsed: !userBullet.isCollapsed });
-          return;
+          isCollapsed = userBullet.isCollapsed;
+        } else {
+          const path = findBulletPath(id, userBullet.children);
+          if (path.length > 0) {
+            isCollapsed = path[path.length - 1].isCollapsed;
+          }
         }
         
-        const path = findBulletPath(id, userBullet.children);
-        if (path.length > 0) {
-          const bullet = path[path.length - 1];
-          updateTheirsBullet(user.id, id, { isCollapsed: !bullet.isCollapsed });
-          return;
-        }
+        console.log('Updating theirs bullet collapse:', {
+          userId: user.id,
+          bulletId: id,
+          currentCollapsed: isCollapsed,
+          newCollapsed: !isCollapsed
+        });
+        
+        updateTheirsBullet(user.id, id, { isCollapsed: !isCollapsed });
       }
     }
   };
@@ -195,12 +225,19 @@ const TaskManager = () => {
   const getVisibleBullets = () => {
     if (mode === "theirs") {
       if (!currentBulletId) {
-        return users.map(user => transformUserToRootBullet(user));
+        return users.map(user => transformUserToRootBullet({
+          ...user,
+          bullets: theirsBullets[user.id] || []
+        }));
       }
       
       // Find the current user's bullets
       for (const user of users) {
-        const userBullet = transformUserToRootBullet(user);
+        const userBullet = transformUserToRootBullet({
+          ...user,
+          bullets: theirsBullets[user.id] || []
+        });
+        
         if (userBullet.id === currentBulletId) {
           return userBullet.children;
         }
