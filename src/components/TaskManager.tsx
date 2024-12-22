@@ -232,31 +232,58 @@ const TaskManager = () => {
   const getVisibleBullets = () => {
     if (mode === "theirs") {
       if (!theirsCurrentBulletId) {
+        console.log('Getting root level bullets for theirs mode');
         return users.map(user => transformUserToRootBullet({
           ...user,
           bullets: theirsBullets[user.id] || []
         }));
       }
       
+      console.log('Getting zoomed bullets for theirs mode:', {
+        currentId: theirsCurrentBulletId,
+        userCount: users.length
+      });
+      
       for (const user of users) {
+        const userBullets = theirsBullets[user.id] || [];
         const userBullet = transformUserToRootBullet({
           ...user,
-          bullets: theirsBullets[user.id] || []
+          bullets: userBullets
         });
         
+        // First check if we're zoomed into a user root bullet
         if (userBullet.id === theirsCurrentBulletId) {
+          console.log('Found matching user root bullet:', {
+            userId: user.id,
+            bulletId: userBullet.id,
+            childrenCount: userBullet.children.length
+          });
           return userBullet.children;
         }
         
+        // Then check nested bullets
         const path = findBulletPath(theirsCurrentBulletId, userBullet.children);
         if (path.length > 0) {
-          const currentBullet = path[path.length - 1];
-          return currentBullet.children;
+          const targetBullet = path[path.length - 1];
+          console.log('Found nested bullet for zoom:', {
+            userId: user.id,
+            bulletId: targetBullet.id,
+            childrenCount: targetBullet.children.length,
+            path: path.map(b => ({
+              id: b.id,
+              content: b.content,
+              childrenCount: b.children.length
+            }))
+          });
+          return targetBullet.children;
         }
       }
+      
+      console.log('No matching bullet found for zoom in theirs mode');
       return [];
     }
     
+    // Yours mode logic remains unchanged
     if (!currentBulletId) return bullets;
     
     const path = findBulletPath(currentBulletId, bullets);
