@@ -47,7 +47,7 @@ const BreadcrumbNav: React.FC<BreadcrumbNavProps> = ({ path, onNavigate }) => {
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink 
-            className={`flex items-center gap-2 ${path.length > 0 ? 'hover:text-primary cursor-pointer' : ''}`}
+            className={`flex items-center gap-2 transition-colors ${path.length > 0 ? 'hover:text-[#9b87f5] cursor-pointer' : ''}`}
             onClick={() => path.length > 0 ? onNavigate(null) : undefined}
           >
             <BookOpen className="h-4 w-4" />
@@ -60,7 +60,7 @@ const BreadcrumbNav: React.FC<BreadcrumbNavProps> = ({ path, onNavigate }) => {
             <BreadcrumbSeparator>✤</BreadcrumbSeparator>
             <BreadcrumbItem>
               <BreadcrumbLink
-                className="hover:text-primary cursor-pointer"
+                className="hover:text-[#9b87f5] cursor-pointer transition-colors"
                 onClick={() => onNavigate(item.id)}
               >
                 {item.content || "Untitled"}
