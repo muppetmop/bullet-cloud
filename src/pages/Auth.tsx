@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [nomDePlume, setNomDePlume] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
@@ -41,6 +42,9 @@ const Auth = () => {
           email,
           password,
           options: {
+            data: {
+              nom_de_plume: nomDePlume,
+            },
             emailRedirectTo: window.location.origin,
           },
         });
@@ -101,6 +105,19 @@ const Auth = () => {
               className="w-full"
               disabled={isLoading}
             />
+            {isSignUp && (
+              <Input
+                type="text"
+                placeholder="Nom de Plume"
+                value={nomDePlume}
+                onChange={(e) => setNomDePlume(e.target.value)}
+                required
+                className="w-full"
+                disabled={isLoading}
+                minLength={2}
+                maxLength={50}
+              />
+            )}
             <Input
               type="password"
               placeholder="Password"
