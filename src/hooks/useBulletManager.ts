@@ -94,44 +94,21 @@ export const useBulletManager = () => {
     loadBullets();
   }, [userId]);
 
-  const createNewBullet = async (id: string, forcedLevel?: number): Promise<string | null> => {
+  const createNewBullet = (id: string, forcedLevel?: number): string | null => {
     if (!userId) {
       toast.error("Please sign in to create bullets");
       return null;
     }
 
-    console.log('Creating new bullet with parent:', {
-      parentId: id,
-      forcedLevel,
-      currentBullets: bullets
-    });
-
     const [bullet, parent] = findBulletAndParent(id, bullets);
-    if (!bullet) {
-      console.error('Parent bullet not found:', id);
-      return null;
-    }
-
-    // Verify parent exists in database before setting parent_id
-    let parentId: string | null = null;
-    if (forcedLevel !== undefined && forcedLevel > bullet.level) {
-      // Check if the bullet exists in the database
-      const { data: parentExists } = await supabase
-        .from('bullets')
-        .select('id')
-        .eq('id', bullet.id)
-        .single();
-
-      if (parentExists) {
-        parentId = bullet.id;
-      } else {
-        console.warn('Parent bullet not found in database, creating without parent');
-      }
-    }
+    if (!bullet || !parent) return null;
 
     const index = parent.indexOf(bullet);
     const newPosition = bullet.position + 1;
     const newLevel = forcedLevel !== undefined ? forcedLevel : bullet.level;
+
+    // Get the parent_id based on the level
+    const parentId = newLevel > bullet.level ? bullet.id : bullet.parent_id;
 
     const newBullet: BulletPoint = {
       id: generateBulletId(),
@@ -143,47 +120,11 @@ export const useBulletManager = () => {
       parent_id: parentId
     };
 
-    console.log('New bullet created:', {
-      newBullet,
-      parentBullet: bullet,
-      parentChildren: bullet.children
-    });
+    // First update local state
+    parent.splice(index + 1, 0, newBullet);
+    setBullets([...bullets]);
 
-    // Update parent's children array if this is a child bullet
-    if (newLevel > bullet.level && parentId) {
-      bullet.children = [...bullet.children, newBullet];
-      console.log('Updated parent children:', bullet.children);
-    }
-
-    // Update bullets array
-    const newBullets = [...bullets];
-    if (newLevel > bullet.level && parentId) {
-      // Find and update the parent bullet in the main array
-      const updateParentBullet = (bullets: BulletPoint[]): BulletPoint[] => {
-        return bullets.map(b => {
-          if (b.id === bullet.id) {
-            return { ...b, children: [...b.children, newBullet] };
-          }
-          if (b.children.length > 0) {
-            return { ...b, children: updateParentBullet(b.children) };
-          }
-          return b;
-        });
-      };
-      setBullets(updateParentBullet(newBullets));
-    } else {
-      // Insert at the same level
-      parent.splice(index + 1, 0, newBullet);
-      setBullets(newBullets);
-    }
-
-    console.log('Final bullets state:', {
-      bullets: newBullets,
-      newBulletId: newBullet.id,
-      parentId: parentId
-    });
-
-    // Queue the create operation
+    // Then queue the create operation
     addToQueue({
       id: newBullet.id,
       type: 'create',

@@ -114,8 +114,7 @@ const TaskManager = () => {
   const handleNewBullet = () => {
     console.log('Creating new bullet. Current state:', {
       currentBulletId,
-      isEmptyZoomed: isEmptyZoomedState(),
-      breadcrumbPath: breadcrumbPath.map(b => ({ id: b.id, content: b.content }))
+      isEmptyZoomed: isEmptyZoomedState()
     });
 
     if (currentBulletId) {
@@ -135,6 +134,7 @@ const TaskManager = () => {
         }))
       });
 
+      // Create new bullet with level one more than parent's level
       const newBulletId = createNewBullet(currentBulletId, newLevel);
       console.log('Created new bullet:', {
         newBulletId,
@@ -143,34 +143,27 @@ const TaskManager = () => {
       });
 
       if (newBulletId) {
-        // Force immediate state updates
-        setBreadcrumbPath(prev => [...prev]);
-        setCurrentBulletId(prev => prev); // Force re-render of current bullet context
-        
-        // Schedule focus after state updates and re-render
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           const newElement = document.querySelector(
             `[data-id="${newBulletId}"] .bullet-content`
           ) as HTMLElement;
           if (newElement) {
             newElement.focus();
-          } else {
-            console.log('Could not find new bullet element:', newBulletId);
           }
-        }, 0);
+        });
       }
     } else {
       console.log('Creating root bullet');
       const newBulletId = createNewRootBullet();
       if (newBulletId) {
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           const newElement = document.querySelector(
             `[data-id="${newBulletId}"] .bullet-content`
           ) as HTMLElement;
           if (newElement) {
             newElement.focus();
           }
-        }, 0);
+        });
       }
     }
   };
