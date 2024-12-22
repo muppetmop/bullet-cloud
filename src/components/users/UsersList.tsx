@@ -2,6 +2,7 @@ import { BulletPoint } from "@/types/bullet";
 import BulletItem from "../BulletItem";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { transformUserToRootBullet } from "@/utils/bulletTransformations";
 
 interface UsersListProps {
   users: {
@@ -42,26 +43,10 @@ const UsersList = ({
     getCurrentUser();
   }, []);
 
-  // Helper function to ensure all bullets have required properties
-  const formatBullet = (bullet: BulletPoint, level: number): BulletPoint => ({
-    ...bullet,
-    children: bullet.children.map(child => formatBullet(child, level + 1)),
-    isCollapsed: bullet.isCollapsed || false,
-    position: bullet.position || 0,
-    level: level,
-  });
-
   // Filter out current user and convert remaining users to bullet points format
   const userBullets: BulletPoint[] = users
     .filter(user => user.id !== currentUserId)
-    .map((user) => ({
-      id: user.id,
-      content: `📖 ${user.nom_de_plume}`,
-      children: user.bullets.map(bullet => formatBullet(bullet, 1)),
-      isCollapsed: false,
-      position: 0,
-      level: 0,
-    }));
+    .map(user => transformUserToRootBullet(user));
 
   return (
     <div>

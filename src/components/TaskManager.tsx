@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import BulletItem from "./BulletItem";
 import { Plus } from "lucide-react";
 import { useBulletManager } from "@/hooks/useBulletManager";
 import { useBulletNavigation } from "@/hooks/useBulletNavigation";
@@ -12,6 +11,8 @@ import { BulletPoint } from "@/types/bullet";
 import ModeToggle from "./mode/ModeToggle";
 import { useUsersAndBullets } from "@/hooks/useUsersAndBullets";
 import UsersList from "./users/UsersList";
+import BulletList from "./bullet/BulletList";
+import { transformUserToRootBullet } from "@/utils/bulletTransformations";
 
 const TaskManager = () => {
   const queueHook = useQueuedSync();
@@ -77,28 +78,15 @@ const TaskManager = () => {
       } else {
         // Find the bullet in users' bullets
         for (const user of users) {
-          if (user.id === id) {
-            path = [{
-              id: user.id,
-              content: `📖 ${user.nom_de_plume}`,
-              children: user.bullets,
-              isCollapsed: false,
-              position: 0,
-              level: 0
-            }];
+          const userBullet = transformUserToRootBullet(user);
+          if (userBullet.id === id) {
+            path = [userBullet];
             break;
           }
           
-          path = findBulletPath(id, user.bullets);
+          path = findBulletPath(id, userBullet.children);
           if (path.length > 0) {
-            path = [{
-              id: user.id,
-              content: `📖 ${user.nom_de_plume}`,
-              children: user.bullets,
-              isCollapsed: false,
-              position: 0,
-              level: 0
-            }, ...path];
+            path = [userBullet, ...path];
             break;
           }
         }
@@ -119,83 +107,23 @@ const TaskManager = () => {
     }
   };
 
-  const handleTitleKeyDown = (event: React.KeyboardEvent<HTMLHeadingElement>) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      if (currentBulletId) {
-        const path = findBulletPath(currentBulletId, bullets);
-        const parentBullet = path[path.length - 1];
-        const newLevel = parentBullet.level + 1;
-        
-        const newBulletId = createNewZoomedBullet(currentBulletId, newLevel);
-        
-        if (newBulletId) {
-          requestAnimationFrame(() => {
-            const newElement = document.querySelector(
-              `[data-id="${newBulletId}"] .bullet-content`
-            ) as HTMLElement;
-            if (newElement) {
-              newElement.focus();
-            }
-          });
-        }
-      }
-    }
-  };
-
-  const handleTitleChange = (event: React.FocusEvent<HTMLHeadingElement>) => {
-    const newContent = event.target.textContent || "";
-    if (currentBulletId) {
-      updateBullet(currentBulletId, newContent);
-      setBreadcrumbPath(prev => {
-        const newPath = [...prev];
-        newPath[newPath.length - 1].content = newContent;
-        return newPath;
-      });
-    }
-  };
-
   const getVisibleBullets = () => {
     if (mode === "theirs") {
       if (!currentBulletId) {
-        return users.map(user => ({
-          id: user.id,
-          content: `📖 ${user.nom_de_plume}`,
-          children: user.bullets.map(bullet => ({
-            ...bullet,
-            isCollapsed: bullet.isCollapsed || false,
-            position: bullet.position || 0,
-            level: bullet.level || 1,
-            children: bullet.children || []
-          })),
-          isCollapsed: false,
-          position: 0,
-          level: 0
-        }));
+        return users.map(user => transformUserToRootBullet(user));
       }
       
       // Find the current user's bullets
       for (const user of users) {
-        if (user.id === currentBulletId) {
-          return user.bullets.map(bullet => ({
-            ...bullet,
-            isCollapsed: bullet.isCollapsed || false,
-            position: bullet.position || 0,
-            level: bullet.level || 0,
-            children: bullet.children || []
-          }));
+        const userBullet = transformUserToRootBullet(user);
+        if (userBullet.id === currentBulletId) {
+          return userBullet.children;
         }
         
-        const path = findBulletPath(currentBulletId, user.bullets);
+        const path = findBulletPath(currentBulletId, userBullet.children);
         if (path.length > 0) {
           const currentBullet = path[path.length - 1];
-          return currentBullet.children.map(bullet => ({
-            ...bullet,
-            isCollapsed: bullet.isCollapsed || false,
-            position: bullet.position || 0,
-            level: bullet.level || currentBullet.level + 1,
-            children: bullet.children || []
-          }));
+          return currentBullet.children;
         }
       }
       return [];
@@ -267,6 +195,42 @@ const TaskManager = () => {
     }
   };
 
+  const handleTitleKeyDown = (event: React.KeyboardEvent<HTMLHeadingElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (currentBulletId) {
+        const path = findBulletPath(currentBulletId, bullets);
+        const parentBullet = path[path.length - 1];
+        const newLevel = parentBullet.level + 1;
+        
+        const newBulletId = createNewZoomedBullet(currentBulletId, newLevel);
+        
+        if (newBulletId) {
+          requestAnimationFrame(() => {
+            const newElement = document.querySelector(
+              `[data-id="${newBulletId}"] .bullet-content`
+            ) as HTMLElement;
+            if (newElement) {
+              newElement.focus();
+            }
+          });
+        }
+      }
+    }
+  };
+
+  const handleTitleChange = (event: React.FocusEvent<HTMLHeadingElement>) => {
+    const newContent = event.target.textContent || "";
+    if (currentBulletId) {
+      updateBullet(currentBulletId, newContent);
+      setBreadcrumbPath(prev => {
+        const newPath = [...prev];
+        newPath[newPath.length - 1].content = newContent;
+        return newPath;
+      });
+    }
+  };
+
   const isEmptyZoomedState = () => {
     if (!currentBulletId) return false;
     const path = findBulletPath(currentBulletId, bullets);
@@ -316,21 +280,17 @@ const TaskManager = () => {
 
       {mode === "yours" ? (
         <>
-          {getVisibleBullets().map((bullet) => (
-            <BulletItem
-              key={bullet.id}
-              bullet={bullet}
-              level={0}
-              onUpdate={updateBullet}
-              onDelete={deleteBullet}
-              onNewBullet={createNewBullet}
-              onCollapse={toggleCollapse}
-              onNavigate={handleNavigate}
-              onIndent={indentBullet}
-              onOutdent={outdentBullet}
-              onZoom={handleZoom}
-            />
-          ))}
+          <BulletList
+            bullets={getVisibleBullets()}
+            onUpdate={updateBullet}
+            onDelete={deleteBullet}
+            onNewBullet={createNewBullet}
+            onCollapse={toggleCollapse}
+            onNavigate={handleNavigate}
+            onIndent={indentBullet}
+            onOutdent={outdentBullet}
+            onZoom={handleZoom}
+          />
 
           <button
             onClick={handleNewBullet}
