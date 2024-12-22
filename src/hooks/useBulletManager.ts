@@ -5,7 +5,7 @@ import { addToQueue } from "@/utils/queueManager";
 import { startSyncService } from "@/services/syncService";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { generateBulletId } from "@/utils/idGenerator";
+import { createNewBulletWithParent, createNewRootBulletHelper } from "@/utils/bulletCreation";
 
 export const useBulletManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([]);
@@ -100,46 +100,11 @@ export const useBulletManager = () => {
       return null;
     }
 
-    const [bullet, parent] = findBulletAndParent(id, bullets);
-    if (!bullet || !parent) return null;
-
-    const index = parent.indexOf(bullet);
-    const newPosition = bullet.position + 1;
-    const newLevel = bullet.level;
-
-    // Get the parent_id based on the level
-    const parentId = newLevel > 0 ? bullet.parent_id : null;
-
-    const newBullet: BulletPoint = {
-      id: generateBulletId(),
-      content: "",
-      children: [],
-      isCollapsed: false,
-      position: newPosition,
-      level: newLevel,
-      parent_id: parentId
-    };
-
-    // First update local state
-    parent.splice(index + 1, 0, newBullet);
-    setBullets([...bullets]);
-
-    // Then queue the create operation
-    addToQueue({
-      id: newBullet.id,
-      type: 'create',
-      data: {
-        id: newBullet.id,
-        content: newBullet.content,
-        is_collapsed: newBullet.isCollapsed,
-        position: newPosition,
-        level: newLevel,
-        user_id: userId,
-        parent_id: parentId
-      }
-    });
-
-    return newBullet.id;
+    const [newBulletId, updatedBullets] = createNewBulletWithParent(id, bullets, userId);
+    if (newBulletId) {
+      setBullets(updatedBullets);
+    }
+    return newBulletId;
   };
 
   const createNewRootBullet = (): string => {
@@ -148,34 +113,9 @@ export const useBulletManager = () => {
       return "";
     }
 
-    const lastBullet = getAllVisibleBullets(bullets).pop();
-    const newPosition = lastBullet ? lastBullet.position + 1 : 0;
-
-    const newBullet: BulletPoint = {
-      id: generateBulletId(),
-      content: "",
-      children: [],
-      isCollapsed: false,
-      position: newPosition,
-      level: 0
-    };
-
-    // Queue the create operation with user_id
-    addToQueue({
-      id: newBullet.id,
-      type: 'create',
-      data: {
-        id: newBullet.id,
-        content: newBullet.content,
-        is_collapsed: newBullet.isCollapsed,
-        position: newPosition,
-        level: 0,
-        user_id: userId
-      }
-    });
-    
-    setBullets([...bullets, newBullet]);
-    return newBullet.id;
+    const [newBulletId, updatedBullets] = createNewRootBulletHelper(bullets, userId);
+    setBullets(updatedBullets);
+    return newBulletId;
   };
 
   const updateBullet = (id: string, content: string) => {
