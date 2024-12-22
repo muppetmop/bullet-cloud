@@ -1,5 +1,7 @@
 import { BulletPoint } from "@/types/bullet";
 import BulletItem from "../BulletItem";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UsersListProps {
   users: {
@@ -28,6 +30,18 @@ const UsersList = ({
   onOutdent,
   onZoom,
 }: UsersListProps) => {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+    };
+    getCurrentUser();
+  }, []);
+
   // Helper function to ensure all bullets have required properties
   const formatBullet = (bullet: BulletPoint, level: number): BulletPoint => ({
     ...bullet,
@@ -37,15 +51,17 @@ const UsersList = ({
     level: level,
   });
 
-  // Convert users to bullet points format with properly formatted children
-  const userBullets: BulletPoint[] = users.map((user) => ({
-    id: user.id,
-    content: `📖 ${user.nom_de_plume}`,
-    children: user.bullets.map(bullet => formatBullet(bullet, 1)),
-    isCollapsed: false,
-    position: 0,
-    level: 0,
-  }));
+  // Filter out current user and convert remaining users to bullet points format
+  const userBullets: BulletPoint[] = users
+    .filter(user => user.id !== currentUserId)
+    .map((user) => ({
+      id: user.id,
+      content: `📖 ${user.nom_de_plume}`,
+      children: user.bullets.map(bullet => formatBullet(bullet, 1)),
+      isCollapsed: false,
+      position: 0,
+      level: 0,
+    }));
 
   return (
     <div>

@@ -18,9 +18,10 @@ const supabase = createClient(
 interface BreadcrumbNavProps {
   path: { id: string; content: string }[];
   onNavigate: (id: string | null) => void;
+  mode?: "yours" | "theirs";
 }
 
-const BreadcrumbNav: React.FC<BreadcrumbNavProps> = ({ path, onNavigate }) => {
+const BreadcrumbNav: React.FC<BreadcrumbNavProps> = ({ path, onNavigate, mode = "yours" }) => {
   const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,7 +52,7 @@ const BreadcrumbNav: React.FC<BreadcrumbNavProps> = ({ path, onNavigate }) => {
             onClick={() => path.length > 0 ? onNavigate(null) : undefined}
           >
             <BookOpen className="h-4 w-4" />
-            <span>{username}</span>
+            <span>{mode === "yours" ? username : "Others"}</span>
           </BreadcrumbLink>
         </BreadcrumbItem>
         

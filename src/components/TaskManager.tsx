@@ -299,6 +299,7 @@ const TaskManager = () => {
       <BreadcrumbNav 
         path={breadcrumbPath} 
         onNavigate={handleZoom}
+        mode={mode}
       />
 
       {currentBulletId && mode === "yours" && (
