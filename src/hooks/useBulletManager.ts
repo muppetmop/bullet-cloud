@@ -5,9 +5,20 @@ import { toast } from "sonner";
 import { useBulletOperations } from "./useBulletOperations";
 import { useBulletState } from "./useBulletState";
 import { supabase } from "@/integrations/supabase/client";
+import { generateBulletId } from "@/utils/idGenerator";
+import { useEffect, useState } from "react";
 
 export const useBulletManager = () => {
-  const { data: { session } } = await supabase.auth.getSession();
+  const [session, setSession] = useState<any>(null);
+  
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+    };
+    getSession();
+  }, []);
+
   const userId = session?.user?.id;
   const { bullets, setBullets } = useBulletState(userId);
   const { createNewBullet, createNewZoomedBullet } = useBulletOperations(userId, bullets, setBullets);

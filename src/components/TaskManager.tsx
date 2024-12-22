@@ -15,7 +15,16 @@ import { supabase } from "@/integrations/supabase/client";
 
 const TaskManager = () => {
   const queueHook = useQueuedSync();
-  const { data: { session } } = await supabase.auth.getSession();
+  const [session, setSession] = React.useState<any>(null);
+  
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+    };
+    getSession();
+  }, []);
+
   const userId = session?.user?.id;
   
   const { bullets, setBullets } = useBulletState(userId);

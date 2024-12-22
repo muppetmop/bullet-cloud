@@ -1,8 +1,13 @@
 import { BulletPoint } from "@/types/bullet";
 import { addToQueue } from "@/utils/queueManager";
 import { generateBulletId } from "@/utils/idGenerator";
+import { findBulletAndParent } from "@/utils/bulletOperations";
 
-export const useBulletOperations = (userId: string | null, bullets: BulletPoint[], setBullets: (bullets: BulletPoint[]) => void) => {
+export const useBulletOperations = (
+  userId: string | null, 
+  bullets: BulletPoint[], 
+  setBullets: React.Dispatch<React.SetStateAction<BulletPoint[]>>
+) => {
   const updateBulletTreeRecursively = (
     bullets: BulletPoint[],
     parentId: string,
@@ -10,11 +15,6 @@ export const useBulletOperations = (userId: string | null, bullets: BulletPoint[
   ): BulletPoint[] => {
     return bullets.map(bullet => {
       if (bullet.id === parentId) {
-        console.log('Found parent bullet, updating children:', {
-          parentId,
-          currentChildren: bullet.children,
-          newBullet
-        });
         return {
           ...bullet,
           children: [...bullet.children, newBullet]
@@ -51,8 +51,9 @@ export const useBulletOperations = (userId: string | null, bullets: BulletPoint[
       parent_id: parentId
     };
 
+    const newBullets = [...bullets];
     parent.splice(index + 1, 0, newBullet);
-    setBullets([...bullets]);
+    setBullets(newBullets);
 
     addToQueue({
       id: newBullet.id,
@@ -73,12 +74,6 @@ export const useBulletOperations = (userId: string | null, bullets: BulletPoint[
 
   const createNewZoomedBullet = (id: string, forcedLevel?: number): string | null => {
     if (!userId) return null;
-
-    console.log('Creating new bullet with parent:', {
-      parentId: id,
-      forcedLevel,
-      currentBullets: bullets
-    });
 
     const [bullet, parent] = findBulletAndParent(id, bullets);
     if (!bullet || !parent) return null;
