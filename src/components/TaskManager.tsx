@@ -90,20 +90,48 @@ const TaskManager = () => {
     return [];
   };
 
+  const isEmptyZoomedState = () => {
+    if (!currentBulletId) return false;
+    const path = findBulletPath(currentBulletId, bullets);
+    if (path.length > 0) {
+      const currentBullet = path[path.length - 1];
+      return currentBullet.children.length === 0;
+    }
+    return false;
+  };
+
   const handleNewBullet = () => {
-    // If we're zoomed in, create a child bullet under the current bullet
     if (currentBulletId) {
-      const newBulletId = createNewBullet(currentBulletId);
-      if (newBulletId) {
-        // Focus the new bullet after it's created
-        requestAnimationFrame(() => {
-          const newElement = document.querySelector(
-            `[data-id="${newBulletId}"] .bullet-content`
-          ) as HTMLElement;
-          if (newElement) {
-            newElement.focus();
+      // If we're in empty zoomed state, create an indented bullet
+      if (isEmptyZoomedState()) {
+        const path = findBulletPath(currentBulletId, bullets);
+        if (path.length > 0) {
+          const currentBullet = path[path.length - 1];
+          const newBulletId = createNewBullet(currentBulletId, currentBullet.level + 1);
+          if (newBulletId) {
+            requestAnimationFrame(() => {
+              const newElement = document.querySelector(
+                `[data-id="${newBulletId}"] .bullet-content`
+              ) as HTMLElement;
+              if (newElement) {
+                newElement.focus();
+              }
+            });
           }
-        });
+        }
+      } else {
+        // Regular behavior for non-empty zoomed state
+        const newBulletId = createNewBullet(currentBulletId);
+        if (newBulletId) {
+          requestAnimationFrame(() => {
+            const newElement = document.querySelector(
+              `[data-id="${newBulletId}"] .bullet-content`
+            ) as HTMLElement;
+            if (newElement) {
+              newElement.focus();
+            }
+          });
+        }
       }
     } else {
       // At root level, create a root bullet

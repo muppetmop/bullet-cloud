@@ -94,7 +94,7 @@ export const useBulletManager = () => {
     loadBullets();
   }, [userId]);
 
-  const createNewBullet = (id: string): string | null => {
+  const createNewBullet = (id: string, forcedLevel?: number): string | null => {
     if (!userId) {
       toast.error("Please sign in to create bullets");
       return null;
@@ -105,10 +105,10 @@ export const useBulletManager = () => {
 
     const index = parent.indexOf(bullet);
     const newPosition = bullet.position + 1;
-    const newLevel = bullet.level;
+    const newLevel = forcedLevel !== undefined ? forcedLevel : bullet.level;
 
     // Get the parent_id based on the level
-    const parentId = newLevel > 0 ? bullet.parent_id : null;
+    const parentId = newLevel > bullet.level ? bullet.id : bullet.parent_id;
 
     const newBullet: BulletPoint = {
       id: generateBulletId(),
