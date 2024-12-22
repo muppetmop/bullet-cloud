@@ -13,6 +13,7 @@ import { useUsersAndBullets } from "@/hooks/useUsersAndBullets";
 import UsersList from "./users/UsersList";
 import BulletList from "./bullet/BulletList";
 import { transformUserToRootBullet } from "@/utils/bulletTransformations";
+import { useTheirsBulletState } from "@/hooks/useTheirsBulletState";
 
 const TaskManager = () => {
   const queueHook = useQueuedSync();
@@ -20,6 +21,7 @@ const TaskManager = () => {
   const [breadcrumbPath, setBreadcrumbPath] = useState<{ id: string; content: string }[]>([]);
   const [mode, setMode] = useState<"yours" | "theirs">("yours");
   const { users, loading, error } = useUsersAndBullets();
+  const { theirsBullets, updateTheirsBullet, setUserBullets } = useTheirsBulletState();
   
   useEffect(() => {
     initializeQueue(queueHook);
@@ -86,6 +88,34 @@ const TaskManager = () => {
     return [];
   };
 
+  const handleCollapse = (id: string) => {
+    console.log('Handling collapse:', {
+      mode,
+      bulletId: id,
+      currentBulletId
+    });
+
+    if (mode === "yours") {
+      toggleCollapse(id);
+    } else {
+      // Find the user that owns this bullet
+      for (const user of users) {
+        const userBullet = transformUserToRootBullet(user);
+        if (userBullet.id === id) {
+          updateTheirsBullet(user.id, id, { isCollapsed: !userBullet.isCollapsed });
+          return;
+        }
+        
+        const path = findBulletPath(id, userBullet.children);
+        if (path.length > 0) {
+          const bullet = path[path.length - 1];
+          updateTheirsBullet(user.id, id, { isCollapsed: !bullet.isCollapsed });
+          return;
+        }
+      }
+    }
+  };
+
   const handleZoom = async (id: string | null) => {
     console.log('Zooming to bullet:', {
       targetId: id,
@@ -112,7 +142,12 @@ const TaskManager = () => {
         
         // Find the bullet in users' bullets
         for (const user of users) {
-          const userBullet = transformUserToRootBullet(user);
+          const userBullets = theirsBullets[user.id] || [];
+          const userBullet = transformUserToRootBullet({
+            ...user,
+            bullets: userBullets
+          });
+          
           if (userBullet.id === id) {
             path = [userBullet];
             console.log('Found matching user:', {
@@ -335,7 +370,7 @@ const TaskManager = () => {
             onUpdate={updateBullet}
             onDelete={deleteBullet}
             onNewBullet={createNewBullet}
-            onCollapse={toggleCollapse}
+            onCollapse={handleCollapse}
             onNavigate={handleNavigate}
             onIndent={indentBullet}
             onOutdent={outdentBullet}
@@ -372,11 +407,13 @@ const TaskManager = () => {
           onUpdate={updateBullet}
           onDelete={deleteBullet}
           onNewBullet={createNewBullet}
-          onCollapse={toggleCollapse}
+          onCollapse={handleCollapse}
           onNavigate={handleNavigate}
           onIndent={indentBullet}
           onOutdent={outdentBullet}
           onZoom={handleZoom}
+          theirsBullets={theirsBullets}
+          onSetUserBullets={setUserBullets}
         />
       )}
 

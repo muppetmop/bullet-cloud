@@ -1,6 +1,6 @@
 import { BulletPoint } from "@/types/bullet";
 import BulletItem from "../BulletItem";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { transformUserToRootBullet } from "@/utils/bulletTransformations";
 
@@ -18,6 +18,8 @@ interface UsersListProps {
   onIndent: (id: string) => void;
   onOutdent: (id: string) => void;
   onZoom: (id: string) => void;
+  theirsBullets: {[key: string]: BulletPoint[]};
+  onSetUserBullets: (userId: string, bullets: BulletPoint[]) => void;
 }
 
 const UsersList = ({
@@ -30,6 +32,8 @@ const UsersList = ({
   onIndent,
   onOutdent,
   onZoom,
+  theirsBullets,
+  onSetUserBullets
 }: UsersListProps) => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -42,6 +46,20 @@ const UsersList = ({
     };
     getCurrentUser();
   }, []);
+
+  useEffect(() => {
+    // Initialize theirsBullets state for each user
+    users.forEach(user => {
+      if (!theirsBullets[user.id]) {
+        console.log('Initializing bullets for user:', {
+          userId: user.id,
+          nomDePlume: user.nom_de_plume,
+          bulletCount: user.bullets.length
+        });
+        onSetUserBullets(user.id, user.bullets);
+      }
+    });
+  }, [users, theirsBullets, onSetUserBullets]);
 
   console.log('UsersList render:', {
     totalUsers: users.length,
@@ -65,7 +83,10 @@ const UsersList = ({
       });
       return filtered;
     })
-    .map(user => transformUserToRootBullet(user));
+    .map(user => transformUserToRootBullet({
+      ...user,
+      bullets: theirsBullets[user.id] || user.bullets
+    }));
 
   return (
     <div>
