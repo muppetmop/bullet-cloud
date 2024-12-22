@@ -78,6 +78,39 @@ const TaskManager = () => {
     }
   };
 
+  const handleTitleChange = (event: React.FocusEvent<HTMLHeadingElement>) => {
+    const newContent = event.target.textContent || "";
+    if (currentBulletId) {
+      updateBullet(currentBulletId, newContent);
+      setBreadcrumbPath(prev => {
+        const newPath = [...prev];
+        newPath[newPath.length - 1].content = newContent;
+        return newPath;
+      });
+    }
+  };
+
+  const getVisibleBullets = () => {
+    if (!currentBulletId) return bullets;
+    
+    const path = findBulletPath(currentBulletId, bullets);
+    console.log('Getting visible bullets for current bullet:', {
+      currentBulletId,
+      pathLength: path.length,
+      lastBulletInPath: path.length > 0 ? {
+        id: path[path.length - 1].id,
+        content: path[path.length - 1].content,
+        level: path[path.length - 1].level
+      } : null
+    });
+    
+    if (path.length > 0) {
+      const currentBullet = path[path.length - 1];
+      return currentBullet.children;
+    }
+    return [];
+  };
+
   const handleNewBullet = () => {
     console.log('Creating new bullet. Current state:', {
       currentBulletId,
