@@ -119,14 +119,26 @@ const TaskManager = () => {
 
     if (currentBulletId) {
       const path = findBulletPath(currentBulletId, bullets);
+      const newLevel = path.length + 1;
       console.log('Path for new bullet:', {
         pathLength: path.length,
         currentBulletId,
-        newLevel: path.length + 1
+        newLevel,
+        pathDetails: path.map(b => ({
+          id: b.id,
+          content: b.content,
+          level: b.level
+        }))
       });
 
       // Create new bullet with level based on path length + 1
-      const newBulletId = createNewBullet(currentBulletId, path.length + 1);
+      const newBulletId = createNewBullet(currentBulletId, newLevel);
+      console.log('Created new bullet:', {
+        newBulletId,
+        parentId: currentBulletId,
+        level: newLevel
+      });
+
       if (newBulletId) {
         requestAnimationFrame(() => {
           const newElement = document.querySelector(
