@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { getAllVisibleBullets } from "@/utils/bulletOperations";
+import { BulletPoint } from "@/types/bullet";  // Added this import
 
 const TaskManager = () => {
   const [isWriteMode, setIsWriteMode] = useState(true);

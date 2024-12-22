@@ -15,6 +15,7 @@ interface BulletContentProps {
   onIndent?: (id: string) => void;
   onOutdent?: (id: string) => void;
   onZoom: (id: string) => void;
+  isWriteMode: boolean;  // Added this prop
 }
 
 interface PendingDelete {
