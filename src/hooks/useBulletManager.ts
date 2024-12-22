@@ -127,6 +127,52 @@ export const useBulletManager = () => {
       return null;
     }
 
+    const [bullet, parent] = findBulletAndParent(id, bullets);
+    if (!bullet || !parent) return null;
+
+    const index = parent.indexOf(bullet);
+    const newPosition = bullet.position + 1;
+    const newLevel = forcedLevel !== undefined ? forcedLevel : bullet.level;
+    const parentId = newLevel > bullet.level ? bullet.id : bullet.parent_id;
+
+    const newBullet: BulletPoint = {
+      id: generateBulletId(),
+      content: "",
+      children: [],
+      isCollapsed: false,
+      position: newPosition,
+      level: newLevel,
+      parent_id: parentId
+    };
+
+    // For regular bullet creation (Enter key), use the original splice method
+    parent.splice(index + 1, 0, newBullet);
+    setBullets([...bullets]);
+
+    // Queue the create operation
+    addToQueue({
+      id: newBullet.id,
+      type: 'create',
+      data: {
+        id: newBullet.id,
+        content: newBullet.content,
+        is_collapsed: newBullet.isCollapsed,
+        position: newPosition,
+        level: newLevel,
+        user_id: userId,
+        parent_id: parentId
+      }
+    });
+
+    return newBullet.id;
+  };
+
+  const createNewZoomedBullet = (id: string, forcedLevel?: number): string | null => {
+    if (!userId) {
+      toast.error("Please sign in to create bullets");
+      return null;
+    }
+
     console.log('Creating new bullet with parent:', {
       parentId: id,
       forcedLevel,
@@ -159,7 +205,7 @@ export const useBulletManager = () => {
       }
     });
 
-    // Update local state with new bullet
+    // Update local state with new bullet using recursive update for zoomed state
     if (parentId) {
       setBullets(prevBullets => updateBulletTreeRecursively(prevBullets, parentId, newBullet));
     } else {
@@ -423,6 +469,7 @@ export const useBulletManager = () => {
     findBulletAndParent,
     getAllVisibleBullets,
     createNewBullet,
+    createNewZoomedBullet,
     createNewRootBullet,
     updateBullet,
     deleteBullet,

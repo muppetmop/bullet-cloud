@@ -24,6 +24,7 @@ const TaskManager = () => {
     getAllVisibleBullets,
     createNewBullet,
     createNewRootBullet,
+    createNewZoomedBullet,
     updateBullet,
     deleteBullet,
     toggleCollapse,
@@ -134,8 +135,8 @@ const TaskManager = () => {
         }))
       });
 
-      // Create new bullet with level one more than parent's level
-      const newBulletId = createNewBullet(currentBulletId, newLevel);
+      // Use createNewZoomedBullet for the "Add new bullet" button in zoomed state
+      const newBulletId = createNewZoomedBullet(currentBulletId, newLevel);
       console.log('Created new bullet:', {
         newBulletId,
         parentId: currentBulletId,
