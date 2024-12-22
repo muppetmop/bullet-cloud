@@ -122,11 +122,11 @@ const TaskManager = () => {
       console.log('Path for new bullet:', {
         pathLength: path.length,
         currentBulletId,
-        newLevel: path.length
+        newLevel: path.length + 1
       });
 
-      // Create new bullet with level based on path length
-      const newBulletId = createNewBullet(currentBulletId, path.length);
+      // Create new bullet with level based on path length + 1
+      const newBulletId = createNewBullet(currentBulletId, path.length + 1);
       if (newBulletId) {
         requestAnimationFrame(() => {
           const newElement = document.querySelector(
