@@ -28,26 +28,32 @@ const UsersList = ({
   onOutdent,
   onZoom,
 }: UsersListProps) => {
+  // Convert users to bullet points format
+  const userBullets: BulletPoint[] = users.map((user) => ({
+    id: user.id,
+    content: `📖 ${user.nom_de_plume}`,
+    children: user.bullets,
+    isCollapsed: false,
+    position: 0,
+    level: 0,
+  }));
+
   return (
     <div>
-      {users.map((user) => (
-        <div key={user.id}>
-          {user.bullets.map((bullet) => (
-            <BulletItem
-              key={bullet.id}
-              bullet={bullet}
-              level={0}
-              onUpdate={onUpdate}
-              onDelete={onDelete}
-              onNewBullet={onNewBullet}
-              onCollapse={onCollapse}
-              onNavigate={onNavigate}
-              onIndent={onIndent}
-              onOutdent={onOutdent}
-              onZoom={onZoom}
-            />
-          ))}
-        </div>
+      {userBullets.map((bullet) => (
+        <BulletItem
+          key={bullet.id}
+          bullet={bullet}
+          level={0}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+          onNewBullet={onNewBullet}
+          onCollapse={onCollapse}
+          onNavigate={onNavigate}
+          onIndent={onIndent}
+          onOutdent={onOutdent}
+          onZoom={onZoom}
+        />
       ))}
     </div>
   );
