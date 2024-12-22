@@ -9,11 +9,16 @@ import { useQueuedSync } from "@/hooks/useQueuedSync";
 import { initializeQueue } from "@/utils/queueManager";
 import BreadcrumbNav from "./navigation/BreadcrumbNav";
 import { BulletPoint } from "@/types/bullet";
+import ModeToggle from "./mode/ModeToggle";
+import { useUsersAndBullets } from "@/hooks/useUsersAndBullets";
+import UsersList from "./users/UsersList";
 
 const TaskManager = () => {
   const queueHook = useQueuedSync();
   const [currentBulletId, setCurrentBulletId] = useState<string | null>(null);
   const [breadcrumbPath, setBreadcrumbPath] = useState<{ id: string; content: string }[]>([]);
+  const [mode, setMode] = useState<"yours" | "theirs">("yours");
+  const { users, loading, error } = useUsersAndBullets();
   
   useEffect(() => {
     initializeQueue(queueHook);
@@ -66,13 +71,33 @@ const TaskManager = () => {
     setCurrentBulletId(id);
     
     if (id) {
-      const path = findBulletPath(id, bullets);
-      console.log('Found bullet path:', path.map(b => ({
-        id: b.id,
-        content: b.content,
-        level: b.level
-      })));
-      setBreadcrumbPath(path.map(b => ({ id: b.id, content: b.content })));
+      let path;
+      if (mode === "yours") {
+        path = findBulletPath(id, bullets);
+      } else {
+        // Find the bullet in users' bullets
+        for (const user of users) {
+          path = findBulletPath(id, user.bullets);
+          if (path.length > 0) {
+            path = [{ id: user.id, content: `📖 ${user.nom_de_plume}`, children: [], isCollapsed: false, position: 0, level: 0 }, ...path];
+            break;
+          }
+        }
+      }
+      
+      if (path) {
+        console.log('Found bullet path:', path.map(b => ({
+          id: b.id,
+          content: b.content,
+          level: b.level
+        })));
+        
+        if (mode === "theirs") {
+          path = [{ id: 'others', content: '📖 Others', children: [], isCollapsed: false, position: 0, level: 0 }, ...path];
+        }
+        
+        setBreadcrumbPath(path.map(b => ({ id: b.id, content: b.content })));
+      }
     } else {
       console.log('Returning to root level');
       setBreadcrumbPath([]);
@@ -116,6 +141,38 @@ const TaskManager = () => {
   };
 
   const getVisibleBullets = () => {
+    if (mode === "theirs") {
+      if (!currentBulletId) {
+        return users.map(user => ({
+          id: user.id,
+          content: user.nom_de_plume,
+          children: user.bullets,
+          isCollapsed: false,
+          position: 0,
+          level: 0
+        }));
+      }
+      
+      // Find the current user's bullets
+      const currentUser = users.find(user => 
+        user.id === currentBulletId || 
+        findBulletPath(currentBulletId, user.bullets).length > 0
+      );
+      
+      if (currentUser) {
+        if (currentUser.id === currentBulletId) {
+          return currentUser.bullets;
+        }
+        
+        const path = findBulletPath(currentBulletId, currentUser.bullets);
+        if (path.length > 0) {
+          return path[path.length - 1].children;
+        }
+      }
+      
+      return [];
+    }
+    
     if (!currentBulletId) return bullets;
     
     const path = findBulletPath(currentBulletId, bullets);
@@ -209,14 +266,24 @@ const TaskManager = () => {
     return false;
   };
 
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="flex items-center justify-center min-h-screen text-red-500">Error: {error}</div>;
+  }
+
   return (
     <div className="max-w-3xl mx-auto p-8 relative min-h-screen">
+      <ModeToggle mode={mode} onModeChange={setMode} />
+      
       <BreadcrumbNav 
         path={breadcrumbPath} 
         onNavigate={handleZoom}
       />
 
-      {currentBulletId && (
+      {currentBulletId && mode === "yours" && (
         <h1 
           className="text-2xl font-semibold mb-6 outline-none"
           contentEditable
@@ -228,11 +295,51 @@ const TaskManager = () => {
         </h1>
       )}
 
-      {getVisibleBullets().map((bullet) => (
-        <BulletItem
-          key={bullet.id}
-          bullet={bullet}
-          level={0}
+      {mode === "yours" ? (
+        <>
+          {getVisibleBullets().map((bullet) => (
+            <BulletItem
+              key={bullet.id}
+              bullet={bullet}
+              level={0}
+              onUpdate={updateBullet}
+              onDelete={deleteBullet}
+              onNewBullet={createNewBullet}
+              onCollapse={toggleCollapse}
+              onNavigate={handleNavigate}
+              onIndent={indentBullet}
+              onOutdent={outdentBullet}
+              onZoom={handleZoom}
+            />
+          ))}
+
+          <button
+            onClick={handleNewBullet}
+            className="new-bullet-button w-full flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleNewBullet();
+              } else if (e.key === "ArrowUp" && bullets.length > 0) {
+                const lastBullet = getAllVisibleBullets(getVisibleBullets()).pop();
+                if (lastBullet) {
+                  const lastElement = document.querySelector(
+                    `[data-id="${lastBullet.id}"] .bullet-content`
+                  ) as HTMLElement;
+                  if (lastElement) {
+                    lastElement.focus();
+                  }
+                }
+              }
+            }}
+          >
+            <Plus className="w-4 h-4" />
+            <span className="text-sm">Add new bullet</span>
+          </button>
+        </>
+      ) : (
+        <UsersList
+          users={users}
           onUpdate={updateBullet}
           onDelete={deleteBullet}
           onNewBullet={createNewBullet}
@@ -242,31 +349,7 @@ const TaskManager = () => {
           onOutdent={outdentBullet}
           onZoom={handleZoom}
         />
-      ))}
-
-      <button
-        onClick={handleNewBullet}
-        className="new-bullet-button w-full flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 transition-colors"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            handleNewBullet();
-          } else if (e.key === "ArrowUp" && bullets.length > 0) {
-            const lastBullet = getAllVisibleBullets(getVisibleBullets()).pop();
-            if (lastBullet) {
-              const lastElement = document.querySelector(
-                `[data-id="${lastBullet.id}"] .bullet-content`
-              ) as HTMLElement;
-              if (lastElement) {
-                lastElement.focus();
-              }
-            }
-          }
-        }}
-      >
-        <Plus className="w-4 h-4" />
-        <span className="text-sm">Add new bullet</span>
-      </button>
+      )}
 
       <div className="fixed bottom-8 right-8">
         <Button 
