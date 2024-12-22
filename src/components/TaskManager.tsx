@@ -119,11 +119,14 @@ const TaskManager = () => {
 
     if (currentBulletId) {
       const path = findBulletPath(currentBulletId, bullets);
-      const newLevel = path.length + 1;
+      const parentBullet = path[path.length - 1];
+      const newLevel = parentBullet.level + 1;
+      
       console.log('Path for new bullet:', {
         pathLength: path.length,
         currentBulletId,
         newLevel,
+        parentLevel: parentBullet.level,
         pathDetails: path.map(b => ({
           id: b.id,
           content: b.content,
@@ -131,7 +134,7 @@ const TaskManager = () => {
         }))
       });
 
-      // Create new bullet with level based on path length + 1
+      // Create new bullet with level one more than parent's level
       const newBulletId = createNewBullet(currentBulletId, newLevel);
       console.log('Created new bullet:', {
         newBulletId,
