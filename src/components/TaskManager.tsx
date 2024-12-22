@@ -142,7 +142,11 @@ const TaskManager = () => {
         level: newLevel
       });
 
+      // Force a re-render by updating the current bullet's children
       if (newBulletId) {
+        // Update the visible bullets immediately
+        setBreadcrumbPath(prev => [...prev]); // Trigger re-render
+        
         requestAnimationFrame(() => {
           const newElement = document.querySelector(
             `[data-id="${newBulletId}"] .bullet-content`
