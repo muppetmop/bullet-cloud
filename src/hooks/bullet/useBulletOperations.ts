@@ -1,8 +1,8 @@
 import { BulletPoint } from "@/types/bullet";
 import { addToQueue } from "@/utils/queueManager";
 import { generateBulletId } from "@/utils/idGenerator";
-import { findBulletAndParent } from "@/utils/bulletOperations";
-import { updateBulletTreeRecursively, toggleCollapseRecursive, deleteBulletRecursive, updateBulletRecursive } from "@/utils/bulletManagerUtils";
+import { findBulletAndParent, getAllVisibleBullets, updateBulletTreeRecursively } from "@/utils/bulletOperations";
+import React from "react";
 
 export const useBulletOperations = (
   userId: string | null | undefined,
@@ -107,7 +107,8 @@ export const useBulletOperations = (
       children: [],
       isCollapsed: false,
       position: newPosition,
-      level: 0
+      level: 0,
+      parent_id: null
     };
 
     addToQueue({
@@ -119,7 +120,8 @@ export const useBulletOperations = (
         is_collapsed: newBullet.isCollapsed,
         position: newPosition,
         level: 0,
-        user_id: userId
+        user_id: userId,
+        parent_id: null
       }
     });
     
@@ -127,43 +129,9 @@ export const useBulletOperations = (
     return newBullet.id;
   };
 
-  const updateBullet = (id: string, content: string) => {
-    setBullets(updateBulletRecursive(bullets, id, content));
-
-    // Queue the update operation
-    addToQueue({
-      id,
-      type: 'update',
-      data: {
-        content,
-        is_collapsed: false,
-        position: 0,
-        level: 0
-      }
-    });
-  };
-
-  const deleteBullet = (id: string) => {
-    // Queue the delete operation
-    addToQueue({
-      id,
-      type: 'delete',
-      data: null
-    });
-
-    setBullets(deleteBulletRecursive(bullets, id));
-  };
-
-  const toggleCollapse = (id: string) => {
-    setBullets(toggleCollapseRecursive(bullets, id));
-  };
-
   return {
     createNewBullet,
     createNewZoomedBullet,
     createNewRootBullet,
-    updateBullet,
-    deleteBullet,
-    toggleCollapse,
   };
 };
