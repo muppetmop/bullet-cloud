@@ -1,10 +1,17 @@
 import { BulletPoint } from "@/types/bullet";
 import { addToQueue } from "@/utils/queueManager";
 import { generateBulletId } from "@/utils/idGenerator";
-import { findBulletAndParent } from "@/utils/bulletOperations";
-import { updateBulletTreeRecursively, getAllVisibleBullets } from "@/utils/bulletOperations";
+import { 
+  findBulletAndParent, 
+  updateBulletTreeRecursively, 
+  getAllVisibleBullets 
+} from "@/utils/bulletOperations";
 
-export const useBulletOperations = (userId: string | null | undefined, bullets: BulletPoint[], setBullets: (bullets: BulletPoint[]) => void) => {
+export const useBulletOperations = (
+  userId: string | null | undefined, 
+  bullets: BulletPoint[], 
+  setBullets: React.Dispatch<React.SetStateAction<BulletPoint[]>>
+) => {
   const createNewBullet = (id: string, forcedLevel?: number): string | null => {
     if (!userId) {
       return null;
@@ -71,11 +78,9 @@ export const useBulletOperations = (userId: string | null | undefined, bullets: 
     };
 
     if (parentId) {
-      setBullets((prevBullets: BulletPoint[]): BulletPoint[] => 
-        updateBulletTreeRecursively(prevBullets, parentId, newBullet)
-      );
+      setBullets(prevBullets => updateBulletTreeRecursively(prevBullets, parentId, newBullet));
     } else {
-      setBullets((prevBullets: BulletPoint[]): BulletPoint[] => [...prevBullets, newBullet]);
+      setBullets(prevBullets => [...prevBullets, newBullet]);
     }
 
     addToQueue({
