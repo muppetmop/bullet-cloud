@@ -105,10 +105,7 @@ export const useBulletManager = () => {
 
     const index = parent.indexOf(bullet);
     const newPosition = bullet.position + 1;
-    const newLevel = bullet.level;
-
-    // Get the parent_id based on the level
-    const parentId = newLevel > 0 ? bullet.parent_id : null;
+    const newLevel = bullet.level + 1; // Create as child
 
     const newBullet: BulletPoint = {
       id: generateBulletId(),
@@ -117,7 +114,7 @@ export const useBulletManager = () => {
       isCollapsed: false,
       position: newPosition,
       level: newLevel,
-      parent_id: parentId
+      parent_id: id // Set parent_id to current bullet's id
     };
 
     // First update local state
@@ -135,7 +132,52 @@ export const useBulletManager = () => {
         position: newPosition,
         level: newLevel,
         user_id: userId,
-        parent_id: parentId
+        parent_id: id
+      }
+    });
+
+    return newBullet.id;
+  };
+
+  const createSameLevelBullet = (id: string): string | null => {
+    if (!userId) {
+      toast.error("Please sign in to create bullets");
+      return null;
+    }
+
+    const [bullet, parent] = findBulletAndParent(id, bullets);
+    if (!bullet || !parent) return null;
+
+    const index = parent.indexOf(bullet);
+    const newPosition = bullet.position + 1;
+    const newLevel = bullet.level; // Same level as current bullet
+
+    const newBullet: BulletPoint = {
+      id: generateBulletId(),
+      content: "",
+      children: [],
+      isCollapsed: false,
+      position: newPosition,
+      level: newLevel,
+      parent_id: bullet.parent_id // Same parent as current bullet
+    };
+
+    // First update local state
+    parent.splice(index + 1, 0, newBullet);
+    setBullets([...bullets]);
+
+    // Then queue the create operation
+    addToQueue({
+      id: newBullet.id,
+      type: 'create',
+      data: {
+        id: newBullet.id,
+        content: newBullet.content,
+        is_collapsed: newBullet.isCollapsed,
+        position: newPosition,
+        level: newLevel,
+        user_id: userId,
+        parent_id: bullet.parent_id
       }
     });
 
@@ -376,6 +418,7 @@ export const useBulletManager = () => {
     getAllVisibleBullets,
     createNewBullet,
     createNewRootBullet,
+    createSameLevelBullet,
     updateBullet,
     deleteBullet,
     toggleCollapse,
