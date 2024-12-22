@@ -28,11 +28,20 @@ const UsersList = ({
   onOutdent,
   onZoom,
 }: UsersListProps) => {
-  // Convert users to bullet points format
+  // Helper function to ensure all bullets have required properties
+  const formatBullet = (bullet: BulletPoint, level: number): BulletPoint => ({
+    ...bullet,
+    children: bullet.children.map(child => formatBullet(child, level + 1)),
+    isCollapsed: bullet.isCollapsed || false,
+    position: bullet.position || 0,
+    level: level,
+  });
+
+  // Convert users to bullet points format with properly formatted children
   const userBullets: BulletPoint[] = users.map((user) => ({
     id: user.id,
     content: `📖 ${user.nom_de_plume}`,
-    children: user.bullets,
+    children: user.bullets.map(bullet => formatBullet(bullet, 1)),
     isCollapsed: false,
     position: 0,
     level: 0,

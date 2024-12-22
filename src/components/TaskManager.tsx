@@ -77,9 +77,28 @@ const TaskManager = () => {
       } else {
         // Find the bullet in users' bullets
         for (const user of users) {
+          if (user.id === id) {
+            path = [{
+              id: user.id,
+              content: `📖 ${user.nom_de_plume}`,
+              children: user.bullets,
+              isCollapsed: false,
+              position: 0,
+              level: 0
+            }];
+            break;
+          }
+          
           path = findBulletPath(id, user.bullets);
           if (path.length > 0) {
-            path = [{ id: user.id, content: `📖 ${user.nom_de_plume}`, children: [], isCollapsed: false, position: 0, level: 0 }, ...path];
+            path = [{
+              id: user.id,
+              content: `📖 ${user.nom_de_plume}`,
+              children: user.bullets,
+              isCollapsed: false,
+              position: 0,
+              level: 0
+            }, ...path];
             break;
           }
         }
@@ -91,10 +110,6 @@ const TaskManager = () => {
           content: b.content,
           level: b.level
         })));
-        
-        if (mode === "theirs") {
-          path = [{ id: 'others', content: '📖 Others', children: [], isCollapsed: false, position: 0, level: 0 }, ...path];
-        }
         
         setBreadcrumbPath(path.map(b => ({ id: b.id, content: b.content })));
       }
@@ -145,8 +160,14 @@ const TaskManager = () => {
       if (!currentBulletId) {
         return users.map(user => ({
           id: user.id,
-          content: user.nom_de_plume,
-          children: user.bullets,
+          content: `📖 ${user.nom_de_plume}`,
+          children: user.bullets.map(bullet => ({
+            ...bullet,
+            isCollapsed: bullet.isCollapsed || false,
+            position: bullet.position || 0,
+            level: bullet.level || 1,
+            children: bullet.children || []
+          })),
           isCollapsed: false,
           position: 0,
           level: 0
@@ -154,38 +175,35 @@ const TaskManager = () => {
       }
       
       // Find the current user's bullets
-      const currentUser = users.find(user => 
-        user.id === currentBulletId || 
-        findBulletPath(currentBulletId, user.bullets).length > 0
-      );
-      
-      if (currentUser) {
-        if (currentUser.id === currentBulletId) {
-          return currentUser.bullets;
+      for (const user of users) {
+        if (user.id === currentBulletId) {
+          return user.bullets.map(bullet => ({
+            ...bullet,
+            isCollapsed: bullet.isCollapsed || false,
+            position: bullet.position || 0,
+            level: bullet.level || 0,
+            children: bullet.children || []
+          }));
         }
         
-        const path = findBulletPath(currentBulletId, currentUser.bullets);
+        const path = findBulletPath(currentBulletId, user.bullets);
         if (path.length > 0) {
-          return path[path.length - 1].children;
+          const currentBullet = path[path.length - 1];
+          return currentBullet.children.map(bullet => ({
+            ...bullet,
+            isCollapsed: bullet.isCollapsed || false,
+            position: bullet.position || 0,
+            level: bullet.level || currentBullet.level + 1,
+            children: bullet.children || []
+          }));
         }
       }
-      
       return [];
     }
     
     if (!currentBulletId) return bullets;
     
     const path = findBulletPath(currentBulletId, bullets);
-    console.log('Getting visible bullets for current bullet:', {
-      currentBulletId,
-      pathLength: path.length,
-      lastBulletInPath: path.length > 0 ? {
-        id: path[path.length - 1].id,
-        content: path[path.length - 1].content,
-        level: path[path.length - 1].level
-      } : null
-    });
-    
     if (path.length > 0) {
       const currentBullet = path[path.length - 1];
       return currentBullet.children;
