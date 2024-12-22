@@ -79,6 +79,30 @@ const TaskManager = () => {
     }
   };
 
+  const handleTitleKeyDown = (event: React.KeyboardEvent<HTMLHeadingElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (currentBulletId) {
+        const path = findBulletPath(currentBulletId, bullets);
+        const parentBullet = path[path.length - 1];
+        const newLevel = parentBullet.level + 1;
+        
+        const newBulletId = createNewZoomedBullet(currentBulletId, newLevel);
+        
+        if (newBulletId) {
+          requestAnimationFrame(() => {
+            const newElement = document.querySelector(
+              `[data-id="${newBulletId}"] .bullet-content`
+            ) as HTMLElement;
+            if (newElement) {
+              newElement.focus();
+            }
+          });
+        }
+      }
+    }
+  };
+
   const handleTitleChange = (event: React.FocusEvent<HTMLHeadingElement>) => {
     const newContent = event.target.textContent || "";
     if (currentBulletId) {
@@ -135,7 +159,6 @@ const TaskManager = () => {
         }))
       });
 
-      // Use createNewZoomedBullet for the "Add new bullet" button in zoomed state
       const newBulletId = createNewZoomedBullet(currentBulletId, newLevel);
       console.log('Created new bullet:', {
         newBulletId,
@@ -199,6 +222,7 @@ const TaskManager = () => {
           contentEditable
           suppressContentEditableWarning
           onBlur={handleTitleChange}
+          onKeyDown={handleTitleKeyDown}
         >
           {breadcrumbPath[breadcrumbPath.length - 1]?.content || "Untitled"}
         </h1>
