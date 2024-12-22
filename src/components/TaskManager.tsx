@@ -14,6 +14,7 @@ import UsersList from "./users/UsersList";
 import BulletList from "./bullet/BulletList";
 import { transformUserToRootBullet } from "@/utils/bulletTransformations";
 import { useTheirsBulletState } from "@/hooks/useTheirsBulletState";
+import ZoomedBulletTitle from "./bullet/ZoomedBulletTitle";
 
 const TaskManager = () => {
   const queueHook = useQueuedSync();
@@ -294,6 +295,18 @@ const TaskManager = () => {
     return [];
   };
 
+  const getCurrentZoomedBulletContent = () => {
+    if (mode === "theirs" && theirsCurrentBulletId) {
+      const theirsBreadcrumb = theirsBreadcrumbPath[theirsBreadcrumbPath.length - 1];
+      return theirsBreadcrumb?.content;
+    }
+    if (mode === "yours" && currentBulletId) {
+      const yoursBreadcrumb = breadcrumbPath[breadcrumbPath.length - 1];
+      return yoursBreadcrumb?.content;
+    }
+    return null;
+  };
+
   const handleNewBullet = () => {
     console.log('Creating new bullet. Current state:', {
       currentBulletId,
@@ -411,6 +424,8 @@ const TaskManager = () => {
     return <div className="flex items-center justify-center min-h-screen text-red-500">Error: {error}</div>;
   }
 
+  const zoomedBulletContent = getCurrentZoomedBulletContent();
+
   return (
     <div className="max-w-3xl mx-auto p-8 relative min-h-screen">
       <ModeToggle mode={mode} onModeChange={setMode} />
@@ -421,16 +436,11 @@ const TaskManager = () => {
         mode={mode}
       />
 
-      {currentBulletId && mode === "yours" && (
-        <h1 
-          className="text-2xl font-semibold mb-6 outline-none"
-          contentEditable
-          suppressContentEditableWarning
-          onBlur={handleTitleChange}
-          onKeyDown={handleTitleKeyDown}
-        >
-          {breadcrumbPath[breadcrumbPath.length - 1]?.content || "Untitled"}
-        </h1>
+      {zoomedBulletContent && (
+        <ZoomedBulletTitle 
+          content={zoomedBulletContent}
+          mode={mode}
+        />
       )}
 
       {mode === "yours" ? (
