@@ -1,14 +1,13 @@
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BulletItem from "./BulletItem";
-import FloatingToggle from "./FloatingToggle";
-import BreadcrumbNav from "./BreadcrumbNav";
+import FloatingToggle from "./navigation/FloatingToggle";
+import BreadcrumbNav from "./navigation/BreadcrumbNav";
 import FloatingUserToggle from "./FloatingUserToggle";
 import UsersList from "./UsersList";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { BulletPoint } from "@/types/bullet";
 import { getAllVisibleBullets } from "@/utils/bulletOperations";
 
 const TaskManager = () => {
@@ -35,7 +34,6 @@ const TaskManager = () => {
             .eq('user_id', profile.id)
             .order('position');
 
-          // Convert flat structure to hierarchical
           const bulletMap = new Map<string, BulletPoint>();
           const rootBullets: BulletPoint[] = [];
           
@@ -72,7 +70,6 @@ const TaskManager = () => {
   });
 
   const handleUserZoom = (userId: string) => {
-    // Implementation similar to handleZoom but for other users' bullets
     console.log('Zooming to user:', userId);
   };
 
@@ -89,7 +86,6 @@ const TaskManager = () => {
   };
 
   const getVisibleBullets = () => {
-    // Implementation for getting visible bullets
     return bullets;
   };
 
@@ -102,7 +98,6 @@ const TaskManager = () => {
   };
 
   const createNewBullet = (id: string) => {
-    // Implementation for creating new bullet
     return null;
   };
 
