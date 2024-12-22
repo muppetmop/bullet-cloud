@@ -2,12 +2,11 @@ import { BulletPoint } from "@/types/bullet";
 import { addToQueue } from "@/utils/queueManager";
 import { generateBulletId } from "@/utils/idGenerator";
 import { findBulletAndParent } from "@/utils/bulletOperations";
-import { toast } from "sonner";
+import { updateBulletTreeRecursively, getAllVisibleBullets } from "@/utils/bulletOperations";
 
 export const useBulletOperations = (userId: string | null | undefined, bullets: BulletPoint[], setBullets: (bullets: BulletPoint[]) => void) => {
   const createNewBullet = (id: string, forcedLevel?: number): string | null => {
     if (!userId) {
-      toast.error("Please sign in to create bullets");
       return null;
     }
 
@@ -51,7 +50,6 @@ export const useBulletOperations = (userId: string | null | undefined, bullets: 
 
   const createNewZoomedBullet = (id: string, forcedLevel?: number): string | null => {
     if (!userId) {
-      toast.error("Please sign in to create bullets");
       return null;
     }
 
@@ -73,9 +71,11 @@ export const useBulletOperations = (userId: string | null | undefined, bullets: 
     };
 
     if (parentId) {
-      setBullets(prevBullets => updateBulletTreeRecursively(prevBullets, parentId, newBullet));
+      setBullets((prevBullets: BulletPoint[]): BulletPoint[] => 
+        updateBulletTreeRecursively(prevBullets, parentId, newBullet)
+      );
     } else {
-      setBullets(prevBullets => [...prevBullets, newBullet]);
+      setBullets((prevBullets: BulletPoint[]): BulletPoint[] => [...prevBullets, newBullet]);
     }
 
     addToQueue({
@@ -97,7 +97,6 @@ export const useBulletOperations = (userId: string | null | undefined, bullets: 
 
   const createNewRootBullet = (): string => {
     if (!userId) {
-      toast.error("Please sign in to create bullets");
       return "";
     }
 
