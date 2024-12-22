@@ -1,5 +1,5 @@
 import React from "react";
-import { House, User } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -47,28 +47,13 @@ const BreadcrumbNav: React.FC<BreadcrumbNavProps> = ({ path, onNavigate }) => {
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink 
-            asChild
-            className="hover:text-primary cursor-pointer"
-            onClick={() => onNavigate(null)}
+            className={`flex items-center gap-2 ${path.length > 0 ? 'hover:text-primary cursor-pointer' : ''}`}
+            onClick={() => path.length > 0 ? onNavigate(null) : undefined}
           >
-            <House className="h-4 w-4" />
+            <BookOpen className="h-4 w-4" />
+            <span>{username}</span>
           </BreadcrumbLink>
         </BreadcrumbItem>
-
-        {username && (
-          <>
-            <BreadcrumbSeparator>/</BreadcrumbSeparator>
-            <BreadcrumbItem>
-              <BreadcrumbLink
-                className={`flex items-center gap-2 ${path.length > 0 ? 'hover:text-primary cursor-pointer' : ''}`}
-                onClick={() => path.length > 0 ? onNavigate(null) : undefined}
-              >
-                <User className="h-4 w-4" />
-                <span>{username}</span>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-          </>
-        )}
         
         {path.map((item, index) => (
           <React.Fragment key={item.id}>
