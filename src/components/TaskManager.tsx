@@ -29,7 +29,6 @@ const TaskManager = () => {
     toggleCollapse,
     indentBullet,
     outdentBullet,
-    createSameLevelBullet,
   } = useBulletManager();
 
   const { handleNavigate } = useBulletNavigation(getAllVisibleBullets, bullets);
@@ -91,24 +90,12 @@ const TaskManager = () => {
     return [];
   };
 
-  const isEmptyZoomedState = () => {
-    const visibleBullets = getVisibleBullets();
-    return currentBulletId !== null && visibleBullets.length === 0;
-  };
-
   const handleNewBullet = () => {
+    // If we're zoomed in, create a child bullet under the current bullet
     if (currentBulletId) {
-      let newBulletId;
-      
-      if (isEmptyZoomedState()) {
-        // In empty zoomed state, create a bullet as a child of the current bullet
-        newBulletId = createNewBullet(currentBulletId);
-      } else {
-        // Normal zoomed state behavior - create at same level
-        newBulletId = createSameLevelBullet(currentBulletId);
-      }
-
+      const newBulletId = createNewBullet(currentBulletId);
       if (newBulletId) {
+        // Focus the new bullet after it's created
         requestAnimationFrame(() => {
           const newElement = document.querySelector(
             `[data-id="${newBulletId}"] .bullet-content`
@@ -119,25 +106,8 @@ const TaskManager = () => {
         });
       }
     } else {
+      // At root level, create a root bullet
       const newBulletId = createNewRootBullet();
-      if (newBulletId) {
-        requestAnimationFrame(() => {
-          const newElement = document.querySelector(
-            `[data-id="${newBulletId}"] .bullet-content`
-          ) as HTMLElement;
-          if (newElement) {
-            newElement.focus();
-          }
-        });
-      }
-    }
-  };
-
-  const handleTitleKeyDown = (event: React.KeyboardEvent<HTMLHeadingElement>) => {
-    if (event.key === 'Enter' && currentBulletId) {
-      event.preventDefault();
-      // Always create at same level when pressing Enter in title
-      const newBulletId = createSameLevelBullet(currentBulletId);
       if (newBulletId) {
         requestAnimationFrame(() => {
           const newElement = document.querySelector(
@@ -164,7 +134,6 @@ const TaskManager = () => {
           contentEditable
           suppressContentEditableWarning
           onBlur={handleTitleChange}
-          onKeyDown={handleTitleKeyDown}
         >
           {breadcrumbPath[breadcrumbPath.length - 1]?.content || "Untitled"}
         </h1>
