@@ -6,6 +6,7 @@ import { startSyncService } from "@/services/syncService";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { createNewBulletWithParent, createNewRootBulletHelper } from "@/utils/bulletCreation";
+import { generateBulletId } from "@/utils/idGenerator";
 
 export const useBulletManager = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>([]);
@@ -323,3 +324,4 @@ export const useBulletManager = () => {
     outdentBullet,
   };
 };
+
