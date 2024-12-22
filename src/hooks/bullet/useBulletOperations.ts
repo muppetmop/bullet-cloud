@@ -129,9 +129,84 @@ export const useBulletOperations = (
     return newBullet.id;
   };
 
+  const updateBullet = (id: string, content: string) => {
+    setBullets(prevBullets => {
+      const updateBulletContent = (bullets: BulletPoint[]): BulletPoint[] => {
+        return bullets.map(bullet => {
+          if (bullet.id === id) {
+            return { ...bullet, content };
+          }
+          if (bullet.children.length > 0) {
+            return {
+              ...bullet,
+              children: updateBulletContent(bullet.children)
+            };
+          }
+          return bullet;
+        });
+      };
+      return updateBulletContent(prevBullets);
+    });
+
+    addToQueue({
+      id,
+      type: 'update',
+      data: {
+        content,
+        is_collapsed: false,
+        position: 0,
+        level: 0
+      }
+    });
+  };
+
+  const deleteBullet = (id: string) => {
+    setBullets(prevBullets => {
+      const deleteBulletById = (bullets: BulletPoint[]): BulletPoint[] => {
+        return bullets.filter(bullet => {
+          if (bullet.id === id) return false;
+          if (bullet.children.length > 0) {
+            bullet.children = deleteBulletById(bullet.children);
+          }
+          return true;
+        });
+      };
+      return deleteBulletById(prevBullets);
+    });
+
+    addToQueue({
+      id,
+      type: 'delete',
+      data: null
+    });
+  };
+
+  const toggleCollapse = (id: string) => {
+    setBullets(prevBullets => {
+      const toggleBulletCollapse = (bullets: BulletPoint[]): BulletPoint[] => {
+        return bullets.map(bullet => {
+          if (bullet.id === id) {
+            return { ...bullet, isCollapsed: !bullet.isCollapsed };
+          }
+          if (bullet.children.length > 0) {
+            return {
+              ...bullet,
+              children: toggleBulletCollapse(bullet.children)
+            };
+          }
+          return bullet;
+        });
+      };
+      return toggleBulletCollapse(prevBullets);
+    });
+  };
+
   return {
     createNewBullet,
     createNewZoomedBullet,
     createNewRootBullet,
+    updateBullet,
+    deleteBullet,
+    toggleCollapse,
   };
 };
