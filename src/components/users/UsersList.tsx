@@ -43,9 +43,28 @@ const UsersList = ({
     getCurrentUser();
   }, []);
 
+  console.log('UsersList render:', {
+    totalUsers: users.length,
+    currentUserId,
+    userDetails: users.map(user => ({
+      id: user.id,
+      nomDePlume: user.nom_de_plume,
+      bulletCount: user.bullets.length
+    }))
+  });
+
   // Filter out current user and convert remaining users to bullet points format
   const userBullets: BulletPoint[] = users
-    .filter(user => user.id !== currentUserId)
+    .filter(user => {
+      const filtered = user.id !== currentUserId;
+      console.log('Filtering user:', {
+        userId: user.id,
+        nomDePlume: user.nom_de_plume,
+        isCurrentUser: user.id === currentUserId,
+        included: filtered
+      });
+      return filtered;
+    })
     .map(user => transformUserToRootBullet(user));
 
   return (

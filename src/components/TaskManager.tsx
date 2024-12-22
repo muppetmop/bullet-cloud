@@ -47,14 +47,39 @@ const TaskManager = () => {
   };
 
   const findBulletPath = (id: string | null, bullets: BulletPoint[]): BulletPoint[] => {
+    console.log('Finding bullet path:', {
+      searchId: id,
+      bulletsCount: bullets.length,
+      bulletLevels: bullets.map(b => ({
+        id: b.id,
+        content: b.content,
+        level: b.level
+      }))
+    });
+
     if (!id) return [];
     
     for (const bullet of bullets) {
       if (bullet.id === id) {
+        console.log('Found direct match:', {
+          id: bullet.id,
+          content: bullet.content,
+          level: bullet.level
+        });
         return [bullet];
       }
       const path = findBulletPath(id, bullet.children);
       if (path.length > 0) {
+        console.log('Found in children:', {
+          parentId: bullet.id,
+          parentContent: bullet.content,
+          parentLevel: bullet.level,
+          childPath: path.map(b => ({
+            id: b.id,
+            content: b.content,
+            level: b.level
+          }))
+        });
         return [bullet, ...path];
       }
     }
@@ -62,7 +87,11 @@ const TaskManager = () => {
   };
 
   const handleZoom = async (id: string | null) => {
-    console.log('Zooming to bullet:', id);
+    console.log('Zooming to bullet:', {
+      targetId: id,
+      currentId: currentBulletId,
+      mode
+    });
     
     if (id === currentBulletId) {
       console.log('Already zoomed to this bullet, no change needed');
@@ -76,30 +105,51 @@ const TaskManager = () => {
       if (mode === "yours") {
         path = findBulletPath(id, bullets);
       } else {
+        console.log('Finding bullet in users bullets:', {
+          targetId: id,
+          userCount: users.length
+        });
+        
         // Find the bullet in users' bullets
         for (const user of users) {
           const userBullet = transformUserToRootBullet(user);
           if (userBullet.id === id) {
             path = [userBullet];
+            console.log('Found matching user:', {
+              userId: user.id,
+              nomDePlume: user.nom_de_plume
+            });
             break;
           }
           
           path = findBulletPath(id, userBullet.children);
           if (path.length > 0) {
             path = [userBullet, ...path];
+            console.log('Found bullet in user children:', {
+              userId: user.id,
+              nomDePlume: user.nom_de_plume,
+              pathLength: path.length,
+              path: path.map(b => ({
+                id: b.id,
+                content: b.content,
+                level: b.level
+              }))
+            });
             break;
           }
         }
       }
       
       if (path) {
-        console.log('Found bullet path:', path.map(b => ({
+        console.log('Setting breadcrumb path:', path.map(b => ({
           id: b.id,
           content: b.content,
           level: b.level
         })));
         
         setBreadcrumbPath(path.map(b => ({ id: b.id, content: b.content })));
+      } else {
+        console.log('No path found for bullet:', id);
       }
     } else {
       console.log('Returning to root level');
