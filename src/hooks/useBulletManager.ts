@@ -94,7 +94,7 @@ export const useBulletManager = () => {
     loadBullets();
   }, [userId]);
 
-  const createNewBullet = (id: string, forcedLevel?: number): string | null => {
+  const createNewBullet = async (id: string, forcedLevel?: number): Promise<string | null> => {
     if (!userId) {
       toast.error("Please sign in to create bullets");
       return null;
@@ -112,10 +112,26 @@ export const useBulletManager = () => {
       return null;
     }
 
+    // Verify parent exists in database before setting parent_id
+    let parentId: string | null = null;
+    if (forcedLevel !== undefined && forcedLevel > bullet.level) {
+      // Check if the bullet exists in the database
+      const { data: parentExists } = await supabase
+        .from('bullets')
+        .select('id')
+        .eq('id', bullet.id)
+        .single();
+
+      if (parentExists) {
+        parentId = bullet.id;
+      } else {
+        console.warn('Parent bullet not found in database, creating without parent');
+      }
+    }
+
     const index = parent.indexOf(bullet);
     const newPosition = bullet.position + 1;
     const newLevel = forcedLevel !== undefined ? forcedLevel : bullet.level;
-    const parentId = newLevel > bullet.level ? bullet.id : bullet.parent_id;
 
     const newBullet: BulletPoint = {
       id: generateBulletId(),
@@ -134,14 +150,14 @@ export const useBulletManager = () => {
     });
 
     // Update parent's children array if this is a child bullet
-    if (newLevel > bullet.level) {
+    if (newLevel > bullet.level && parentId) {
       bullet.children = [...bullet.children, newBullet];
       console.log('Updated parent children:', bullet.children);
     }
 
     // Update bullets array
     const newBullets = [...bullets];
-    if (newLevel > bullet.level) {
+    if (newLevel > bullet.level && parentId) {
       // Find and update the parent bullet in the main array
       const updateParentBullet = (bullets: BulletPoint[]): BulletPoint[] => {
         return bullets.map(b => {
