@@ -110,6 +110,8 @@ const Auth = () => {
                   maxLength={50}
                 />
                 <div className="h-2" /> {/* Small spacer */}
+                <div className="border-t border-gray-200" /> {/* Divider line */}
+                <div className="h-2" /> {/* Small spacer after divider */}
               </>
             )}
             <Input
