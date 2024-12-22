@@ -96,6 +96,22 @@ const Auth = () => {
 
         <form onSubmit={handleAuth} className="space-y-6">
           <div className="space-y-4">
+            {isSignUp && (
+              <>
+                <Input
+                  type="text"
+                  placeholder="Nom de Plume"
+                  value={nomDePlume}
+                  onChange={(e) => setNomDePlume(e.target.value)}
+                  required
+                  className="w-full"
+                  disabled={isLoading}
+                  minLength={2}
+                  maxLength={50}
+                />
+                <div className="h-2" /> {/* Small spacer */}
+              </>
+            )}
             <Input
               type="email"
               placeholder="Email"
@@ -105,19 +121,6 @@ const Auth = () => {
               className="w-full"
               disabled={isLoading}
             />
-            {isSignUp && (
-              <Input
-                type="text"
-                placeholder="Nom de Plume"
-                value={nomDePlume}
-                onChange={(e) => setNomDePlume(e.target.value)}
-                required
-                className="w-full"
-                disabled={isLoading}
-                minLength={2}
-                maxLength={50}
-              />
-            )}
             <Input
               type="password"
               placeholder="Password"
