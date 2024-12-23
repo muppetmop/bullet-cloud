@@ -45,18 +45,27 @@ const TaskManager = () => {
     if (!saved) {
       const initialState: CollapsedState = {};
       users.forEach(user => {
+        // Collapse the user root bullet
         const userBullet = transformUserToRootBullet({
           ...user,
           bullets: theirsBullets[user.id] || []
         });
         initialState[userBullet.id] = true;
+
+        // Recursively collapse all children
         const addChildrenToState = (bullet: BulletPoint) => {
           bullet.children.forEach(child => {
             initialState[child.id] = true;
-            addChildrenToState(child);
+            if (child.children.length > 0) {
+              addChildrenToState(child);
+            }
           });
         };
-        addChildrenToState(userBullet);
+        
+        // Make sure to collapse all children of the user bullet
+        if (userBullet.children.length > 0) {
+          addChildrenToState(userBullet);
+        }
       });
       return initialState;
     }
@@ -209,10 +218,24 @@ const TaskManager = () => {
           newCollapsed: !isCollapsed
         });
         
-        setTheirsCollapsedState(prev => ({
-          ...prev,
-          [id]: !isCollapsed
-        }));
+        setTheirsCollapsedState(prev => {
+          const newState = {
+            ...prev,
+            [id]: !isCollapsed
+          };
+          
+          // If we're expanding a bullet, make sure its immediate children stay collapsed
+          if (isCollapsed) {
+            const bullet = findBulletPath(id, [userBullet])[0];
+            if (bullet && bullet.children) {
+              bullet.children.forEach(child => {
+                newState[child.id] = true;
+              });
+            }
+          }
+          
+          return newState;
+        });
         
         updateTheirsBullet(user.id, id, { isCollapsed: !isCollapsed });
       }
