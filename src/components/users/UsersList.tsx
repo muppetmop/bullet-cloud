@@ -3,6 +3,7 @@ import BulletItem from "../BulletItem";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { transformUserToRootBullet } from "@/utils/bulletTransformations";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface UsersListProps {
   users: {
@@ -79,9 +80,27 @@ const UsersList = ({
     });
   }, [users, theirsBullets, onSetUserBullets]);
 
-  // Show loading state until we have currentUserId
   if (!currentUserId) {
-    return <div className="p-4 text-gray-500">Loading...</div>;
+    return (
+      <div className="space-y-4 p-4">
+        {[1, 2, 3].map((index) => (
+          <div key={index} className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-4" />
+              <Skeleton className="h-6 w-48" />
+            </div>
+            <div className="pl-8 space-y-2">
+              {[1, 2].map((subIndex) => (
+                <div key={subIndex} className="flex items-center gap-2">
+                  <Skeleton className="h-3 w-3" />
+                  <Skeleton className="h-5 w-36" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   return (
