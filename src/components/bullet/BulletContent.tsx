@@ -224,7 +224,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
           className="w-4 h-4 inline-flex items-center justify-center mt-1 cursor-pointer bullet-icon"
           onClick={() => onZoom(bullet.id)}
         >
-          ✤
+          ◉
         </span>
         <div
           ref={contentRef}
