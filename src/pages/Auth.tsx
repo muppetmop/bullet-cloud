@@ -85,11 +85,11 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F6F7] flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-lg shadow-lg">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-lg border border-gray-200">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-[#1EAEDB] mb-2">BullBook</h1>
-          <p className="text-[#8A898C]">
+          <h1 className="text-4xl font-bold text-black mb-2">BullBook</h1>
+          <p className="text-gray-500">
             {isSignUp ? "Create your account" : "Welcome back"}
           </p>
         </div>
@@ -104,14 +104,14 @@ const Auth = () => {
                   value={nomDePlume}
                   onChange={(e) => setNomDePlume(e.target.value)}
                   required
-                  className="w-full"
+                  className="w-full bg-white border-gray-200 focus-visible:ring-gray-500"
                   disabled={isLoading}
                   minLength={2}
                   maxLength={50}
                 />
-                <div className="h-2" /> {/* Small spacer */}
-                <div className="border-t border-gray-200" /> {/* Divider line */}
-                <div className="h-2" /> {/* Small spacer after divider */}
+                <div className="h-2" />
+                <div className="border-t border-gray-100" />
+                <div className="h-2" />
               </>
             )}
             <Input
@@ -120,7 +120,7 @@ const Auth = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full"
+              className="w-full bg-white border-gray-200 focus-visible:ring-gray-500"
               disabled={isLoading}
             />
             <Input
@@ -129,7 +129,7 @@ const Auth = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full"
+              className="w-full bg-white border-gray-200 focus-visible:ring-gray-500"
               disabled={isLoading}
               minLength={6}
             />
@@ -137,7 +137,7 @@ const Auth = () => {
 
           <Button
             type="submit"
-            className="w-full bg-[#1EAEDB] hover:bg-[#0EA5E9] text-white"
+            className="w-full bg-black hover:bg-gray-800 text-white transition-colors"
             disabled={isLoading}
           >
             {isLoading
@@ -151,7 +151,7 @@ const Auth = () => {
             <button
               type="button"
               onClick={() => setIsSignUp(!isSignUp)}
-              className="text-[#0EA5E9] hover:underline"
+              className="text-gray-600 hover:text-black transition-colors"
               disabled={isLoading}
             >
               {isSignUp
