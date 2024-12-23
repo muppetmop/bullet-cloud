@@ -481,7 +481,7 @@ const TaskManager = () => {
             onCollapse={handleCollapse}
             onNavigate={handleNavigate}
             onIndent={indentBullet}
-            onOutdent={onOutdent}
+            onOutdent={outdentBullet}
             onZoom={handleZoom}
             theirsBullets={theirsBullets}
             onSetUserBullets={setUserBullets}
