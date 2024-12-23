@@ -1,6 +1,6 @@
 import { BulletPoint } from "@/types/bullet";
 import BulletItem from "../BulletItem";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { transformUserToRootBullet } from "@/utils/bulletTransformations";
 
@@ -48,6 +48,24 @@ const UsersList = ({
     getCurrentUser();
   }, []);
 
+  // Filter users and transform them to bullets in one memoized operation
+  const userBullets = useMemo(() => {
+    if (!currentUserId) return [];
+    
+    return users
+      .filter(user => user.id !== currentUserId)
+      .map(user => {
+        const bullet = transformUserToRootBullet({
+          ...user,
+          bullets: theirsBullets[user.id] || user.bullets
+        });
+        return {
+          ...bullet,
+          isCollapsed: collapsedUsers.has(user.id)
+        };
+      });
+  }, [users, currentUserId, theirsBullets, collapsedUsers]);
+
   useEffect(() => {
     users.forEach(user => {
       if (!theirsBullets[user.id]) {
@@ -61,37 +79,10 @@ const UsersList = ({
     });
   }, [users, theirsBullets, onSetUserBullets]);
 
-  console.log('UsersList render:', {
-    totalUsers: users.length,
-    currentUserId,
-    userDetails: users.map(user => ({
-      id: user.id,
-      nomDePlume: user.nom_de_plume,
-      bulletCount: user.bullets.length
-    }))
-  });
-
-  const userBullets: BulletPoint[] = users
-    .filter(user => {
-      const filtered = user.id !== currentUserId;
-      console.log('Filtering user:', {
-        userId: user.id,
-        nomDePlume: user.nom_de_plume,
-        isCurrentUser: user.id === currentUserId,
-        included: filtered
-      });
-      return filtered;
-    })
-    .map(user => {
-      const bullet = transformUserToRootBullet({
-        ...user,
-        bullets: theirsBullets[user.id] || user.bullets
-      });
-      return {
-        ...bullet,
-        isCollapsed: collapsedUsers.has(user.id)
-      };
-    });
+  // Show loading state until we have currentUserId
+  if (!currentUserId) {
+    return <div className="p-4 text-gray-500">Loading...</div>;
+  }
 
   return (
     <div>
