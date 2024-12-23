@@ -1,7 +1,7 @@
 import React from "react";
 import { BulletPoint } from "@/types/bullet";
 import BulletContent from "./bullet/BulletContent";
-import DraggableBullet from "./bullet/DraggableBullet";
+import { useDrag } from "@/contexts/DragContext";
 
 interface BulletItemProps {
   bullet: BulletPoint;
@@ -30,27 +30,43 @@ const BulletItem: React.FC<BulletItemProps> = ({
   onZoom,
   mode = "yours",
 }) => {
+  const { draggedId, dragOverId, setDraggedId, setDragOverId, setDragLevel } = useDrag();
+  const isDragging = draggedId === bullet.id;
+  const isOver = dragOverId === bullet.id;
+
+  const handleDragStart = (e: React.DragEvent) => {
+    if (mode !== "yours") return;
+    e.dataTransfer.setData('text/plain', bullet.id);
+    setDraggedId(bullet.id);
+    setDragLevel(bullet.level);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (mode !== "yours") return;
+    e.preventDefault();
+    if (draggedId !== bullet.id) {
+      setDragOverId(bullet.id);
+    }
+  };
+
+  const handleDragEnd = () => {
+    if (mode !== "yours") return;
+    setDraggedId(null);
+    setDragOverId(null);
+  };
+
   return (
     <div 
       className="bullet-item" 
       data-id={bullet.id}
     >
-      {mode === "yours" ? (
-        <DraggableBullet id={bullet.id}>
-          <BulletContent
-            bullet={bullet}
-            onUpdate={onUpdate}
-            onDelete={onDelete}
-            onNewBullet={onNewBullet}
-            onCollapse={onCollapse}
-            onNavigate={onNavigate}
-            onIndent={onIndent}
-            onOutdent={onOutdent}
-            onZoom={onZoom}
-            mode={mode}
-          />
-        </DraggableBullet>
-      ) : (
+      <div
+        draggable={mode === "yours"}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+        className={`relative ${isDragging ? 'opacity-50' : ''} ${isOver ? 'border-t-2 border-blue-500' : ''}`}
+      >
         <BulletContent
           bullet={bullet}
           onUpdate={onUpdate}
@@ -63,7 +79,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
           onZoom={onZoom}
           mode={mode}
         />
-      )}
+      </div>
       {!bullet.isCollapsed && bullet.children.length > 0 && (
         <div className="bullet-children">
           {bullet.children.map((child) => (

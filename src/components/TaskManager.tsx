@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useBulletManager } from "@/hooks/useBulletManager";
 import { useBulletNavigation } from "@/hooks/useBulletNavigation";
 import { Button } from "./ui/button";
@@ -16,6 +14,7 @@ import { useTheirsBulletState } from "@/hooks/useTheirsBulletState";
 import ZoomedBulletTitle from "./bullet/ZoomedBulletTitle";
 import BulletsView from "./bullet/BulletsView";
 import UsersListView from "./users/UsersListView";
+import { DragProvider } from "@/contexts/DragContext";
 
 const TaskManager = () => {
   const queueHook = useQueuedSync();
@@ -35,7 +34,7 @@ const TaskManager = () => {
 
   const {
     bullets,
-    setBullets, // Add this line to destructure setBullets
+    setBullets,
     getAllVisibleBullets,
     createNewBullet,
     createNewRootBullet,
@@ -420,172 +419,61 @@ const TaskManager = () => {
     return false;
   };
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    setActiveId(active.id as string);
+  const handleDrop = (draggedId: string, targetId: string, newLevel: number) => {
+    const [draggedBullet, draggedParent] = findBulletAndParent(draggedId, bullets);
+    const [targetBullet, targetParent] = findBulletAndParent(targetId, bullets);
     
-    // Find the current bullet's level
-    const bullet = findBulletPath(active.id as string, bullets)[0];
-    if (bullet) {
-      setDragLevel(bullet.level);
-    }
-  };
+    if (!draggedBullet || !targetBullet) return;
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (!over || active.id === over.id) {
-      setActiveId(null);
-      return;
+    // Remove bullet from its current position
+    if (draggedParent) {
+      const draggedIndex = draggedParent.indexOf(draggedBullet);
+      draggedParent.splice(draggedIndex, 1);
     }
 
-    const activeBullet = findBulletPath(active.id as string, bullets)[0];
-    const overBullet = findBulletPath(over.id as string, bullets)[0];
-    
-    if (!activeBullet || !overBullet) {
-      setActiveId(null);
-      return;
-    }
-
-    // Calculate new level based on horizontal movement
-    const offsetX = (event as any).delta.x;
-    const levelChange = Math.round(offsetX / 50); // 50px per level
-    const newLevel = Math.max(0, dragLevel + levelChange);
-
-    // Update bullet positions and levels
-    const updates = [];
-    
-    // Update the dragged bullet and its children
-    const updateBulletAndChildren = (bullet: BulletPoint, newParentId: string | null, levelDiff: number) => {
-      updates.push({
-        id: bullet.id,
-        parent_id: newParentId,
-        level: bullet.level + levelDiff,
-        position: overBullet.position + 1
+    // Add bullet to its new position
+    if (targetParent) {
+      const targetIndex = targetParent.indexOf(targetBullet);
+      targetParent.splice(targetIndex + 1, 0, {
+        ...draggedBullet,
+        level: newLevel,
+        parent_id: targetBullet.parent_id
       });
+    }
 
-      bullet.children.forEach((child) => {
-        updateBulletAndChildren(child, bullet.id, levelDiff);
-      });
-    };
+    setBullets([...bullets]);
 
-    const levelDiff = newLevel - activeBullet.level;
-    updateBulletAndChildren(activeBullet, overBullet.parent_id, levelDiff);
-
-    // Optimistically update UI
-    setBullets(prevBullets => {
-      const newBullets = [...prevBullets];
-      // Remove bullet from its current position
-      const removeBullet = (bullets: BulletPoint[], id: string): BulletPoint[] => {
-        return bullets.filter(b => {
-          if (b.id === id) return false;
-          b.children = removeBullet(b.children, id);
-          return true;
-        });
-      };
-
-      // Add bullet to its new position
-      const addBullet = (bullets: BulletPoint[], bullet: BulletPoint, targetId: string): boolean => {
-        for (let i = 0; i < bullets.length; i++) {
-          if (bullets[i].id === targetId) {
-            bullets.splice(i + 1, 0, {
-              ...bullet,
-              level: newLevel,
-              parent_id: bullets[i].parent_id
-            });
-            return true;
-          }
-          if (addBullet(bullets[i].children, bullet, targetId)) return true;
-        }
-        return false;
-      };
-
-      const bulletToMove = findBulletPath(active.id as string, prevBullets)[0];
-      if (bulletToMove) {
-        const newBulletsWithoutActive = removeBullet(newBullets, active.id as string);
-        addBullet(newBulletsWithoutActive, bulletToMove, over.id as string);
-        return newBulletsWithoutActive;
+    // Queue update to server
+    queueHook.addToQueue({
+      id: draggedId,
+      type: 'update',
+      data: {
+        parent_id: targetBullet.parent_id,
+        level: newLevel,
+        position: targetBullet.position + 1
       }
-      return prevBullets;
     });
-
-    // Queue updates to server
-    updates.forEach(update => {
-      queueHook.addToQueue({
-        id: update.id,
-        type: 'update',
-        data: update
-      });
-    });
-
-    setActiveId(null);
   };
-
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-
-  if (error) {
-    return <div className="flex items-center justify-center min-h-screen text-red-500">Error: {error}</div>;
-  }
-
-  const zoomedBulletContent = getCurrentZoomedBulletContent();
-  const visibleBullets = getVisibleBullets();
 
   return (
-    <div className="max-w-3xl mx-auto p-8 relative min-h-screen">
-      <ModeToggle mode={mode} onModeChange={setMode} />
-      
-      <BreadcrumbNav 
-        path={mode === "yours" ? breadcrumbPath : theirsBreadcrumbPath}
-        onNavigate={handleZoom}
-        mode={mode}
-      />
-
-      {zoomedBulletContent && (
-        <ZoomedBulletTitle 
-          content={zoomedBulletContent}
+    <DragProvider>
+      <div className="max-w-3xl mx-auto p-8 relative min-h-screen">
+        <ModeToggle mode={mode} onModeChange={setMode} />
+        
+        <BreadcrumbNav 
+          path={mode === "yours" ? breadcrumbPath : theirsBreadcrumbPath}
+          onNavigate={handleZoom}
           mode={mode}
         />
-      )}
 
-      {mode === "yours" ? (
-        <DndContext
-          sensors={sensors}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={visibleBullets.map(b => b.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <BulletsView
-              bullets={visibleBullets}
-              onUpdate={updateBullet}
-              onDelete={deleteBullet}
-              onNewBullet={createNewBullet}
-              onCollapse={handleCollapse}
-              onNavigate={handleNavigate}
-              onIndent={indentBullet}
-              onOutdent={outdentBullet}
-              onZoom={handleZoom}
-              handleNewBullet={handleNewBullet}
-              getAllVisibleBullets={getAllVisibleBullets}
-              mode="yours"
-              loading={loading}
-            />
-          </SortableContext>
-        </DndContext>
-      ) : (
-        theirsCurrentBulletId ? (
+        {zoomedBulletContent && (
+          <ZoomedBulletTitle 
+            content={zoomedBulletContent}
+            mode={mode}
+          />
+        )}
+
+        {mode === "yours" ? (
           <BulletsView
             bullets={visibleBullets}
             onUpdate={updateBullet}
@@ -598,37 +486,55 @@ const TaskManager = () => {
             onZoom={handleZoom}
             handleNewBullet={handleNewBullet}
             getAllVisibleBullets={getAllVisibleBullets}
-            mode="theirs"
+            mode="yours"
             loading={loading}
           />
         ) : (
-          <UsersListView
-            users={users}
-            onUpdate={updateBullet}
-            onDelete={deleteBullet}
-            onNewBullet={createNewBullet}
-            onCollapse={handleCollapse}
-            onNavigate={handleNavigate}
-            onIndent={indentBullet}
-            onOutdent={outdentBullet}
-            onZoom={handleZoom}
-            theirsBullets={theirsBullets}
-            onSetUserBullets={setUserBullets}
-            handleNewBullet={handleNewBullet}
-          />
-        )
-      )}
+          theirsCurrentBulletId ? (
+            <BulletsView
+              bullets={visibleBullets}
+              onUpdate={updateBullet}
+              onDelete={deleteBullet}
+              onNewBullet={createNewBullet}
+              onCollapse={handleCollapse}
+              onNavigate={handleNavigate}
+              onIndent={indentBullet}
+              onOutdent={outdentBullet}
+              onZoom={handleZoom}
+              handleNewBullet={handleNewBullet}
+              getAllVisibleBullets={getAllVisibleBullets}
+              mode="theirs"
+              loading={loading}
+            />
+          ) : (
+            <UsersListView
+              users={users}
+              onUpdate={updateBullet}
+              onDelete={deleteBullet}
+              onNewBullet={createNewBullet}
+              onCollapse={handleCollapse}
+              onNavigate={handleNavigate}
+              onIndent={indentBullet}
+              onOutdent={outdentBullet}
+              onZoom={handleZoom}
+              theirsBullets={theirsBullets}
+              onSetUserBullets={setUserBullets}
+              handleNewBullet={handleNewBullet}
+            />
+          )
+        )}
 
-      <div className="fixed bottom-8 right-8">
-        <Button 
-          variant="outline" 
-          onClick={handleClearLocalStorage}
-          className="text-sm"
-        >
-          Reset Local Data
-        </Button>
+        <div className="fixed bottom-8 right-8">
+          <Button 
+            variant="outline" 
+            onClick={handleClearLocalStorage}
+            className="text-sm"
+          >
+            Reset Local Data
+          </Button>
+        </div>
       </div>
-    </div>
+    </DragProvider>
   );
 };
 
