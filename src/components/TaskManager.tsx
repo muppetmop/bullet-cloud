@@ -457,6 +457,7 @@ const TaskManager = () => {
           handleNewBullet={handleNewBullet}
           getAllVisibleBullets={getAllVisibleBullets}
           mode="yours"
+          loading={loading}
         />
       ) : (
         theirsCurrentBulletId ? (
@@ -473,6 +474,7 @@ const TaskManager = () => {
             handleNewBullet={handleNewBullet}
             getAllVisibleBullets={getAllVisibleBullets}
             mode="theirs"
+            loading={loading}
           />
         ) : (
           <UsersListView

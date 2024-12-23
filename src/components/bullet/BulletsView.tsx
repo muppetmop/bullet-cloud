@@ -2,6 +2,7 @@ import React from 'react';
 import { Plus } from "lucide-react";
 import BulletList from "./BulletList";
 import { BulletPoint } from "@/types/bullet";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface BulletsViewProps {
   bullets: BulletPoint[];
@@ -16,6 +17,7 @@ interface BulletsViewProps {
   handleNewBullet: () => void;
   getAllVisibleBullets: (bullets: BulletPoint[]) => BulletPoint[];
   mode?: "yours" | "theirs";
+  loading?: boolean;
 }
 
 const BulletsView: React.FC<BulletsViewProps> = ({
@@ -30,8 +32,25 @@ const BulletsView: React.FC<BulletsViewProps> = ({
   onZoom,
   handleNewBullet,
   getAllVisibleBullets,
-  mode = "yours"
+  mode = "yours",
+  loading = false
 }) => {
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3, 4].map((index) => (
+          <div key={index} className="flex items-start gap-2">
+            <div className="flex items-center gap-2 mt-1">
+              <Skeleton className="h-4 w-4" />
+              <Skeleton className="h-4 w-4" />
+            </div>
+            <Skeleton className="h-6 flex-grow" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <>
       <BulletList
