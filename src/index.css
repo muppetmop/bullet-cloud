@@ -131,7 +131,7 @@
 }
 
 .bullet-icon {
-  @apply text-black hover:text-black transition-colors;
+  @apply text-black hover:text-[#9b87f5] transition-colors;
   font-size: 0.875rem;
   margin-bottom: 6px;
 }
