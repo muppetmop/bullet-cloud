@@ -219,7 +219,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
           )}
         </button>
       )}
-      <div className="bullet-wrapper">
+      <div className={`bullet-wrapper ${mode === "theirs" ? "theirs-mode" : ""}`}>
         <span 
           className="w-4 h-4 inline-flex items-center justify-center mt-1 cursor-pointer bullet-icon"
           onClick={() => onZoom(bullet.id)}

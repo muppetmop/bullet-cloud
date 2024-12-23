@@ -69,11 +69,24 @@
   -webkit-user-modify: read-only;
   -moz-user-modify: read-only;
   user-modify: read-only;
-  pointer-events: none;
 }
 
 .bullet-content.theirs-mode::selection {
   @apply bg-blue-100;
+}
+
+.bullet-wrapper {
+  @apply flex items-start gap-1;
+  padding-top: 0.25rem;
+}
+
+.bullet-wrapper.theirs-mode {
+  pointer-events: none;
+}
+
+.bullet-wrapper.theirs-mode .bullet-icon,
+.bullet-wrapper.theirs-mode .collapse-button {
+  pointer-events: auto;
 }
 
 .collapse-button {
@@ -107,9 +120,4 @@
   @apply text-gray-400 hover:text-[#9b87f5] transition-colors;
   font-size: 0.875rem;
   margin-bottom: 6px;
-}
-
-.bullet-wrapper {
-  @apply flex items-start gap-1;
-  padding-top: 0.25rem;
 }
