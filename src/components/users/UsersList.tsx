@@ -37,6 +37,7 @@ const UsersList = ({
   onSetUserBullets
 }: UsersListProps) => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [collapsedUsers, setCollapsedUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -45,6 +46,7 @@ const UsersList = ({
       if (user) {
         setCurrentUserId(user.id);
       }
+      setIsInitialLoading(false);
     };
     getCurrentUser();
   }, []);
@@ -80,7 +82,7 @@ const UsersList = ({
     });
   }, [users, theirsBullets, onSetUserBullets]);
 
-  if (!currentUserId) {
+  if (isInitialLoading) {
     return (
       <div className="space-y-4 p-4">
         {[1, 2, 3].map((index) => (
