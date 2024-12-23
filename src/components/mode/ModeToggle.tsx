@@ -12,7 +12,7 @@ const ModeToggle = ({ mode, onModeChange }: ModeToggleProps) => {
       <Toggle
         pressed={mode === "yours"}
         onPressedChange={() => onModeChange("yours")}
-        className="px-3 py-2 hover:bg-transparent data-[state=on]:bg-transparent data-[state=on]:text-black text-gray-400 hover:text-black transition-colors"
+        className="px-3 py-2 bg-white hover:bg-white data-[state=on]:bg-white data-[state=on]:text-black text-gray-400 hover:text-black transition-colors"
         variant="outline"
       >
         <BookOpen className="w-4 h-4 mr-2" />
@@ -21,7 +21,7 @@ const ModeToggle = ({ mode, onModeChange }: ModeToggleProps) => {
       <Toggle
         pressed={mode === "theirs"}
         onPressedChange={() => onModeChange("theirs")}
-        className="px-3 py-2 hover:bg-transparent data-[state=on]:bg-transparent data-[state=on]:text-black text-gray-400 hover:text-black transition-colors"
+        className="px-3 py-2 bg-white hover:bg-white data-[state=on]:bg-white data-[state=on]:text-black text-gray-400 hover:text-black transition-colors"
         variant="outline"
       >
         <div className="relative mr-2">
