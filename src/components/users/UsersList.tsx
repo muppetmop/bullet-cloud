@@ -61,18 +61,6 @@ const UsersList = ({
     });
   }, [users, theirsBullets, onSetUserBullets]);
 
-  const toggleUserCollapse = (userId: string) => {
-    setCollapsedUsers(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(userId)) {
-        newSet.delete(userId);
-      } else {
-        newSet.add(userId);
-      }
-      return newSet;
-    });
-  };
-
   console.log('UsersList render:', {
     totalUsers: users.length,
     currentUserId,
@@ -115,7 +103,21 @@ const UsersList = ({
             onUpdate={onUpdate}
             onDelete={onDelete}
             onNewBullet={onNewBullet}
-            onCollapse={onCollapse}
+            onCollapse={(id) => {
+              const user = users.find(u => transformUserToRootBullet(u).id === id);
+              if (user) {
+                setCollapsedUsers(prev => {
+                  const newSet = new Set(prev);
+                  if (newSet.has(user.id)) {
+                    newSet.delete(user.id);
+                  } else {
+                    newSet.add(user.id);
+                  }
+                  return newSet;
+                });
+              }
+              onCollapse(id);
+            }}
             onNavigate={onNavigate}
             onIndent={onIndent}
             onOutdent={onOutdent}
