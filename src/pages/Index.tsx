@@ -37,7 +37,7 @@ const Index = () => {
     <div className="min-h-screen bg-white">
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-[#1EAEDB]">BullBook</h1>
+          <h1 className="text-2xl font-bold text-black">BullBook</h1>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
