@@ -1,5 +1,5 @@
 import { Toggle } from "@/components/ui/toggle";
-import { BookOpen, Users } from "lucide-react";
+import { BookOpen } from "lucide-react";
 
 interface ModeToggleProps {
   mode: "yours" | "theirs";
@@ -24,7 +24,10 @@ const ModeToggle = ({ mode, onModeChange }: ModeToggleProps) => {
         className="px-3 py-2 hover:bg-transparent data-[state=on]:bg-transparent data-[state=on]:text-black text-gray-400 hover:text-black transition-colors"
         variant="outline"
       >
-        <Users className="w-4 h-4 mr-2" />
+        <div className="relative mr-2">
+          <BookOpen className="w-5 h-5 absolute -right-0.5 -top-0.5 opacity-50" />
+          <BookOpen className="w-4 h-4 relative z-10" />
+        </div>
         Theirs
       </Toggle>
     </div>
