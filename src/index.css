@@ -64,6 +64,18 @@
   margin-bottom: 2px;
 }
 
+.bullet-content.theirs-mode {
+  @apply cursor-default;
+  -webkit-user-modify: read-only;
+  -moz-user-modify: read-only;
+  user-modify: read-only;
+  pointer-events: none;
+}
+
+.bullet-content.theirs-mode::selection {
+  @apply bg-blue-100;
+}
+
 .collapse-button {
   @apply w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors;
   position: absolute;

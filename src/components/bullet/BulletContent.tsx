@@ -228,7 +228,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
         </span>
         <div
           ref={contentRef}
-          className={`bullet-content py-1 ${mode === "theirs" ? "cursor-default select-text" : ""}`}
+          className={`bullet-content ${mode === "theirs" ? "theirs-mode" : ""} py-1`}
           contentEditable={mode !== "theirs"}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
