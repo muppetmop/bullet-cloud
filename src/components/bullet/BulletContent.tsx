@@ -15,18 +15,7 @@ interface BulletContentProps {
   onIndent?: (id: string) => void;
   onOutdent?: (id: string) => void;
   onZoom: (id: string) => void;
-}
-
-interface PendingDelete {
-  bulletId: string;
-  previousContent: string;
-  previousBulletId: string;
-}
-
-interface PendingSplit {
-  originalBulletId: string;
-  beforeCursor: string;
-  afterCursor: string;
+  mode?: "yours" | "theirs";
 }
 
 const BulletContent: React.FC<BulletContentProps> = ({
@@ -39,11 +28,24 @@ const BulletContent: React.FC<BulletContentProps> = ({
   onIndent,
   onOutdent,
   onZoom,
+  mode = "yours",
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
   const [splitCompleted, setSplitCompleted] = useState(false);
+
+  interface PendingDelete {
+    bulletId: string;
+    previousContent: string;
+    previousBulletId: string;
+  }
+
+  interface PendingSplit {
+    originalBulletId: string;
+    beforeCursor: string;
+    afterCursor: string;
+  }
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -99,6 +101,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
   }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
+    if (mode === "theirs") return;
+    
     const content = contentRef.current?.textContent || "";
     const selection = window.getSelection();
     const range = selection?.getRangeAt(0);
@@ -196,6 +200,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
   };
 
   const handleInput = () => {
+    if (mode === "theirs") return;
     const content = contentRef.current?.textContent || "";
     onUpdate(bullet.id, content);
   };
@@ -223,8 +228,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
         </span>
         <div
           ref={contentRef}
-          className="bullet-content py-1"
-          contentEditable
+          className={`bullet-content py-1 ${mode === "theirs" ? "cursor-default select-text" : ""}`}
+          contentEditable={mode !== "theirs"}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
           suppressContentEditableWarning

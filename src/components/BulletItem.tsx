@@ -13,6 +13,7 @@ interface BulletItemProps {
   onIndent?: (id: string) => void;
   onOutdent?: (id: string) => void;
   onZoom: (id: string) => void;
+  mode?: "yours" | "theirs";
 }
 
 const BulletItem: React.FC<BulletItemProps> = ({
@@ -26,6 +27,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
   onIndent,
   onOutdent,
   onZoom,
+  mode = "yours",
 }) => {
   return (
     <div 
@@ -42,6 +44,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
         onIndent={onIndent}
         onOutdent={onOutdent}
         onZoom={onZoom}
+        mode={mode}
       />
       {!bullet.isCollapsed && bullet.children.length > 0 && (
         <div className="bullet-children">
@@ -58,6 +61,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
               onIndent={onIndent}
               onOutdent={onOutdent}
               onZoom={onZoom}
+              mode={mode}
             />
           ))}
         </div>
