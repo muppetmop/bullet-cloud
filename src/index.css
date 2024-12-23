@@ -112,7 +112,7 @@
 }
 
 .collapse-button span {
-  @apply text-gray-400 hover:text-[#9b87f5] transition-colors;
+  @apply text-black hover:text-[#9b87f5] transition-colors;
 }
 
 .bullet-children {
