@@ -3,6 +3,7 @@ import BulletItem from "../BulletItem";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { transformUserToRootBullet } from "@/utils/bulletTransformations";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface UsersListProps {
   users: {
@@ -36,6 +37,7 @@ const UsersList = ({
   onSetUserBullets
 }: UsersListProps) => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [collapsedUsers, setCollapsedUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -48,7 +50,6 @@ const UsersList = ({
   }, []);
 
   useEffect(() => {
-    // Initialize theirsBullets state for each user
     users.forEach(user => {
       if (!theirsBullets[user.id]) {
         console.log('Initializing bullets for user:', {
@@ -61,6 +62,18 @@ const UsersList = ({
     });
   }, [users, theirsBullets, onSetUserBullets]);
 
+  const toggleUserCollapse = (userId: string) => {
+    setCollapsedUsers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+
   console.log('UsersList render:', {
     totalUsers: users.length,
     currentUserId,
@@ -71,7 +84,6 @@ const UsersList = ({
     }))
   });
 
-  // Filter out current user and convert remaining users to bullet points format
   const userBullets: BulletPoint[] = users
     .filter(user => {
       const filtered = user.id !== currentUserId;
@@ -83,27 +95,44 @@ const UsersList = ({
       });
       return filtered;
     })
-    .map(user => transformUserToRootBullet({
-      ...user,
-      bullets: theirsBullets[user.id] || user.bullets
-    }));
+    .map(user => {
+      const bullet = transformUserToRootBullet({
+        ...user,
+        bullets: theirsBullets[user.id] || user.bullets
+      });
+      return {
+        ...bullet,
+        isCollapsed: collapsedUsers.has(user.id)
+      };
+    });
 
   return (
     <div>
       {userBullets.map((bullet) => (
-        <BulletItem
-          key={bullet.id}
-          bullet={bullet}
-          level={0}
-          onUpdate={onUpdate}
-          onDelete={onDelete}
-          onNewBullet={onNewBullet}
-          onCollapse={onCollapse}
-          onNavigate={onNavigate}
-          onIndent={onIndent}
-          onOutdent={onOutdent}
-          onZoom={onZoom}
-        />
+        <div key={bullet.id} className="relative">
+          <button
+            onClick={() => toggleUserCollapse(bullet.id)}
+            className="absolute left-[-1.25rem] top-[0.45rem] w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors"
+          >
+            {bullet.isCollapsed ? (
+              <ChevronUp className="w-4 h-4 text-gray-400 hover:text-[#9b87f5]" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-gray-400 hover:text-[#9b87f5]" />
+            )}
+          </button>
+          <BulletItem
+            bullet={bullet}
+            level={0}
+            onUpdate={onUpdate}
+            onDelete={onDelete}
+            onNewBullet={onNewBullet}
+            onCollapse={onCollapse}
+            onNavigate={onNavigate}
+            onIndent={onIndent}
+            onOutdent={onOutdent}
+            onZoom={onZoom}
+          />
+        </div>
       ))}
     </div>
   );
