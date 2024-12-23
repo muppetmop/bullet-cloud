@@ -456,6 +456,7 @@ const TaskManager = () => {
           onZoom={handleZoom}
           handleNewBullet={handleNewBullet}
           getAllVisibleBullets={getAllVisibleBullets}
+          mode="yours"
         />
       ) : (
         theirsCurrentBulletId ? (
@@ -471,6 +472,7 @@ const TaskManager = () => {
             onZoom={handleZoom}
             handleNewBullet={handleNewBullet}
             getAllVisibleBullets={getAllVisibleBullets}
+            mode="theirs"
           />
         ) : (
           <UsersListView

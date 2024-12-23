@@ -15,6 +15,7 @@ interface BulletsViewProps {
   onZoom: (id: string) => void;
   handleNewBullet: () => void;
   getAllVisibleBullets: (bullets: BulletPoint[]) => BulletPoint[];
+  mode?: "yours" | "theirs";
 }
 
 const BulletsView: React.FC<BulletsViewProps> = ({
@@ -28,7 +29,8 @@ const BulletsView: React.FC<BulletsViewProps> = ({
   onOutdent,
   onZoom,
   handleNewBullet,
-  getAllVisibleBullets
+  getAllVisibleBullets,
+  mode = "yours"
 }) => {
   return (
     <>
@@ -43,29 +45,31 @@ const BulletsView: React.FC<BulletsViewProps> = ({
         onOutdent={onOutdent}
         onZoom={onZoom}
       />
-      <button
-        onClick={handleNewBullet}
-        className="new-bullet-button w-full flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 transition-colors"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            handleNewBullet();
-          } else if (e.key === "ArrowUp" && bullets.length > 0) {
-            const lastBullet = getAllVisibleBullets(bullets).pop();
-            if (lastBullet) {
-              const lastElement = document.querySelector(
-                `[data-id="${lastBullet.id}"] .bullet-content`
-              ) as HTMLElement;
-              if (lastElement) {
-                lastElement.focus();
+      {mode === "yours" && (
+        <button
+          onClick={handleNewBullet}
+          className="new-bullet-button w-full flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 transition-colors"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleNewBullet();
+            } else if (e.key === "ArrowUp" && bullets.length > 0) {
+              const lastBullet = getAllVisibleBullets(bullets).pop();
+              if (lastBullet) {
+                const lastElement = document.querySelector(
+                  `[data-id="${lastBullet.id}"] .bullet-content`
+                ) as HTMLElement;
+                if (lastElement) {
+                  lastElement.focus();
+                }
               }
             }
-          }
-        }}
-      >
-        <Plus className="w-4 h-4" />
-        <span className="text-sm">Add new bullet</span>
-      </button>
+          }}
+        >
+          <Plus className="w-4 h-4" />
+          <span className="text-sm">Add new bullet</span>
+        </button>
+      )}
     </>
   );
 };
