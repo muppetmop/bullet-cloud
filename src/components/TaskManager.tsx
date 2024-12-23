@@ -421,39 +421,72 @@ const TaskManager = () => {
   };
 
   const handleDrop = (draggedId: string, targetId: string, newLevel: number) => {
-    const [draggedBullet, draggedParent] = findBulletAndParent(draggedId, bullets);
-    const [targetBullet, targetParent] = findBulletAndParent(targetId, bullets);
-    
-    if (!draggedBullet || !targetBullet) return;
+    console.log('Handling drop:', {
+      draggedId,
+      targetId,
+      newLevel,
+      currentBullets: bullets
+    });
 
-    // Remove bullet from its current position
-    if (draggedParent) {
-      const draggedIndex = draggedParent.indexOf(draggedBullet);
-      draggedParent.splice(draggedIndex, 1);
-    }
+    // First update local state
+    setBullets(prevBullets => {
+      const [draggedBullet, draggedParent] = findBulletAndParent(draggedId, prevBullets);
+      const [targetBullet, targetParent] = findBulletAndParent(targetId, prevBullets);
+      
+      if (!draggedBullet || !targetBullet) {
+        console.error('Could not find bullets for drag operation:', {
+          draggedId,
+          targetId,
+          draggedFound: !!draggedBullet,
+          targetFound: !!targetBullet
+        });
+        return prevBullets;
+      }
 
-    // Add bullet to its new position
-    if (targetParent) {
-      const targetIndex = targetParent.indexOf(targetBullet);
-      targetParent.splice(targetIndex + 1, 0, {
-        ...draggedBullet,
-        level: newLevel,
-        parent_id: targetBullet.parent_id
+      // Remove bullet from its current position
+      if (draggedParent) {
+        const draggedIndex = draggedParent.indexOf(draggedBullet);
+        draggedParent.splice(draggedIndex, 1);
+      }
+
+      // Add bullet to its new position
+      if (targetParent) {
+        const targetIndex = targetParent.indexOf(targetBullet);
+        targetParent.splice(targetIndex + 1, 0, {
+          ...draggedBullet,
+          level: newLevel,
+          parent_id: targetBullet.parent_id
+        });
+      }
+
+      // Create a new array to trigger re-render
+      const newBullets = [...prevBullets];
+      
+      // Save to localStorage
+      localStorage.setItem('bullets', JSON.stringify(newBullets));
+      
+      console.log('Updated bullets after drop:', {
+        newBullets,
+        draggedId,
+        targetId,
+        newLevel
       });
-    }
 
-    setBullets([...bullets]);
+      return newBullets;
+    });
 
     // Queue update to server
     queueHook.addToQueue({
       id: draggedId,
       type: 'update',
       data: {
-        parent_id: targetBullet.parent_id,
+        parent_id: targetId,
         level: newLevel,
-        position: targetBullet.position + 1
+        position: targetId ? getVisibleBullets().findIndex(b => b.id === targetId) + 1 : 0
       }
     });
+
+    toast.success('Bullet moved successfully');
   };
 
   const zoomedBulletContent = getCurrentZoomedBulletContent();

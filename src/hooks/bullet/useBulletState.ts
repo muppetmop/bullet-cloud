@@ -5,7 +5,11 @@ import { fetchBulletsForUser, createInitialBullet } from "@/services/bulletServi
 import { toast } from "sonner";
 
 export const useBulletState = () => {
-  const [bullets, setBullets] = useState<BulletPoint[]>([]);
+  const [bullets, setBullets] = useState<BulletPoint[]>(() => {
+    // Try to load from localStorage first
+    const savedBullets = localStorage.getItem('bullets');
+    return savedBullets ? JSON.parse(savedBullets) : [];
+  });
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -69,13 +73,22 @@ export const useBulletState = () => {
           });
           
           setBullets(rootBullets);
+          // Save to localStorage
+          localStorage.setItem('bullets', JSON.stringify(rootBullets));
         } else {
           // Create initial bullet if none exist
-          setBullets([createInitialBullet(userId)]);
+          const initialBullet = createInitialBullet(userId);
+          setBullets([initialBullet]);
+          localStorage.setItem('bullets', JSON.stringify([initialBullet]));
         }
       } catch (error) {
         console.error('Error loading bullets:', error);
-        // Don't show toast here as it's already shown in fetchBulletsForUser
+        // Try to load from localStorage as fallback
+        const savedBullets = localStorage.getItem('bullets');
+        if (savedBullets) {
+          setBullets(JSON.parse(savedBullets));
+          toast.info("Using locally saved bullets while offline");
+        }
       } finally {
         setIsLoading(false);
       }
@@ -83,6 +96,13 @@ export const useBulletState = () => {
     
     loadBullets();
   }, [userId]);
+
+  // Save to localStorage whenever bullets change
+  useEffect(() => {
+    if (bullets.length > 0) {
+      localStorage.setItem('bullets', JSON.stringify(bullets));
+    }
+  }, [bullets]);
 
   return {
     bullets,
