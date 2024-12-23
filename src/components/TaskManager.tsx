@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useBulletManager } from "@/hooks/useBulletManager";
 import { useBulletNavigation } from "@/hooks/useBulletNavigation";
 import { Button } from "./ui/button";
@@ -24,7 +26,9 @@ const TaskManager = () => {
   const [mode, setMode] = useState<"yours" | "theirs">("yours");
   const { users, loading, error } = useUsersAndBullets();
   const { theirsBullets, updateTheirsBullet, setUserBullets } = useTheirsBulletState();
-  
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [dragLevel, setDragLevel] = useState<number>(0);
+
   useEffect(() => {
     initializeQueue(queueHook);
   }, [queueHook]);
@@ -415,6 +419,115 @@ const TaskManager = () => {
     return false;
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    setActiveId(active.id as string);
+    
+    // Find the current bullet's level
+    const bullet = findBulletPath(active.id as string, bullets)[0];
+    if (bullet) {
+      setDragLevel(bullet.level);
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) {
+      setActiveId(null);
+      return;
+    }
+
+    const activeBullet = findBulletPath(active.id as string, bullets)[0];
+    const overBullet = findBulletPath(over.id as string, bullets)[0];
+    
+    if (!activeBullet || !overBullet) {
+      setActiveId(null);
+      return;
+    }
+
+    // Calculate new level based on horizontal movement
+    const offsetX = (event as any).delta.x;
+    const levelChange = Math.round(offsetX / 50); // 50px per level
+    const newLevel = Math.max(0, dragLevel + levelChange);
+
+    // Update bullet positions and levels
+    const updates = [];
+    
+    // Update the dragged bullet and its children
+    const updateBulletAndChildren = (bullet: BulletPoint, newParentId: string | null, levelDiff: number) => {
+      updates.push({
+        id: bullet.id,
+        parent_id: newParentId,
+        level: bullet.level + levelDiff,
+        position: overBullet.position + 1
+      });
+
+      bullet.children.forEach((child, index) => {
+        updateBulletAndChildren(child, bullet.id, levelDiff);
+      });
+    };
+
+    const levelDiff = newLevel - activeBullet.level;
+    updateBulletAndChildren(activeBullet, overBullet.parent_id, levelDiff);
+
+    // Optimistically update UI
+    setBullets(prevBullets => {
+      const newBullets = [...prevBullets];
+      // Remove bullet from its current position
+      const removeBullet = (bullets: BulletPoint[], id: string): BulletPoint[] => {
+        return bullets.filter(b => {
+          if (b.id === id) return false;
+          b.children = removeBullet(b.children, id);
+          return true;
+        });
+      };
+
+      // Add bullet to its new position
+      const addBullet = (bullets: BulletPoint[], bullet: BulletPoint, targetId: string): boolean => {
+        for (let i = 0; i < bullets.length; i++) {
+          if (bullets[i].id === targetId) {
+            bullets.splice(i + 1, 0, {
+              ...bullet,
+              level: newLevel,
+              parent_id: bullets[i].parent_id
+            });
+            return true;
+          }
+          if (addBullet(bullets[i].children, bullet, targetId)) return true;
+        }
+        return false;
+      };
+
+      const bulletToMove = findBulletPath(active.id as string, prevBullets)[0];
+      if (bulletToMove) {
+        const newBulletsWithoutActive = removeBullet(newBullets, active.id as string);
+        addBullet(newBulletsWithoutActive, bulletToMove, over.id as string);
+        return newBulletsWithoutActive;
+      }
+      return prevBullets;
+    });
+
+    // Queue updates to server
+    updates.forEach(update => {
+      queueHook.addToQueue({
+        id: update.id,
+        type: 'update',
+        data: update
+      });
+    });
+
+    setActiveId(null);
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
@@ -444,21 +557,32 @@ const TaskManager = () => {
       )}
 
       {mode === "yours" ? (
-        <BulletsView
-          bullets={visibleBullets}
-          onUpdate={updateBullet}
-          onDelete={deleteBullet}
-          onNewBullet={createNewBullet}
-          onCollapse={handleCollapse}
-          onNavigate={handleNavigate}
-          onIndent={indentBullet}
-          onOutdent={outdentBullet}
-          onZoom={handleZoom}
-          handleNewBullet={handleNewBullet}
-          getAllVisibleBullets={getAllVisibleBullets}
-          mode="yours"
-          loading={loading}
-        />
+        <DndContext
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={visibleBullets.map(b => b.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <BulletsView
+              bullets={visibleBullets}
+              onUpdate={updateBullet}
+              onDelete={deleteBullet}
+              onNewBullet={createNewBullet}
+              onCollapse={handleCollapse}
+              onNavigate={handleNavigate}
+              onIndent={indentBullet}
+              onOutdent={outdentBullet}
+              onZoom={handleZoom}
+              handleNewBullet={handleNewBullet}
+              getAllVisibleBullets={getAllVisibleBullets}
+              mode="yours"
+              loading={loading}
+            />
+          </SortableContext>
+        </DndContext>
       ) : (
         theirsCurrentBulletId ? (
           <BulletsView

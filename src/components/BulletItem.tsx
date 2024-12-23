@@ -1,6 +1,7 @@
 import React from "react";
 import { BulletPoint } from "@/types/bullet";
 import BulletContent from "./bullet/BulletContent";
+import DraggableBullet from "./bullet/DraggableBullet";
 
 interface BulletItemProps {
   bullet: BulletPoint;
@@ -34,18 +35,35 @@ const BulletItem: React.FC<BulletItemProps> = ({
       className="bullet-item" 
       data-id={bullet.id}
     >
-      <BulletContent
-        bullet={bullet}
-        onUpdate={onUpdate}
-        onDelete={onDelete}
-        onNewBullet={onNewBullet}
-        onCollapse={onCollapse}
-        onNavigate={onNavigate}
-        onIndent={onIndent}
-        onOutdent={onOutdent}
-        onZoom={onZoom}
-        mode={mode}
-      />
+      {mode === "yours" ? (
+        <DraggableBullet id={bullet.id}>
+          <BulletContent
+            bullet={bullet}
+            onUpdate={onUpdate}
+            onDelete={onDelete}
+            onNewBullet={onNewBullet}
+            onCollapse={onCollapse}
+            onNavigate={onNavigate}
+            onIndent={onIndent}
+            onOutdent={onOutdent}
+            onZoom={onZoom}
+            mode={mode}
+          />
+        </DraggableBullet>
+      ) : (
+        <BulletContent
+          bullet={bullet}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+          onNewBullet={onNewBullet}
+          onCollapse={onCollapse}
+          onNavigate={onNavigate}
+          onIndent={onIndent}
+          onOutdent={onOutdent}
+          onZoom={onZoom}
+          mode={mode}
+        />
+      )}
       {!bullet.isCollapsed && bullet.children.length > 0 && (
         <div className="bullet-children">
           {bullet.children.map((child) => (

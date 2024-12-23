@@ -43,6 +43,20 @@
   margin-left: 0.5rem;
 }
 
+.bullet-item.dragging {
+  @apply opacity-50;
+}
+
+.bullet-item.drop-target::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  @apply bg-blue-500;
+  top: -1px;
+}
+
 .bullet-item:hover {
   @apply bg-gray-50/50 rounded-md;
 }
