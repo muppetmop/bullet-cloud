@@ -30,6 +30,7 @@ export const useBulletManager = () => {
 
   return {
     bullets,
+    setBullets, // Add this line to expose setBullets
     findBulletAndParent,
     getAllVisibleBullets,
     createNewBullet,

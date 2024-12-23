@@ -35,6 +35,7 @@ const TaskManager = () => {
 
   const {
     bullets,
+    setBullets, // Add this line to destructure setBullets
     getAllVisibleBullets,
     createNewBullet,
     createNewRootBullet,
@@ -471,7 +472,7 @@ const TaskManager = () => {
         position: overBullet.position + 1
       });
 
-      bullet.children.forEach((child, index) => {
+      bullet.children.forEach((child) => {
         updateBulletAndChildren(child, bullet.id, levelDiff);
       });
     };
