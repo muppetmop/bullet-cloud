@@ -8,7 +8,7 @@ interface ModeToggleProps {
 
 const ModeToggle = ({ mode, onModeChange }: ModeToggleProps) => {
   return (
-    <div className="flex items-center gap-2 mb-8">
+    <div className="flex items-center gap-2 mb-6 -mt-2">
       <Toggle
         pressed={mode === "yours"}
         onPressedChange={() => onModeChange("yours")}
