@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
 import { useBulletManager } from "@/hooks/useBulletManager";
 import { useBulletNavigation } from "@/hooks/useBulletNavigation";
 import { Button } from "./ui/button";
@@ -10,11 +9,11 @@ import BreadcrumbNav from "./navigation/BreadcrumbNav";
 import { BulletPoint } from "@/types/bullet";
 import ModeToggle from "./mode/ModeToggle";
 import { useUsersAndBullets } from "@/hooks/useUsersAndBullets";
-import UsersList from "./users/UsersList";
-import BulletList from "./bullet/BulletList";
 import { transformUserToRootBullet } from "@/utils/bulletTransformations";
 import { useTheirsBulletState } from "@/hooks/useTheirsBulletState";
 import ZoomedBulletTitle from "./bullet/ZoomedBulletTitle";
+import BulletsView from "./bullet/BulletsView";
+import UsersListView from "./users/UsersListView";
 
 const TaskManager = () => {
   const queueHook = useQueuedSync();
@@ -425,6 +424,7 @@ const TaskManager = () => {
   }
 
   const zoomedBulletContent = getCurrentZoomedBulletContent();
+  const visibleBullets = getVisibleBullets();
 
   return (
     <div className="max-w-3xl mx-auto p-8 relative min-h-screen">
@@ -444,46 +444,8 @@ const TaskManager = () => {
       )}
 
       {mode === "yours" ? (
-        <>
-          <BulletList
-            bullets={getVisibleBullets()}
-            onUpdate={updateBullet}
-            onDelete={deleteBullet}
-            onNewBullet={createNewBullet}
-            onCollapse={handleCollapse}
-            onNavigate={handleNavigate}
-            onIndent={indentBullet}
-            onOutdent={outdentBullet}
-            onZoom={handleZoom}
-          />
-
-          <button
-            onClick={handleNewBullet}
-            className="new-bullet-button w-full flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 transition-colors"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleNewBullet();
-              } else if (e.key === "ArrowUp" && bullets.length > 0) {
-                const lastBullet = getAllVisibleBullets(getVisibleBullets()).pop();
-                if (lastBullet) {
-                  const lastElement = document.querySelector(
-                    `[data-id="${lastBullet.id}"] .bullet-content`
-                  ) as HTMLElement;
-                  if (lastElement) {
-                    lastElement.focus();
-                  }
-                }
-              }
-            }}
-          >
-            <Plus className="w-4 h-4" />
-            <span className="text-sm">Add new bullet</span>
-          </button>
-        </>
-      ) : (
-        <UsersList
-          users={users}
+        <BulletsView
+          bullets={visibleBullets}
           onUpdate={updateBullet}
           onDelete={deleteBullet}
           onNewBullet={createNewBullet}
@@ -492,9 +454,40 @@ const TaskManager = () => {
           onIndent={indentBullet}
           onOutdent={outdentBullet}
           onZoom={handleZoom}
-          theirsBullets={theirsBullets}
-          onSetUserBullets={setUserBullets}
+          handleNewBullet={handleNewBullet}
+          getAllVisibleBullets={getAllVisibleBullets}
         />
+      ) : (
+        theirsCurrentBulletId ? (
+          <BulletsView
+            bullets={visibleBullets}
+            onUpdate={updateBullet}
+            onDelete={deleteBullet}
+            onNewBullet={createNewBullet}
+            onCollapse={handleCollapse}
+            onNavigate={handleNavigate}
+            onIndent={indentBullet}
+            onOutdent={outdentBullet}
+            onZoom={handleZoom}
+            handleNewBullet={handleNewBullet}
+            getAllVisibleBullets={getAllVisibleBullets}
+          />
+        ) : (
+          <UsersListView
+            users={users}
+            onUpdate={updateBullet}
+            onDelete={deleteBullet}
+            onNewBullet={createNewBullet}
+            onCollapse={handleCollapse}
+            onNavigate={handleNavigate}
+            onIndent={indentBullet}
+            onOutdent={onOutdent}
+            onZoom={handleZoom}
+            theirsBullets={theirsBullets}
+            onSetUserBullets={setUserBullets}
+            handleNewBullet={handleNewBullet}
+          />
+        )
       )}
 
       <div className="fixed bottom-8 right-8">
