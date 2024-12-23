@@ -3,7 +3,6 @@ import BulletItem from "../BulletItem";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { transformUserToRootBullet } from "@/utils/bulletTransformations";
-import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface UsersListProps {
   users: {
@@ -109,17 +108,7 @@ const UsersList = ({
   return (
     <div>
       {userBullets.map((bullet) => (
-        <div key={bullet.id} className="relative">
-          <button
-            onClick={() => toggleUserCollapse(bullet.id)}
-            className="absolute left-[-1.25rem] top-[0.45rem] w-4 h-4 inline-flex items-center justify-center rounded-sm hover:bg-accent transition-colors"
-          >
-            {bullet.isCollapsed ? (
-              <ChevronUp className="w-4 h-4 text-gray-400 hover:text-[#9b87f5]" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-gray-400 hover:text-[#9b87f5]" />
-            )}
-          </button>
+        <div key={bullet.id}>
           <BulletItem
             bullet={bullet}
             level={0}
