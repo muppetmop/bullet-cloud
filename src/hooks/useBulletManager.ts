@@ -6,6 +6,7 @@ import { useBulletIndentation } from "./bullet/useBulletIndentation";
 import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
 
 export const useBulletManager = () => {
+  // Always initialize all hooks at the top level
   const { bullets, setBullets, userId } = useBulletState();
   
   const {
@@ -22,15 +23,15 @@ export const useBulletManager = () => {
     outdentBullet,
   } = useBulletIndentation(bullets, setBullets);
 
-  // Start sync service
+  // Move useEffect to the end, after all other hooks
   useEffect(() => {
     const cleanup = startSyncService();
     return () => cleanup();
-  }, []);
+  }, []); // Empty dependency array since startSyncService doesn't depend on any props or state
 
   return {
     bullets,
-    setBullets, // Add this line to expose setBullets
+    setBullets,
     findBulletAndParent,
     getAllVisibleBullets,
     createNewBullet,
