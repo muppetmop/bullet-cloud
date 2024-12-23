@@ -17,6 +17,10 @@ import UsersListView from "./users/UsersListView";
 import { DragProvider } from "@/contexts/DragContext";
 import { findBulletAndParent } from "@/utils/bulletOperations";
 
+interface CollapsedState {
+  [key: string]: boolean;
+}
+
 const TaskManager = () => {
   const queueHook = useQueuedSync();
   const [currentBulletId, setCurrentBulletId] = useState<string | null>(null);
@@ -28,6 +32,67 @@ const TaskManager = () => {
   const { theirsBullets, updateTheirsBullet, setUserBullets } = useTheirsBulletState();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dragLevel, setDragLevel] = useState<number>(0);
+  
+  // Add state for collapsed states
+  const [yoursCollapsedState, setYoursCollapsedState] = useState<CollapsedState>(() => {
+    const saved = localStorage.getItem('yoursCollapsedState');
+    return saved ? JSON.parse(saved) : {};
+  });
+  
+  const [theirsCollapsedState, setTheirsCollapsedState] = useState<CollapsedState>(() => {
+    const saved = localStorage.getItem('theirsCollapsedState');
+    // If no saved state, start with everything collapsed
+    if (!saved) {
+      const initialState: CollapsedState = {};
+      users.forEach(user => {
+        const userBullet = transformUserToRootBullet({
+          ...user,
+          bullets: theirsBullets[user.id] || []
+        });
+        initialState[userBullet.id] = true;
+        const addChildrenToState = (bullet: BulletPoint) => {
+          bullet.children.forEach(child => {
+            initialState[child.id] = true;
+            addChildrenToState(child);
+          });
+        };
+        addChildrenToState(userBullet);
+      });
+      return initialState;
+    }
+    return JSON.parse(saved);
+  });
+
+  // Save collapsed states to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('yoursCollapsedState', JSON.stringify(yoursCollapsedState));
+  }, [yoursCollapsedState]);
+
+  useEffect(() => {
+    localStorage.setItem('theirsCollapsedState', JSON.stringify(theirsCollapsedState));
+  }, [theirsCollapsedState]);
+
+  // Save current zoom states
+  useEffect(() => {
+    localStorage.setItem('currentBulletId', currentBulletId || '');
+  }, [currentBulletId]);
+
+  useEffect(() => {
+    localStorage.setItem('theirsCurrentBulletId', theirsCurrentBulletId || '');
+  }, [theirsCurrentBulletId]);
+
+  // Load zoom states on init
+  useEffect(() => {
+    const savedCurrentBulletId = localStorage.getItem('currentBulletId');
+    if (savedCurrentBulletId) {
+      setCurrentBulletId(savedCurrentBulletId === '' ? null : savedCurrentBulletId);
+    }
+
+    const savedTheirsCurrentBulletId = localStorage.getItem('theirsCurrentBulletId');
+    if (savedTheirsCurrentBulletId) {
+      setTheirsCurrentBulletId(savedTheirsCurrentBulletId === '' ? null : savedTheirsCurrentBulletId);
+    }
+  }, []);
 
   useEffect(() => {
     initializeQueue(queueHook);
@@ -123,6 +188,10 @@ const TaskManager = () => {
 
     if (mode === "yours") {
       toggleCollapse(id);
+      setYoursCollapsedState(prev => ({
+        ...prev,
+        [id]: !prev[id]
+      }));
     } else {
       const user = findUserForBullet(id);
       if (user) {
@@ -131,15 +200,7 @@ const TaskManager = () => {
           bullets: theirsBullets[user.id] || []
         });
         
-        let isCollapsed = false;
-        if (userBullet.id === id) {
-          isCollapsed = userBullet.isCollapsed;
-        } else {
-          const path = findBulletPath(id, userBullet.children);
-          if (path.length > 0) {
-            isCollapsed = path[path.length - 1].isCollapsed;
-          }
-        }
+        let isCollapsed = theirsCollapsedState[id] || false;
         
         console.log('Updating theirs bullet collapse:', {
           userId: user.id,
@@ -147,6 +208,11 @@ const TaskManager = () => {
           currentCollapsed: isCollapsed,
           newCollapsed: !isCollapsed
         });
+        
+        setTheirsCollapsedState(prev => ({
+          ...prev,
+          [id]: !isCollapsed
+        }));
         
         updateTheirsBullet(user.id, id, { isCollapsed: !isCollapsed });
       }
