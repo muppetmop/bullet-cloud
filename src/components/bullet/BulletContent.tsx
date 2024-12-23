@@ -112,6 +112,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
     const pos = range?.startOffset || 0;
 
     if (e.key === "Enter") {
+      if (e.shiftKey) {
+        // Allow default behavior for Shift+Enter to create a new line
+        return;
+      }
       e.preventDefault();
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
