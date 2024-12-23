@@ -15,6 +15,7 @@ import ZoomedBulletTitle from "./bullet/ZoomedBulletTitle";
 import BulletsView from "./bullet/BulletsView";
 import UsersListView from "./users/UsersListView";
 import { DragProvider } from "@/contexts/DragContext";
+import { findBulletAndParent } from "@/utils/bulletOperations";
 
 const TaskManager = () => {
   const queueHook = useQueuedSync();
@@ -454,6 +455,9 @@ const TaskManager = () => {
       }
     });
   };
+
+  const zoomedBulletContent = getCurrentZoomedBulletContent();
+  const visibleBullets = getVisibleBullets();
 
   return (
     <DragProvider>
