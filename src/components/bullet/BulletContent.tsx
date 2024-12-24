@@ -6,6 +6,7 @@ import {
 } from "@/utils/keyboardHandlers";
 import BulletWrapper from "./BulletWrapper";
 import BulletSourceLink from "./BulletSourceLink";
+import { splitTextWithUrls } from "@/utils/urlUtils";
 
 interface BulletContentProps {
   bullet: BulletPoint;
@@ -49,11 +50,25 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
   const [splitCompleted, setSplitCompleted] = useState(false);
   const [sourceId, setSourceId] = useState<string | null>(null);
+  const [displayContent, setDisplayContent] = useState<{ type: 'text' | 'url'; content: string }[]>([]);
 
   useEffect(() => {
     if (!contentRef.current) return;
-    contentRef.current.textContent = bullet.content;
-  }, [bullet.content]);
+    const parts = splitTextWithUrls(bullet.content);
+    setDisplayContent(parts);
+    
+    if (mode === "theirs") {
+      // For "theirs" mode, we render the content with clickable links
+      contentRef.current.innerHTML = parts.map(part => 
+        part.type === 'url' 
+          ? `<a href="${part.content}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">${part.content}</a>`
+          : part.content
+      ).join('');
+    } else {
+      // For "yours" mode, we keep the plain text for editing
+      contentRef.current.textContent = bullet.content;
+    }
+  }, [bullet.content, mode]);
 
   useEffect(() => {
     if (pendingDelete) {
@@ -112,15 +127,32 @@ const BulletContent: React.FC<BulletContentProps> = ({
     const pos = range?.startOffset || 0;
 
     if (e.key === "Enter") {
-      e.preventDefault();
-      const beforeCursor = content.slice(0, pos);
-      const afterCursor = content.slice(pos);
-      
-      setPendingSplit({
-        originalBulletId: bullet.id,
-        beforeCursor,
-        afterCursor,
-      });
+      if (e.shiftKey) {
+        e.preventDefault();
+        const textNode = contentRef.current?.firstChild || contentRef.current;
+        const newText = content.slice(0, pos) + "\n" + content.slice(pos);
+        if (contentRef.current) {
+          contentRef.current.textContent = newText;
+          onUpdate(bullet.id, newText);
+          
+          // Restore cursor position after the new line
+          const newRange = document.createRange();
+          newRange.setStart(textNode, pos + 1);
+          newRange.setEnd(textNode, pos + 1);
+          selection?.removeAllRanges();
+          selection?.addRange(newRange);
+        }
+      } else {
+        e.preventDefault();
+        const beforeCursor = content.slice(0, pos);
+        const afterCursor = content.slice(pos);
+        
+        setPendingSplit({
+          originalBulletId: bullet.id,
+          beforeCursor,
+          afterCursor,
+        });
+      }
     } else if (e.key === "Tab") {
       handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
     } else if (e.key === "Backspace") {
