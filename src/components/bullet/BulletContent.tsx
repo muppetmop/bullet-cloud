@@ -6,7 +6,6 @@ import {
 } from "@/utils/keyboardHandlers";
 import BulletWrapper from "./BulletWrapper";
 import BulletSourceLink from "./BulletSourceLink";
-import BulletContentDisplay from "./BulletContentDisplay";
 
 interface BulletContentProps {
   bullet: BulletPoint;
@@ -50,6 +49,11 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
   const [splitCompleted, setSplitCompleted] = useState(false);
   const [sourceId, setSourceId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!contentRef.current) return;
+    contentRef.current.textContent = bullet.content;
+  }, [bullet.content]);
 
   useEffect(() => {
     if (pendingDelete) {
@@ -108,31 +112,15 @@ const BulletContent: React.FC<BulletContentProps> = ({
     const pos = range?.startOffset || 0;
 
     if (e.key === "Enter") {
-      if (e.shiftKey) {
-        e.preventDefault();
-        const textNode = contentRef.current?.firstChild || contentRef.current;
-        const newText = content.slice(0, pos) + "\n" + content.slice(pos);
-        if (contentRef.current) {
-          contentRef.current.textContent = newText;
-          onUpdate(bullet.id, newText);
-          
-          const newRange = document.createRange();
-          newRange.setStart(textNode, pos + 1);
-          newRange.setEnd(textNode, pos + 1);
-          selection?.removeAllRanges();
-          selection?.addRange(newRange);
-        }
-      } else {
-        e.preventDefault();
-        const beforeCursor = content.slice(0, pos);
-        const afterCursor = content.slice(pos);
-        
-        setPendingSplit({
-          originalBulletId: bullet.id,
-          beforeCursor,
-          afterCursor,
-        });
-      }
+      e.preventDefault();
+      const beforeCursor = content.slice(0, pos);
+      const afterCursor = content.slice(pos);
+      
+      setPendingSplit({
+        originalBulletId: bullet.id,
+        beforeCursor,
+        afterCursor,
+      });
     } else if (e.key === "Tab") {
       handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
     } else if (e.key === "Backspace") {
@@ -223,6 +211,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const handlePaste = (e: React.ClipboardEvent) => {
     if (mode === "theirs") return;
     
+    // Get the source bullet ID from the clipboard data
     const sourceId = e.clipboardData.getData('text/bullet-source');
     if (sourceId) {
       setSourceId(sourceId);
@@ -231,9 +220,11 @@ const BulletContent: React.FC<BulletContentProps> = ({
 
   const handleCopy = (e: React.ClipboardEvent) => {
     if (mode === "theirs") {
+      // Store the parent ID in the clipboard data
       e.clipboardData.setData('text/bullet-source', bullet.parent_id || bullet.id);
       e.preventDefault();
       
+      // Get the selected text
       const selection = window.getSelection();
       if (selection) {
         e.clipboardData.setData('text/plain', selection.toString());
@@ -262,14 +253,15 @@ const BulletContent: React.FC<BulletContentProps> = ({
         >
           ◉
         </span>
-        <BulletContentDisplay
-          content={bullet.content}
-          mode={mode}
-          contentRef={contentRef}
+        <div
+          ref={contentRef}
+          className={`bullet-content ${mode === "theirs" ? "theirs-mode" : ""} py-1`}
+          contentEditable={mode !== "theirs"}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           onCopy={handleCopy}
+          suppressContentEditableWarning
         />
         {sourceId && mode === "yours" && (
           <BulletSourceLink sourceId={sourceId} onZoom={onZoom} />
