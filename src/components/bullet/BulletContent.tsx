@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { BulletPoint } from "@/types/bullet";
 import BulletEditor from "./BulletEditor";
 import { useKeyboardHandlers } from "@/hooks/bullet/useKeyboardHandlers";
@@ -31,6 +31,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
   mode = "yours",
 }) => {
   const [sourceId, setSourceId] = useState<string | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const keyboardHandlers = useKeyboardHandlers({
     bullet,
     onUpdate,
@@ -49,7 +50,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
     } else if (e.key === "Tab") {
       keyboardHandlers.handleTabKey(e, content, pos);
     } else if (e.key === "Backspace") {
-      keyboardHandlers.handleBackspaceKey(e, content, pos);
+      keyboardHandlers.handleBackspaceKey(e, content, pos, contentRef, onUpdate, onDelete);
     } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       keyboardHandlers.handleArrowKeys(e, content);
     }
