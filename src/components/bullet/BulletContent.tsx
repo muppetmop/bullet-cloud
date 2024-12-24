@@ -1,11 +1,9 @@
-import React, { useRef, KeyboardEvent, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 import { BulletPoint } from "@/types/bullet";
-import {
-  handleTabKey,
-  handleArrowKeys,
-} from "@/utils/keyboardHandlers";
 import BulletWrapper from "./BulletWrapper";
 import BulletSourceLink from "./BulletSourceLink";
+import { useKeyboardHandlers } from "./handlers/useKeyboardHandlers";
+import { useClipboardHandlers } from "./handlers/useClipboardHandlers";
 
 interface BulletContentProps {
   bullet: BulletPoint;
@@ -18,18 +16,6 @@ interface BulletContentProps {
   onOutdent?: (id: string) => void;
   onZoom: (id: string) => void;
   mode?: "yours" | "theirs";
-}
-
-interface PendingDelete {
-  bulletId: string;
-  previousContent: string;
-  previousBulletId: string;
-}
-
-interface PendingSplit {
-  originalBulletId: string;
-  beforeCursor: string;
-  afterCursor: string;
 }
 
 const BulletContent: React.FC<BulletContentProps> = ({
@@ -45,191 +31,59 @@ const BulletContent: React.FC<BulletContentProps> = ({
   mode = "yours",
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
-  const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
-  const [splitCompleted, setSplitCompleted] = useState(false);
-  const [sourceId, setSourceId] = useState<string | null>(null);
+
+  const { handleKeyDown } = useKeyboardHandlers({
+    contentRef,
+    bullet,
+    mode,
+    onUpdate,
+    onDelete,
+    onNewBullet,
+    onIndent,
+    onOutdent,
+    onNavigate,
+  });
+
+  const { sourceId, handlePaste, handleCopy } = useClipboardHandlers({
+    mode,
+    bullet,
+  });
 
   useEffect(() => {
     if (!contentRef.current) return;
-    contentRef.current.textContent = bullet.content;
-  }, [bullet.content]);
-
-  useEffect(() => {
-    if (pendingDelete) {
-      onDelete(pendingDelete.bulletId);
-      setPendingDelete(null);
-    }
-  }, [pendingDelete, onDelete]);
-
-  useEffect(() => {
-    if (pendingSplit && !splitCompleted) {
-      onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
-      setSplitCompleted(true);
-    }
-  }, [pendingSplit, splitCompleted, onUpdate]);
-
-  useEffect(() => {
-    if (pendingSplit && splitCompleted) {
-      const newBulletId = onNewBullet(pendingSplit.originalBulletId);
-      
-      if (newBulletId) {
-        onUpdate(newBulletId, pendingSplit.afterCursor);
-
-        requestAnimationFrame(() => {
-          const newElement = document.querySelector(
-            `[data-id="${newBulletId}"] .bullet-content`
-          ) as HTMLElement;
-          
-          if (newElement) {
-            newElement.focus();
-            try {
-              const selection = window.getSelection();
-              const range = document.createRange();
-              const textNode = newElement.firstChild || newElement;
-              range.setStart(textNode, 0);
-              range.setEnd(textNode, 0);
-              selection?.removeAllRanges();
-              selection?.addRange(range);
-            } catch (err) {
-              console.error('Failed to set cursor position:', err);
-            }
-          }
-        });
-
-        setPendingSplit(null);
-        setSplitCompleted(false);
-      }
-    }
-  }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (mode === "theirs") return;
     
-    const content = contentRef.current?.textContent || "";
+    // Store current selection
     const selection = window.getSelection();
     const range = selection?.getRangeAt(0);
-    const pos = range?.startOffset || 0;
-
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const beforeCursor = content.slice(0, pos);
-      const afterCursor = content.slice(pos);
-      
-      setPendingSplit({
-        originalBulletId: bullet.id,
-        beforeCursor,
-        afterCursor,
-      });
-    } else if (e.key === "Tab") {
-      handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
-    } else if (e.key === "Backspace") {
-      handleBackspace(e, content, pos);
-    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
-    }
-  };
-
-  const handleBackspace = (e: KeyboardEvent, content: string, pos: number) => {
-    const selection = window.getSelection();
+    const previousPos = range?.startOffset || 0;
     
-    if (selection && !selection.isCollapsed) {
-      return;
-    }
+    // Update content
+    contentRef.current.textContent = bullet.content;
     
-    if (pos === 0) {
-      const visibleBullets = Array.from(
-        document.querySelectorAll('.bullet-content')
-      ) as HTMLElement[];
-      
-      const currentIndex = visibleBullets.findIndex(
-        el => el === contentRef.current
-      );
-      
-      if (currentIndex > 0) {
-        const previousElement = visibleBullets[currentIndex - 1];
-        const previousContent = previousElement.textContent || '';
-        const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
-        
-        if (previousBulletId) {
-          if (content.length === 0) {
-            if (visibleBullets.length > 1 && bullet.children.length === 0) {
-              onDelete(bullet.id);
-              
-              requestAnimationFrame(() => {
-                previousElement.focus();
-                try {
-                  const selection = window.getSelection();
-                  const range = document.createRange();
-                  const textNode = previousElement.firstChild || previousElement;
-                  const position = previousContent.length;
-                  range.setStart(textNode, position);
-                  range.setEnd(textNode, position);
-                  selection?.removeAllRanges();
-                  selection?.addRange(range);
-                } catch (err) {
-                  console.error('Failed to set cursor position:', err);
-                }
-              });
-            }
-          } else {
-            e.preventDefault();
-            onUpdate(previousBulletId, previousContent + content);
-            setPendingDelete({ 
-              bulletId: bullet.id, 
-              previousContent: previousContent + content,
-              previousBulletId
-            });
-            
-            requestAnimationFrame(() => {
-              previousElement.focus();
-              try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const textNode = previousElement.firstChild || previousElement;
-                const position = previousContent.length;
-                range.setStart(textNode, position);
-                range.setEnd(textNode, position);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-              } catch (err) {
-                console.error('Failed to set cursor position:', err);
-              }
-            });
+    // Restore cursor position
+    if (document.activeElement === contentRef.current) {
+      requestAnimationFrame(() => {
+        try {
+          const textNode = contentRef.current?.firstChild || contentRef.current;
+          if (textNode) {
+            const newRange = document.createRange();
+            const pos = Math.min(previousPos, (textNode.textContent || '').length);
+            newRange.setStart(textNode, pos);
+            newRange.setEnd(textNode, pos);
+            selection?.removeAllRanges();
+            selection?.addRange(newRange);
           }
+        } catch (err) {
+          console.error('Failed to restore cursor position:', err);
         }
-      }
+      });
     }
-  };
+  }, [bullet.content]);
 
   const handleInput = () => {
     if (mode === "theirs") return;
     const content = contentRef.current?.textContent || "";
     onUpdate(bullet.id, content);
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    if (mode === "theirs") return;
-    
-    // Get the source bullet ID from the clipboard data
-    const sourceId = e.clipboardData.getData('text/bullet-source');
-    if (sourceId) {
-      setSourceId(sourceId);
-    }
-  };
-
-  const handleCopy = (e: React.ClipboardEvent) => {
-    if (mode === "theirs") {
-      // Store the parent ID in the clipboard data
-      e.clipboardData.setData('text/bullet-source', bullet.parent_id || bullet.id);
-      e.preventDefault();
-      
-      // Get the selected text
-      const selection = window.getSelection();
-      if (selection) {
-        e.clipboardData.setData('text/plain', selection.toString());
-      }
-    }
   };
 
   return (
