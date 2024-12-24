@@ -10,7 +10,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [nomDePlume, setNomDePlume] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(true);  // Changed this line from false to true
+  const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 

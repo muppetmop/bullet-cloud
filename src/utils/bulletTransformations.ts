@@ -18,7 +18,6 @@ export const transformUserBullets = (
     isCollapsed: bullet.isCollapsed || false,
     position: bullet.position || 0,
     level: (bullet.level || 0) + baseLevel,
-    parent_id: bullet.parent_id || null,
     children: (bullet.children || []).map((child: any) => 
       transformUserBullets(child, baseLevel + 1)
     )
@@ -40,7 +39,6 @@ export const transformUserToRootBullet = (user: any): BulletPoint => {
     ),
     isCollapsed: false,
     position: 0,
-    level: 0,
-    parent_id: null // Add this line to include the required parent_id property
+    level: 0
   };
 };
