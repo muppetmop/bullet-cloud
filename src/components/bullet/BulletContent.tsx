@@ -4,8 +4,6 @@ import {
   handleTabKey,
   handleArrowKeys,
 } from "@/utils/keyboardHandlers";
-import BulletWrapper from "./BulletWrapper";
-import BulletSourceLink from "./BulletSourceLink";
 
 interface BulletContentProps {
   bullet: BulletPoint;
@@ -18,18 +16,6 @@ interface BulletContentProps {
   onOutdent?: (id: string) => void;
   onZoom: (id: string) => void;
   mode?: "yours" | "theirs";
-}
-
-interface PendingDelete {
-  bulletId: string;
-  previousContent: string;
-  previousBulletId: string;
-}
-
-interface PendingSplit {
-  originalBulletId: string;
-  beforeCursor: string;
-  afterCursor: string;
 }
 
 const BulletContent: React.FC<BulletContentProps> = ({
@@ -48,7 +34,18 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
   const [splitCompleted, setSplitCompleted] = useState(false);
-  const [sourceId, setSourceId] = useState<string | null>(null);
+
+  interface PendingDelete {
+    bulletId: string;
+    previousContent: string;
+    previousBulletId: string;
+  }
+
+  interface PendingSplit {
+    originalBulletId: string;
+    beforeCursor: string;
+    afterCursor: string;
+  }
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -208,30 +205,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
     onUpdate(bullet.id, content);
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
-    if (mode === "theirs") return;
-    
-    // Get the source bullet ID from the clipboard data
-    const sourceId = e.clipboardData.getData('text/bullet-source');
-    if (sourceId) {
-      setSourceId(sourceId);
-    }
-  };
-
-  const handleCopy = (e: React.ClipboardEvent) => {
-    if (mode === "theirs") {
-      // Store the parent ID in the clipboard data
-      e.clipboardData.setData('text/bullet-source', bullet.parent_id || bullet.id);
-      e.preventDefault();
-      
-      // Get the selected text
-      const selection = window.getSelection();
-      if (selection) {
-        e.clipboardData.setData('text/plain', selection.toString());
-      }
-    }
-  };
-
   return (
     <>
       {bullet.children.length > 0 && (
@@ -246,7 +219,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
           )}
         </button>
       )}
-      <BulletWrapper mode={mode}>
+      <div className={`bullet-wrapper ${mode === "theirs" ? "theirs-mode" : ""}`}>
         <span 
           className="w-4 h-4 inline-flex items-center justify-center mt-1 cursor-pointer bullet-icon"
           onClick={() => onZoom(bullet.id)}
@@ -259,14 +232,9 @@ const BulletContent: React.FC<BulletContentProps> = ({
           contentEditable={mode !== "theirs"}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          onCopy={handleCopy}
           suppressContentEditableWarning
         />
-        {sourceId && mode === "yours" && (
-          <BulletSourceLink sourceId={sourceId} onZoom={onZoom} />
-        )}
-      </BulletWrapper>
+      </div>
     </>
   );
 };
