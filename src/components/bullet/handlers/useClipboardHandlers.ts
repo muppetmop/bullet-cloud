@@ -1,36 +1,41 @@
-import { useState } from "react";
+import { BulletPoint } from "@/types/bullet";
 
 interface ClipboardHandlerProps {
   mode: "yours" | "theirs";
-  bullet: { parent_id: string | null; id: string; };
+  bullet: BulletPoint;
 }
 
 export const useClipboardHandlers = ({ mode, bullet }: ClipboardHandlerProps) => {
-  const [sourceId, setSourceId] = useState<string | null>(null);
-
   const handlePaste = (e: React.ClipboardEvent) => {
-    if (mode === "theirs") return;
-    
-    // Get the source bullet ID from the clipboard data
-    const sourceId = e.clipboardData.getData('text/bullet-source');
-    if (sourceId) {
-      setSourceId(sourceId);
+    if (mode === "theirs") {
+      e.preventDefault();
+      return;
     }
   };
 
   const handleCopy = (e: React.ClipboardEvent) => {
     if (mode === "theirs") {
-      // Store the parent ID in the clipboard data
-      e.clipboardData.setData('text/bullet-source', bullet.parent_id || bullet.id);
+      const sourceData = {
+        id: bullet.id,
+        parent_id: bullet.parent_id || '' // Convert null to empty string if needed
+      };
+      e.clipboardData.setData('text/plain', e.currentTarget.textContent || '');
+      e.clipboardData.setData('application/x-bulletbook', JSON.stringify(sourceData));
       e.preventDefault();
-      
-      // Get the selected text
-      const selection = window.getSelection();
-      if (selection) {
-        e.clipboardData.setData('text/plain', selection.toString());
-      }
     }
   };
+
+  let sourceId: string | null = null;
+  
+  try {
+    const clipboardContent = localStorage.getItem('lastCopiedBullet');
+    if (clipboardContent) {
+      const sourceData = JSON.parse(clipboardContent);
+      sourceId = sourceData.parent_id || null;
+    }
+  } catch (err) {
+    console.error('Failed to parse clipboard content:', err);
+  }
 
   return {
     sourceId,
