@@ -14,23 +14,23 @@ export const findUrls = (text: string): { start: number; end: number; url: strin
   return urls;
 };
 
-export const splitTextWithUrls = (text: string) => {
+export const splitTextWithUrls = (text: string): { type: 'text' | 'url'; content: string }[] => {
   const urls = findUrls(text);
-  if (urls.length === 0) return [{ type: 'text', content: text }];
+  if (urls.length === 0) return [{ type: 'text' as const, content: text }];
 
   const parts: { type: 'text' | 'url'; content: string }[] = [];
   let lastIndex = 0;
 
   urls.forEach(({ start, end, url }) => {
     if (start > lastIndex) {
-      parts.push({ type: 'text', content: text.slice(lastIndex, start) });
+      parts.push({ type: 'text' as const, content: text.slice(lastIndex, start) });
     }
-    parts.push({ type: 'url', content: url });
+    parts.push({ type: 'url' as const, content: url });
     lastIndex = end;
   });
 
   if (lastIndex < text.length) {
-    parts.push({ type: 'text', content: text.slice(lastIndex) });
+    parts.push({ type: 'text' as const, content: text.slice(lastIndex) });
   }
 
   return parts;

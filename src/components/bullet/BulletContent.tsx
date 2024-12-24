@@ -6,7 +6,7 @@ import {
 } from "@/utils/keyboardHandlers";
 import BulletWrapper from "./BulletWrapper";
 import BulletSourceLink from "./BulletSourceLink";
-import { splitTextWithUrls } from "@/utils/urlUtils";
+import BulletContentDisplay from "./BulletContentDisplay";
 
 interface BulletContentProps {
   bullet: BulletPoint;
@@ -50,25 +50,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
   const [splitCompleted, setSplitCompleted] = useState(false);
   const [sourceId, setSourceId] = useState<string | null>(null);
-  const [displayContent, setDisplayContent] = useState<{ type: 'text' | 'url'; content: string }[]>([]);
-
-  useEffect(() => {
-    if (!contentRef.current) return;
-    const parts = splitTextWithUrls(bullet.content);
-    setDisplayContent(parts);
-    
-    if (mode === "theirs") {
-      // For "theirs" mode, we render the content with clickable links
-      contentRef.current.innerHTML = parts.map(part => 
-        part.type === 'url' 
-          ? `<a href="${part.content}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">${part.content}</a>`
-          : part.content
-      ).join('');
-    } else {
-      // For "yours" mode, we keep the plain text for editing
-      contentRef.current.textContent = bullet.content;
-    }
-  }, [bullet.content, mode]);
 
   useEffect(() => {
     if (pendingDelete) {
@@ -135,7 +116,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
           contentRef.current.textContent = newText;
           onUpdate(bullet.id, newText);
           
-          // Restore cursor position after the new line
           const newRange = document.createRange();
           newRange.setStart(textNode, pos + 1);
           newRange.setEnd(textNode, pos + 1);
@@ -243,7 +223,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const handlePaste = (e: React.ClipboardEvent) => {
     if (mode === "theirs") return;
     
-    // Get the source bullet ID from the clipboard data
     const sourceId = e.clipboardData.getData('text/bullet-source');
     if (sourceId) {
       setSourceId(sourceId);
@@ -252,11 +231,9 @@ const BulletContent: React.FC<BulletContentProps> = ({
 
   const handleCopy = (e: React.ClipboardEvent) => {
     if (mode === "theirs") {
-      // Store the parent ID in the clipboard data
       e.clipboardData.setData('text/bullet-source', bullet.parent_id || bullet.id);
       e.preventDefault();
       
-      // Get the selected text
       const selection = window.getSelection();
       if (selection) {
         e.clipboardData.setData('text/plain', selection.toString());
@@ -285,15 +262,14 @@ const BulletContent: React.FC<BulletContentProps> = ({
         >
           ◉
         </span>
-        <div
-          ref={contentRef}
-          className={`bullet-content ${mode === "theirs" ? "theirs-mode" : ""} py-1`}
-          contentEditable={mode !== "theirs"}
+        <BulletContentDisplay
+          content={bullet.content}
+          mode={mode}
+          contentRef={contentRef}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           onCopy={handleCopy}
-          suppressContentEditableWarning
         />
         {sourceId && mode === "yours" && (
           <BulletSourceLink sourceId={sourceId} onZoom={onZoom} />
