@@ -52,7 +52,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
     } else if (e.key === "Backspace") {
       keyboardHandlers.handleBackspaceKey(e, content, pos, contentRef, onUpdate, onDelete);
     } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      keyboardHandlers.handleArrowKeys(e, content);
+      keyboardHandlers.handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
     }
   };
 
