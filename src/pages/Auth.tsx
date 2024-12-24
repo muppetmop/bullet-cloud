@@ -10,7 +10,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [nomDePlume, setNomDePlume] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(true); // Changed to default to signup
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -85,11 +85,11 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F6F7] flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-lg shadow-lg">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-lg border border-black/10">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-[#1EAEDB] mb-2">BullBook</h1>
-          <p className="text-[#8A898C]">
+          <h1 className="text-4xl font-bold text-black mb-2">BullBook</h1>
+          <p className="text-black/60">
             {isSignUp ? "Create your account" : "Welcome back"}
           </p>
         </div>
@@ -104,14 +104,14 @@ const Auth = () => {
                   value={nomDePlume}
                   onChange={(e) => setNomDePlume(e.target.value)}
                   required
-                  className="w-full"
+                  className="w-full border-black/20 focus:border-black"
                   disabled={isLoading}
                   minLength={2}
                   maxLength={50}
                 />
-                <div className="h-2" /> {/* Small spacer */}
-                <div className="border-t border-gray-200" /> {/* Divider line */}
-                <div className="h-2" /> {/* Small spacer after divider */}
+                <div className="h-2" />
+                <div className="border-t border-black/10" />
+                <div className="h-2" />
               </>
             )}
             <Input
@@ -120,7 +120,7 @@ const Auth = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full"
+              className="w-full border-black/20 focus:border-black"
               disabled={isLoading}
             />
             <Input
@@ -129,7 +129,7 @@ const Auth = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full"
+              className="w-full border-black/20 focus:border-black"
               disabled={isLoading}
               minLength={6}
             />
@@ -137,7 +137,7 @@ const Auth = () => {
 
           <Button
             type="submit"
-            className="w-full bg-[#1EAEDB] hover:bg-[#0EA5E9] text-white"
+            className="w-full bg-black hover:bg-black/90 text-white"
             disabled={isLoading}
           >
             {isLoading
@@ -151,7 +151,7 @@ const Auth = () => {
             <button
               type="button"
               onClick={() => setIsSignUp(!isSignUp)}
-              className="text-[#0EA5E9] hover:underline"
+              className="text-black/80 hover:text-black hover:underline"
               disabled={isLoading}
             >
               {isSignUp
