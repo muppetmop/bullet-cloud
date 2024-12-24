@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -20,16 +20,35 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
-        const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+        // First check if user exists
+        const { data: existingUser } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (existingUser.user) {
+          toast({
+            title: "Account exists",
+            description: "This email is already registered. Please sign in instead.",
+            variant: "destructive",
+          });
+          setIsSignUp(false);
+          setIsLoading(false);
+          return;
+        }
+
+        // If user doesn't exist, proceed with signup
+        const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               nom_de_plume: nomDePlume,
             },
+            emailRedirectTo: window.location.origin,
           },
         });
-
+        
         if (signUpError) throw signUpError;
 
         toast({
@@ -41,8 +60,16 @@ const Auth = () => {
           email,
           password,
         });
-
-        if (signInError) throw signInError;
+        
+        if (signInError) {
+          if (signInError.message.includes("Email not confirmed")) {
+            throw new Error("Please verify your email before signing in. Check your inbox for the verification link.");
+          }
+          if (signInError.message.includes("Invalid login credentials")) {
+            throw new Error("Invalid email or password. If you haven't registered yet, please sign up first.");
+          }
+          throw signInError;
+        }
         
         navigate("/");
       }
