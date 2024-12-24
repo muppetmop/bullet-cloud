@@ -52,15 +52,19 @@ const BulletContent: React.FC<BulletContentProps> = ({
   useEffect(() => {
     if (!contentRef.current) return;
     
-    // Store current selection
+    let previousPos = 0;
     const selection = window.getSelection();
-    const range = selection?.getRangeAt(0);
-    const previousPos = range?.startOffset || 0;
+    
+    // Only try to get range if there is a selection
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      previousPos = range.startOffset || 0;
+    }
     
     // Update content
     contentRef.current.textContent = bullet.content;
     
-    // Restore cursor position
+    // Restore cursor position if element is focused
     if (document.activeElement === contentRef.current) {
       requestAnimationFrame(() => {
         try {
@@ -70,8 +74,11 @@ const BulletContent: React.FC<BulletContentProps> = ({
             const pos = Math.min(previousPos, (textNode.textContent || '').length);
             newRange.setStart(textNode, pos);
             newRange.setEnd(textNode, pos);
-            selection?.removeAllRanges();
-            selection?.addRange(newRange);
+            const selection = window.getSelection();
+            if (selection) {
+              selection.removeAllRanges();
+              selection.addRange(newRange);
+            }
           }
         } catch (err) {
           console.error('Failed to restore cursor position:', err);
@@ -79,12 +86,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
       });
     }
   }, [bullet.content]);
-
-  const handleInput = () => {
-    if (mode === "theirs") return;
-    const content = contentRef.current?.textContent || "";
-    onUpdate(bullet.id, content);
-  };
 
   return (
     <>
@@ -111,7 +112,11 @@ const BulletContent: React.FC<BulletContentProps> = ({
           ref={contentRef}
           className={`bullet-content ${mode === "theirs" ? "theirs-mode" : ""} py-1`}
           contentEditable={mode !== "theirs"}
-          onInput={handleInput}
+          onInput={() => {
+            if (mode === "theirs") return;
+            const content = contentRef.current?.textContent || "";
+            onUpdate(bullet.id, content);
+          }}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           onCopy={handleCopy}
