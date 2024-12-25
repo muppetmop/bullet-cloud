@@ -16,6 +16,7 @@ export const useBulletManager = () => {
     updateBullet,
     deleteBullet,
     toggleCollapse,
+    transferChildren,
   } = useBulletOperations(userId, bullets, setBullets);
 
   const {
@@ -42,5 +43,6 @@ export const useBulletManager = () => {
     toggleCollapse,
     indentBullet,
     outdentBullet,
+    transferChildren,
   };
 };
