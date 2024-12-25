@@ -100,7 +100,7 @@ const Auth = () => {
               <>
                 <Input
                   type="text"
-                  placeholder="Nom de Plume"
+                  placeholder="Pen name"
                   value={nomDePlume}
                   onChange={(e) => setNomDePlume(e.target.value)}
                   required
