@@ -53,6 +53,13 @@ const BulletContent: React.FC<BulletContentProps> = ({
     contentRef.current.textContent = bullet.content;
   }, [bullet.content]);
 
+  // Add effect to maintain focus
+  useEffect(() => {
+    if (mode === "yours" && contentRef.current) {
+      contentRef.current.focus();
+    }
+  }, [mode]);
+
   useEffect(() => {
     if (pendingSplit && !splitCompleted) {
       onUpdate(pendingSplit.originalBulletId, pendingSplit.beforeCursor);
@@ -71,7 +78,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
           onTransferChildren(bullet.id, newBulletId);
         }
 
-        // Focus logic based on the focusOriginal flag
         requestAnimationFrame(() => {
           const elementToFocus = pendingSplit.focusOriginal
             ? document.querySelector(`[data-id="${bullet.id}"] .bullet-content`)
@@ -106,6 +112,19 @@ const BulletContent: React.FC<BulletContentProps> = ({
     onUpdate(bullet.id, content);
   };
 
+  const handleFocus = (e: React.FocusEvent) => {
+    // Prevent focus from being lost
+    e.stopPropagation();
+  };
+
+  const handleBlur = (e: React.FocusEvent) => {
+    // Only allow blur if clicking outside the bullet area
+    if (!e.relatedTarget || !e.currentTarget.contains(e.relatedTarget as Node)) {
+      return;
+    }
+    e.preventDefault();
+  };
+
   return (
     <>
       {bullet.children.length > 0 && (
@@ -133,7 +152,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
           contentEditable={mode !== "theirs"}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           suppressContentEditableWarning
+          tabIndex={0}
         />
       </div>
     </>
