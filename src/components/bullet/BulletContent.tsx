@@ -31,6 +31,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const cursorPositionRef = useRef<number | null>(null);
+  const lastTouchRef = useRef<number>(0);
   
   const {
     handleKeyDown,
@@ -54,25 +55,27 @@ const BulletContent: React.FC<BulletContentProps> = ({
     contentRef.current.textContent = bullet.content;
   }, [bullet.content]);
 
-  // Add effect to maintain focus
   useEffect(() => {
     if (mode === "yours" && contentRef.current) {
-      contentRef.current.focus();
-      
-      // Restore cursor position if it was saved
-      if (cursorPositionRef.current !== null) {
-        const selection = window.getSelection();
-        const range = document.createRange();
-        const textNode = contentRef.current.firstChild || contentRef.current;
-        const position = Math.min(cursorPositionRef.current, (contentRef.current.textContent || '').length);
+      // Only focus if not on mobile or if explicitly requested
+      if (!window.matchMedia('(pointer: coarse)').matches) {
+        contentRef.current.focus();
         
-        try {
-          range.setStart(textNode, position);
-          range.setEnd(textNode, position);
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-        } catch (err) {
-          console.error('Failed to restore cursor position:', err);
+        // Restore cursor position if it was saved
+        if (cursorPositionRef.current !== null) {
+          const selection = window.getSelection();
+          const range = document.createRange();
+          const textNode = contentRef.current.firstChild || contentRef.current;
+          const position = Math.min(cursorPositionRef.current, (contentRef.current.textContent || '').length);
+          
+          try {
+            range.setStart(textNode, position);
+            range.setEnd(textNode, position);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          } catch (err) {
+            console.error('Failed to restore cursor position:', err);
+          }
         }
       }
     }
@@ -131,11 +134,13 @@ const BulletContent: React.FC<BulletContentProps> = ({
   };
 
   const handleFocus = (e: React.FocusEvent) => {
-    // Save current cursor position before handling focus
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      cursorPositionRef.current = range.startOffset;
+    // Only save cursor position if not on mobile
+    if (!window.matchMedia('(pointer: coarse)').matches) {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        cursorPositionRef.current = range.startOffset;
+      }
     }
     
     // Prevent focus from being lost
@@ -143,11 +148,28 @@ const BulletContent: React.FC<BulletContentProps> = ({
   };
 
   const handleBlur = (e: React.FocusEvent) => {
-    // Only allow blur if clicking outside the bullet area
-    if (!e.relatedTarget || !e.currentTarget.contains(e.relatedTarget as Node)) {
-      return;
+    // Only prevent blur if not on mobile and clicking outside bullet area
+    if (!window.matchMedia('(pointer: coarse)').matches) {
+      if (!e.relatedTarget || !e.currentTarget.contains(e.relatedTarget as Node)) {
+        return;
+      }
+      e.preventDefault();
     }
-    e.preventDefault();
+  };
+
+  const handleTouchStart = () => {
+    lastTouchRef.current = Date.now();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    // If this was a quick tap (less than 200ms), focus the element
+    if (Date.now() - lastTouchRef.current < 200) {
+      if (contentRef.current) {
+        contentRef.current.focus();
+        // Let the native cursor positioning handle it
+        e.stopPropagation();
+      }
+    }
   };
 
   return (
@@ -179,6 +201,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
           onBlur={handleBlur}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           suppressContentEditableWarning
           tabIndex={0}
         />

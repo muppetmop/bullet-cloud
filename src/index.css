@@ -86,6 +86,7 @@
   cursor: text;
   -webkit-user-select: text;
   user-select: text;
+  touch-action: manipulation;
 }
 
 .bullet-content.theirs-mode {
