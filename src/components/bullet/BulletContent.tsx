@@ -30,7 +30,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
   onTransferChildren,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const cursorPositionRef = useRef<number | null>(null);
   const lastTouchRef = useRef<number>(0);
   
   const {
@@ -54,32 +53,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
     if (!contentRef.current) return;
     contentRef.current.textContent = bullet.content;
   }, [bullet.content]);
-
-  useEffect(() => {
-    if (mode === "yours" && contentRef.current) {
-      // Only focus if not on mobile or if explicitly requested
-      if (!window.matchMedia('(pointer: coarse)').matches) {
-        contentRef.current.focus();
-        
-        // Restore cursor position if it was saved
-        if (cursorPositionRef.current !== null) {
-          const selection = window.getSelection();
-          const range = document.createRange();
-          const textNode = contentRef.current.firstChild || contentRef.current;
-          const position = Math.min(cursorPositionRef.current, (contentRef.current.textContent || '').length);
-          
-          try {
-            range.setStart(textNode, position);
-            range.setEnd(textNode, position);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-          } catch (err) {
-            console.error('Failed to restore cursor position:', err);
-          }
-        }
-      }
-    }
-  }, [mode]);
 
   useEffect(() => {
     if (pendingSplit && !splitCompleted) {
@@ -106,18 +79,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
           
           if (elementToFocus instanceof HTMLElement) {
             elementToFocus.focus();
-            try {
-              const selection = window.getSelection();
-              const range = document.createRange();
-              const textNode = elementToFocus.firstChild || elementToFocus;
-              const position = pendingSplit.focusOriginal ? 0 : 0;
-              range.setStart(textNode, position);
-              range.setEnd(textNode, position);
-              selection?.removeAllRanges();
-              selection?.addRange(range);
-            } catch (err) {
-              console.error('Failed to set cursor position:', err);
-            }
           }
         });
 
@@ -133,40 +94,14 @@ const BulletContent: React.FC<BulletContentProps> = ({
     onUpdate(bullet.id, content);
   };
 
-  const handleFocus = (e: React.FocusEvent) => {
-    // Only save cursor position if not on mobile
-    if (!window.matchMedia('(pointer: coarse)').matches) {
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        cursorPositionRef.current = range.startOffset;
-      }
-    }
-    
-    // Prevent focus from being lost
-    e.stopPropagation();
-  };
-
-  const handleBlur = (e: React.FocusEvent) => {
-    // Only prevent blur if not on mobile and clicking outside bullet area
-    if (!window.matchMedia('(pointer: coarse)').matches) {
-      if (!e.relatedTarget || !e.currentTarget.contains(e.relatedTarget as Node)) {
-        return;
-      }
-      e.preventDefault();
-    }
-  };
-
   const handleTouchStart = () => {
     lastTouchRef.current = Date.now();
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    // If this was a quick tap (less than 200ms), focus the element
     if (Date.now() - lastTouchRef.current < 200) {
       if (contentRef.current) {
         contentRef.current.focus();
-        // Let the native cursor positioning handle it
         e.stopPropagation();
       }
     }
@@ -188,7 +123,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
       )}
       <div className={`bullet-wrapper ${mode === "theirs" ? "theirs-mode" : ""}`}>
         <span 
-          className="w-4 h-4 inline-flex items-center justify-center mt-1 cursor-pointer bullet-icon"
+          className="bullet-icon"
           onClick={() => onZoom(bullet.id)}
         >
           ◉
@@ -199,8 +134,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
           contentEditable={mode !== "theirs"}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
           suppressContentEditableWarning
