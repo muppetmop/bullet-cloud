@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useBulletManager } from "@/hooks/useBulletManager";
 import { useBulletNavigation } from "@/hooks/useBulletNavigation";
-import { Button } from "./ui/button";
-import { toast } from "sonner";
 import { useQueuedSync } from "@/hooks/useQueuedSync";
 import { initializeQueue } from "@/utils/queueManager";
 import BreadcrumbNav from "./navigation/BreadcrumbNav";
@@ -33,7 +31,6 @@ const TaskManager = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dragLevel, setDragLevel] = useState<number>(0);
   
-  // Add state for collapsed states
   const [yoursCollapsedState, setYoursCollapsedState] = useState<CollapsedState>(() => {
     const saved = localStorage.getItem('yoursCollapsedState');
     return saved ? JSON.parse(saved) : {};
@@ -41,7 +38,6 @@ const TaskManager = () => {
   
   const [theirsCollapsedState, setTheirsCollapsedState] = useState<CollapsedState>(() => {
     const saved = localStorage.getItem('theirsCollapsedState');
-    // If no saved state, start with everything collapsed
     if (!saved) {
       const initialState: CollapsedState = {};
       users.forEach(user => {
@@ -63,7 +59,6 @@ const TaskManager = () => {
     return JSON.parse(saved);
   });
 
-  // Save collapsed states to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('yoursCollapsedState', JSON.stringify(yoursCollapsedState));
   }, [yoursCollapsedState]);
@@ -72,7 +67,6 @@ const TaskManager = () => {
     localStorage.setItem('theirsCollapsedState', JSON.stringify(theirsCollapsedState));
   }, [theirsCollapsedState]);
 
-  // Save current zoom states
   useEffect(() => {
     localStorage.setItem('currentBulletId', currentBulletId || '');
   }, [currentBulletId]);
@@ -81,7 +75,6 @@ const TaskManager = () => {
     localStorage.setItem('theirsCurrentBulletId', theirsCurrentBulletId || '');
   }, [theirsCurrentBulletId]);
 
-  // Load zoom states on init
   useEffect(() => {
     const savedCurrentBulletId = localStorage.getItem('currentBulletId');
     if (savedCurrentBulletId) {
@@ -114,12 +107,6 @@ const TaskManager = () => {
   } = useBulletManager();
 
   const { handleNavigate } = useBulletNavigation(getAllVisibleBullets, bullets);
-
-  const handleClearLocalStorage = () => {
-    localStorage.clear();
-    window.location.reload();
-    toast.success("Local storage cleared. Reloading data from server.");
-  };
 
   const findBulletPath = (id: string | null, bullets: BulletPoint[]): BulletPoint[] => {
     console.log('Finding bullet path:', {
@@ -323,7 +310,6 @@ const TaskManager = () => {
           bullets: userBullets
         });
         
-        // First check if we're zoomed into a user root bullet
         if (userBullet.id === theirsCurrentBulletId) {
           console.log('Found matching user root bullet:', {
             userId: user.id,
@@ -333,7 +319,6 @@ const TaskManager = () => {
           return userBullet.children;
         }
         
-        // Then check nested bullets
         const path = findBulletPath(theirsCurrentBulletId, userBullet.children);
         if (path.length > 0) {
           const targetBullet = path[path.length - 1];
@@ -355,7 +340,6 @@ const TaskManager = () => {
       return [];
     }
     
-    // Yours mode logic remains unchanged
     if (!currentBulletId) return bullets;
     
     const path = findBulletPath(currentBulletId, bullets);
@@ -495,7 +479,6 @@ const TaskManager = () => {
       currentBullets: bullets
     });
 
-    // First update local state
     setBullets(prevBullets => {
       const [draggedBullet, draggedParent] = findBulletAndParent(draggedId, prevBullets);
       const [targetBullet, targetParent] = findBulletAndParent(targetId, prevBullets);
@@ -510,13 +493,11 @@ const TaskManager = () => {
         return prevBullets;
       }
 
-      // Remove bullet from its current position
       if (draggedParent) {
         const draggedIndex = draggedParent.indexOf(draggedBullet);
         draggedParent.splice(draggedIndex, 1);
       }
 
-      // Add bullet to its new position
       if (targetParent) {
         const targetIndex = targetParent.indexOf(targetBullet);
         targetParent.splice(targetIndex + 1, 0, {
@@ -526,10 +507,8 @@ const TaskManager = () => {
         });
       }
 
-      // Create a new array to trigger re-render
       const newBullets = [...prevBullets];
       
-      // Save to localStorage
       localStorage.setItem('bullets', JSON.stringify(newBullets));
       
       console.log('Updated bullets after drop:', {
@@ -542,7 +521,6 @@ const TaskManager = () => {
       return newBullets;
     });
 
-    // Queue update to server
     queueHook.addToQueue({
       id: draggedId,
       type: 'update',
@@ -552,8 +530,6 @@ const TaskManager = () => {
         position: targetId ? getVisibleBullets().findIndex(b => b.id === targetId) + 1 : 0
       }
     });
-
-    toast.success('Bullet moved successfully');
   };
 
   const zoomedBulletContent = getCurrentZoomedBulletContent();
@@ -630,16 +606,6 @@ const TaskManager = () => {
             />
           )
         )}
-
-        <div className="fixed bottom-8 right-8">
-          <Button 
-            variant="outline" 
-            onClick={handleClearLocalStorage}
-            className="text-sm"
-          >
-            Reset Local Data
-          </Button>
-        </div>
       </div>
     </DragProvider>
   );
