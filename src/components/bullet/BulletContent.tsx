@@ -16,6 +16,20 @@ interface BulletContentProps {
   onOutdent?: (id: string) => void;
   onZoom: (id: string) => void;
   mode?: "yours" | "theirs";
+  onTransferChildren?: (fromBulletId: string, toBulletId: string) => void;
+}
+
+interface PendingDelete {
+  bulletId: string;
+  previousContent: string;
+  previousBulletId: string;
+}
+
+interface PendingSplit {
+  originalBulletId: string;
+  beforeCursor: string;
+  afterCursor: string;
+  children?: BulletPoint[];
 }
 
 const BulletContent: React.FC<BulletContentProps> = ({
@@ -29,23 +43,12 @@ const BulletContent: React.FC<BulletContentProps> = ({
   onOutdent,
   onZoom,
   mode = "yours",
+  onTransferChildren,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
   const [splitCompleted, setSplitCompleted] = useState(false);
-
-  interface PendingDelete {
-    bulletId: string;
-    previousContent: string;
-    previousBulletId: string;
-  }
-
-  interface PendingSplit {
-    originalBulletId: string;
-    beforeCursor: string;
-    afterCursor: string;
-  }
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -71,7 +74,13 @@ const BulletContent: React.FC<BulletContentProps> = ({
       const newBulletId = onNewBullet(pendingSplit.originalBulletId);
       
       if (newBulletId) {
+        // Update the new bullet with the content after cursor
         onUpdate(newBulletId, pendingSplit.afterCursor);
+        
+        // If there are children and we have a handler for transferring them
+        if (bullet.children.length > 0 && onTransferChildren) {
+          onTransferChildren(bullet.id, newBulletId);
+        }
 
         requestAnimationFrame(() => {
           const newElement = document.querySelector(
@@ -98,7 +107,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
         setSplitCompleted(false);
       }
     }
-  }, [pendingSplit, splitCompleted, onNewBullet, onUpdate]);
+  }, [pendingSplit, splitCompleted, onNewBullet, onUpdate, bullet.children, onTransferChildren]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (mode === "theirs") return;
@@ -117,6 +126,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
         originalBulletId: bullet.id,
         beforeCursor,
         afterCursor,
+        children: bullet.children
       });
     } else if (e.key === "Tab") {
       handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);

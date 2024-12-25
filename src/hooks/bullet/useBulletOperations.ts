@@ -225,6 +225,58 @@ export const useBulletOperations = (
     });
   };
 
+  const transferChildren = (fromBulletId: string, toBulletId: string) => {
+    setBullets(prevBullets => {
+      const updateBulletChildren = (bullets: BulletPoint[]): BulletPoint[] => {
+        return bullets.map(bullet => {
+          if (bullet.id === fromBulletId) {
+            // Clear children from source bullet
+            return { ...bullet, children: [] };
+          }
+          if (bullet.id === toBulletId) {
+            // Find the source bullet to get its children
+            const [sourceBullet] = findBulletAndParent(fromBulletId, prevBullets);
+            if (sourceBullet) {
+              // Transfer children to new bullet
+              return { 
+                ...bullet, 
+                children: sourceBullet.children.map(child => ({
+                  ...child,
+                  parent_id: toBulletId
+                }))
+              };
+            }
+          }
+          if (bullet.children.length > 0) {
+            return {
+              ...bullet,
+              children: updateBulletChildren(bullet.children)
+            };
+          }
+          return bullet;
+        });
+      };
+      
+      const newBullets = updateBulletChildren(prevBullets);
+      
+      // Queue updates for all transferred children
+      const [sourceBullet] = findBulletAndParent(fromBulletId, prevBullets);
+      if (sourceBullet) {
+        sourceBullet.children.forEach(child => {
+          addToQueue({
+            id: child.id,
+            type: 'update',
+            data: {
+              parent_id: toBulletId
+            }
+          });
+        });
+      }
+      
+      return newBullets;
+    });
+  };
+
   return {
     createNewBullet,
     createNewZoomedBullet,
@@ -232,5 +284,6 @@ export const useBulletOperations = (
     updateBullet,
     deleteBullet,
     toggleCollapse,
+    transferChildren,
   };
 };

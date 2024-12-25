@@ -15,6 +15,7 @@ interface BulletItemProps {
   onOutdent?: (id: string) => void;
   onZoom: (id: string) => void;
   mode?: "yours" | "theirs";
+  onTransferChildren?: (fromBulletId: string, toBulletId: string) => void;
 }
 
 const BulletItem: React.FC<BulletItemProps> = ({
@@ -29,6 +30,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
   onOutdent,
   onZoom,
   mode = "yours",
+  onTransferChildren
 }) => {
   const { draggedId, dragOverId, setDraggedId, setDragOverId, setDragLevel } = useDrag();
   const isDragging = draggedId === bullet.id;
@@ -78,6 +80,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
           onOutdent={onOutdent}
           onZoom={onZoom}
           mode={mode}
+          onTransferChildren={onTransferChildren}
         />
       </div>
       {!bullet.isCollapsed && bullet.children.length > 0 && (
@@ -96,6 +99,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
               onOutdent={onOutdent}
               onZoom={onZoom}
               mode={mode}
+              onTransferChildren={onTransferChildren}
             />
           ))}
         </div>

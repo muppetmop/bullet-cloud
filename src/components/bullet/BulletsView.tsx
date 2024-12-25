@@ -18,6 +18,7 @@ interface BulletsViewProps {
   getAllVisibleBullets: (bullets: BulletPoint[]) => BulletPoint[];
   mode?: "yours" | "theirs";
   loading?: boolean;
+  onTransferChildren?: (fromBulletId: string, toBulletId: string) => void;
 }
 
 const BulletsView: React.FC<BulletsViewProps> = ({
@@ -33,7 +34,8 @@ const BulletsView: React.FC<BulletsViewProps> = ({
   handleNewBullet,
   getAllVisibleBullets,
   mode = "yours",
-  loading = false
+  loading = false,
+  onTransferChildren
 }) => {
   if (loading) {
     return (
@@ -63,6 +65,8 @@ const BulletsView: React.FC<BulletsViewProps> = ({
         onIndent={onIndent}
         onOutdent={onOutdent}
         onZoom={onZoom}
+        mode={mode}
+        onTransferChildren={onTransferChildren}
       />
       {mode === "yours" && (
         <button

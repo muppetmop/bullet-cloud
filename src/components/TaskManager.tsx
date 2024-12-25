@@ -110,6 +110,7 @@ const TaskManager = () => {
     toggleCollapse,
     indentBullet,
     outdentBullet,
+    transferChildren,
   } = useBulletManager();
 
   const { handleNavigate } = useBulletNavigation(getAllVisibleBullets, bullets);
@@ -593,6 +594,7 @@ const TaskManager = () => {
             getAllVisibleBullets={getAllVisibleBullets}
             mode="yours"
             loading={loading}
+            onTransferChildren={transferChildren}
           />
         ) : (
           theirsCurrentBulletId ? (

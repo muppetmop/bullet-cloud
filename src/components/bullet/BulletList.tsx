@@ -12,6 +12,8 @@ interface BulletListProps {
   onIndent: (id: string) => void;
   onOutdent: (id: string) => void;
   onZoom: (id: string) => void;
+  mode?: "yours" | "theirs";
+  onTransferChildren?: (fromBulletId: string, toBulletId: string) => void;
 }
 
 const BulletList: React.FC<BulletListProps> = ({
@@ -24,6 +26,8 @@ const BulletList: React.FC<BulletListProps> = ({
   onIndent,
   onOutdent,
   onZoom,
+  mode,
+  onTransferChildren
 }) => {
   return (
     <>
@@ -40,6 +44,8 @@ const BulletList: React.FC<BulletListProps> = ({
           onIndent={onIndent}
           onOutdent={onOutdent}
           onZoom={onZoom}
+          mode={mode}
+          onTransferChildren={onTransferChildren}
         />
       ))}
     </>
