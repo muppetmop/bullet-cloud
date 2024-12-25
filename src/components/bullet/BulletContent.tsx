@@ -30,6 +30,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
   onTransferChildren,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
+  const cursorPositionRef = useRef<number | null>(null);
   
   const {
     handleKeyDown,
@@ -57,6 +58,23 @@ const BulletContent: React.FC<BulletContentProps> = ({
   useEffect(() => {
     if (mode === "yours" && contentRef.current) {
       contentRef.current.focus();
+      
+      // Restore cursor position if it was saved
+      if (cursorPositionRef.current !== null) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        const textNode = contentRef.current.firstChild || contentRef.current;
+        const position = Math.min(cursorPositionRef.current, (contentRef.current.textContent || '').length);
+        
+        try {
+          range.setStart(textNode, position);
+          range.setEnd(textNode, position);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        } catch (err) {
+          console.error('Failed to restore cursor position:', err);
+        }
+      }
     }
   }, [mode]);
 
@@ -113,6 +131,13 @@ const BulletContent: React.FC<BulletContentProps> = ({
   };
 
   const handleFocus = (e: React.FocusEvent) => {
+    // Save current cursor position before handling focus
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      cursorPositionRef.current = range.startOffset;
+    }
+    
     // Prevent focus from being lost
     e.stopPropagation();
   };
