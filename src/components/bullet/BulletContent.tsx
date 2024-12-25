@@ -42,7 +42,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
     mode,
     contentRef,
     onUpdate,
-    onDelete,
     onIndent,
     onOutdent,
     onNavigate
