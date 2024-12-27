@@ -1,10 +1,10 @@
-import { Home, Inbox, Lightning, User } from "lucide-react";
+import { Home, Inbox, Zap, User } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -20,7 +20,7 @@ const items = [
     items: [
       {
         title: "Today",
-        icon: Lightning,
+        icon: Zap,
       },
       {
         title: "Work",
