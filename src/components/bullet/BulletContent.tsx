@@ -1,6 +1,9 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, KeyboardEvent, useEffect, useState } from "react";
 import { BulletPoint } from "@/types/bullet";
-import { useKeyboardHandlers } from "./handlers/useKeyboardHandlers";
+import {
+  handleTabKey,
+  handleArrowKeys,
+} from "@/utils/keyboardHandlers";
 
 interface BulletContentProps {
   bullet: BulletPoint;
@@ -14,6 +17,19 @@ interface BulletContentProps {
   onZoom: (id: string) => void;
   mode?: "yours" | "theirs";
   onTransferChildren?: (fromBulletId: string, toBulletId: string) => void;
+}
+
+interface PendingDelete {
+  bulletId: string;
+  previousContent: string;
+  previousBulletId: string;
+}
+
+interface PendingSplit {
+  originalBulletId: string;
+  beforeCursor: string;
+  afterCursor: string;
+  children?: BulletPoint[];
 }
 
 const BulletContent: React.FC<BulletContentProps> = ({
@@ -30,28 +46,21 @@ const BulletContent: React.FC<BulletContentProps> = ({
   onTransferChildren,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  
-  const {
-    handleKeyDown,
-    pendingSplit,
-    setPendingSplit,
-    splitCompleted,
-    setSplitCompleted
-  } = useKeyboardHandlers({
-    bullet,
-    mode,
-    contentRef,
-    onUpdate,
-    onDelete,
-    onIndent,
-    onOutdent,
-    onNavigate
-  });
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [pendingSplit, setPendingSplit] = useState<PendingSplit | null>(null);
+  const [splitCompleted, setSplitCompleted] = useState(false);
 
   useEffect(() => {
     if (!contentRef.current) return;
     contentRef.current.textContent = bullet.content;
   }, [bullet.content]);
+
+  useEffect(() => {
+    if (pendingDelete) {
+      onDelete(pendingDelete.bulletId);
+      setPendingDelete(null);
+    }
+  }, [pendingDelete, onDelete]);
 
   useEffect(() => {
     if (pendingSplit && !splitCompleted) {
@@ -65,27 +74,27 @@ const BulletContent: React.FC<BulletContentProps> = ({
       const newBulletId = onNewBullet(pendingSplit.originalBulletId);
       
       if (newBulletId) {
+        // Update the new bullet with the content after cursor
         onUpdate(newBulletId, pendingSplit.afterCursor);
         
+        // If there are children and we have a handler for transferring them
         if (bullet.children.length > 0 && onTransferChildren) {
           onTransferChildren(bullet.id, newBulletId);
         }
 
-        // Focus logic based on the focusOriginal flag
         requestAnimationFrame(() => {
-          const elementToFocus = pendingSplit.focusOriginal
-            ? document.querySelector(`[data-id="${bullet.id}"] .bullet-content`)
-            : document.querySelector(`[data-id="${newBulletId}"] .bullet-content`);
+          const newElement = document.querySelector(
+            `[data-id="${newBulletId}"] .bullet-content`
+          ) as HTMLElement;
           
-          if (elementToFocus instanceof HTMLElement) {
-            elementToFocus.focus();
+          if (newElement) {
+            newElement.focus();
             try {
               const selection = window.getSelection();
               const range = document.createRange();
-              const textNode = elementToFocus.firstChild || elementToFocus;
-              const position = pendingSplit.focusOriginal ? 0 : 0;
-              range.setStart(textNode, position);
-              range.setEnd(textNode, position);
+              const textNode = newElement.firstChild || newElement;
+              range.setStart(textNode, 0);
+              range.setEnd(textNode, 0);
               selection?.removeAllRanges();
               selection?.addRange(range);
             } catch (err) {
@@ -99,6 +108,106 @@ const BulletContent: React.FC<BulletContentProps> = ({
       }
     }
   }, [pendingSplit, splitCompleted, onNewBullet, onUpdate, bullet.children, onTransferChildren]);
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (mode === "theirs") return;
+    
+    const content = contentRef.current?.textContent || "";
+    const selection = window.getSelection();
+    const range = selection?.getRangeAt(0);
+    const pos = range?.startOffset || 0;
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const beforeCursor = content.slice(0, pos);
+      const afterCursor = content.slice(pos);
+      
+      setPendingSplit({
+        originalBulletId: bullet.id,
+        beforeCursor,
+        afterCursor,
+        children: bullet.children
+      });
+    } else if (e.key === "Tab") {
+      handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
+    } else if (e.key === "Backspace") {
+      handleBackspace(e, content, pos);
+    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
+    }
+  };
+
+  const handleBackspace = (e: KeyboardEvent, content: string, pos: number) => {
+    const selection = window.getSelection();
+    
+    if (selection && !selection.isCollapsed) {
+      return;
+    }
+    
+    if (pos === 0) {
+      const visibleBullets = Array.from(
+        document.querySelectorAll('.bullet-content')
+      ) as HTMLElement[];
+      
+      const currentIndex = visibleBullets.findIndex(
+        el => el === contentRef.current
+      );
+      
+      if (currentIndex > 0) {
+        const previousElement = visibleBullets[currentIndex - 1];
+        const previousContent = previousElement.textContent || '';
+        const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
+        
+        if (previousBulletId) {
+          if (content.length === 0) {
+            if (visibleBullets.length > 1 && bullet.children.length === 0) {
+              onDelete(bullet.id);
+              
+              requestAnimationFrame(() => {
+                previousElement.focus();
+                try {
+                  const selection = window.getSelection();
+                  const range = document.createRange();
+                  const textNode = previousElement.firstChild || previousElement;
+                  const position = previousContent.length;
+                  range.setStart(textNode, position);
+                  range.setEnd(textNode, position);
+                  selection?.removeAllRanges();
+                  selection?.addRange(range);
+                } catch (err) {
+                  console.error('Failed to set cursor position:', err);
+                }
+              });
+            }
+          } else {
+            e.preventDefault();
+            onUpdate(previousBulletId, previousContent + content);
+            setPendingDelete({ 
+              bulletId: bullet.id, 
+              previousContent: previousContent + content,
+              previousBulletId
+            });
+            
+            requestAnimationFrame(() => {
+              previousElement.focus();
+              try {
+                const selection = window.getSelection();
+                const range = document.createRange();
+                const textNode = previousElement.firstChild || previousElement;
+                const position = previousContent.length;
+                range.setStart(textNode, position);
+                range.setEnd(textNode, position);
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+              } catch (err) {
+                console.error('Failed to set cursor position:', err);
+              }
+            });
+          }
+        }
+      }
+    }
+  };
 
   const handleInput = () => {
     if (mode === "theirs") return;
