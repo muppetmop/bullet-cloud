@@ -41,7 +41,6 @@ export const useKeyboardHandlers = ({
     const range = selection?.getRangeAt(0);
     const pos = range?.startOffset || 0;
 
-    // These keyboard actions should work the same on all devices
     if (e.key === "Enter") {
       e.preventDefault();
       const beforeCursor = content.slice(0, pos);
@@ -126,6 +125,8 @@ const handleBackspaceKey = (
     
     // Only proceed if we're not at the first bullet
     if (currentIndex > 0) {
+      e.preventDefault(); // Prevent default backspace behavior
+      
       const previousElement = visibleBullets[currentIndex - 1];
       const previousContent = previousElement.textContent || '';
       const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
@@ -135,14 +136,46 @@ const handleBackspaceKey = (
           // If current bullet is empty, delete it and move cursor to end of previous bullet
           if (visibleBullets.length > 1 && bullet.children.length === 0) {
             onDelete(bullet.id);
+            
+            requestAnimationFrame(() => {
+              previousElement.focus();
+              try {
+                const selection = window.getSelection();
+                const range = document.createRange();
+                const textNode = previousElement.firstChild || previousElement;
+                const position = previousContent.length;
+                range.setStart(textNode, position);
+                range.setEnd(textNode, position);
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+              } catch (err) {
+                console.error('Failed to set cursor position:', err);
+              }
+            });
           }
         } else {
           // If current bullet has content, merge with previous bullet
-          e.preventDefault();
           onUpdate(previousBulletId, previousContent + content);
+          
           setTimeout(() => {
             onDelete(bullet.id);
           }, 100);
+          
+          requestAnimationFrame(() => {
+            previousElement.focus();
+            try {
+              const selection = window.getSelection();
+              const range = document.createRange();
+              const textNode = previousElement.firstChild || previousElement;
+              const position = previousContent.length;
+              range.setStart(textNode, position);
+              range.setEnd(textNode, position);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            } catch (err) {
+              console.error('Failed to set cursor position:', err);
+            }
+          });
         }
       }
     }

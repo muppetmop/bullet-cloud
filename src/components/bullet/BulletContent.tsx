@@ -30,7 +30,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
   onTransferChildren,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const lastTouchRef = useRef<number>(0);
   
   const {
     handleKeyDown,
@@ -72,6 +71,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
           onTransferChildren(bullet.id, newBulletId);
         }
 
+        // Focus logic based on the focusOriginal flag
         requestAnimationFrame(() => {
           const elementToFocus = pendingSplit.focusOriginal
             ? document.querySelector(`[data-id="${bullet.id}"] .bullet-content`)
@@ -79,6 +79,18 @@ const BulletContent: React.FC<BulletContentProps> = ({
           
           if (elementToFocus instanceof HTMLElement) {
             elementToFocus.focus();
+            try {
+              const selection = window.getSelection();
+              const range = document.createRange();
+              const textNode = elementToFocus.firstChild || elementToFocus;
+              const position = pendingSplit.focusOriginal ? 0 : 0;
+              range.setStart(textNode, position);
+              range.setEnd(textNode, position);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            } catch (err) {
+              console.error('Failed to set cursor position:', err);
+            }
           }
         });
 
@@ -92,19 +104,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
     if (mode === "theirs") return;
     const content = contentRef.current?.textContent || "";
     onUpdate(bullet.id, content);
-  };
-
-  const handleTouchStart = () => {
-    lastTouchRef.current = Date.now();
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (Date.now() - lastTouchRef.current < 200) {
-      if (contentRef.current) {
-        contentRef.current.focus();
-        e.stopPropagation();
-      }
-    }
   };
 
   return (
@@ -123,7 +122,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
       )}
       <div className={`bullet-wrapper ${mode === "theirs" ? "theirs-mode" : ""}`}>
         <span 
-          className="bullet-icon"
+          className="w-4 h-4 inline-flex items-center justify-center mt-1 cursor-pointer bullet-icon"
           onClick={() => onZoom(bullet.id)}
         >
           ◉
@@ -134,10 +133,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
           contentEditable={mode !== "theirs"}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
           suppressContentEditableWarning
-          tabIndex={0}
         />
       </div>
     </>

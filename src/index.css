@@ -81,12 +81,8 @@
 }
 
 .bullet-content {
-  @apply outline-none w-full min-h-[2rem] sm:min-h-[1.5rem] focus:outline-none;
+  @apply outline-none w-full min-h-[2rem] sm:min-h-[1.5rem];
   margin-bottom: 2px;
-  cursor: text;
-  -webkit-user-select: text;
-  user-select: text;
-  touch-action: manipulation;
 }
 
 .bullet-content.theirs-mode {
