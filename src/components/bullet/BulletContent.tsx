@@ -1,6 +1,5 @@
 import React, { useRef, KeyboardEvent, useEffect } from "react";
 import { BulletPoint } from "@/types/bullet";
-import { handleTabKey, handleArrowKeys } from "@/utils/keyboardHandlers";
 import { BulletIcon } from "./BulletIcon";
 import { CollapseButton } from "./CollapseButton";
 import { useCaretPosition } from "@/hooks/useCaretPosition";
@@ -37,6 +36,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const skipNextInputRef = useRef(false);
   const lastContentRef = useRef(bullet.content);
   const isSplittingRef = useRef(false);
+  const splitTimestampRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -61,6 +61,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
       bulletChildren: bullet.children.length,
       skipNextInput: skipNextInputRef.current,
       isSplitting: isSplittingRef.current,
+      splitTimestamp: splitTimestampRef.current,
+      timeSinceSplit: splitTimestampRef.current ? Date.now() - splitTimestampRef.current : null,
       timestamp: new Date().toISOString(),
       contentRefExists: !!contentRef.current,
       selectionState: window.getSelection()?.toString() || 'No selection'
@@ -79,6 +81,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
 
       skipNextInputRef.current = true;
       isSplittingRef.current = true;
+      splitTimestampRef.current = Date.now();
       
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
@@ -118,61 +121,44 @@ const BulletContent: React.FC<BulletContentProps> = ({
           onTransferChildren(bullet.id, newBulletId);
         }
 
-        // Handle focus based on cursor position
+        // Handle focus movement
+        console.log('Moving focus to new bullet:', {
+          newBulletId,
+          timestamp: new Date().toISOString()
+        });
+        
         requestAnimationFrame(() => {
-          if (pos === 0) {
-            console.log('Cursor at start, keeping focus on original bullet:', {
-              bulletId: bullet.id,
-              timestamp: new Date().toISOString()
-            });
-            const originalElement = document.querySelector(
-              `[data-id="${bullet.id}"] .bullet-content`
-            ) as HTMLElement;
-            
-            if (originalElement) {
-              originalElement.focus();
-              try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const textNode = originalElement.firstChild || originalElement;
-                range.setStart(textNode, 0);
-                range.setEnd(textNode, 0);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-              } catch (err) {
-                console.error('Failed to set cursor position:', err);
-              }
-            }
-          } else {
-            console.log('Moving focus to new bullet:', {
-              newBulletId,
-              timestamp: new Date().toISOString()
-            });
-            const newElement = document.querySelector(
-              `[data-id="${newBulletId}"] .bullet-content`
-            ) as HTMLElement;
-            
-            if (newElement) {
-              newElement.focus();
-              try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const textNode = newElement.firstChild || newElement;
-                range.setStart(textNode, 0);
-                range.setEnd(textNode, 0);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-              } catch (err) {
-                console.error('Failed to set cursor position:', err);
-              }
+          const newElement = document.querySelector(
+            `[data-id="${newBulletId}"] .bullet-content`
+          ) as HTMLElement;
+          
+          console.log('Focus movement attempt:', {
+            newElementFound: !!newElement,
+            timestamp: new Date().toISOString()
+          });
+          
+          if (newElement) {
+            newElement.focus();
+            try {
+              const selection = window.getSelection();
+              const range = document.createRange();
+              const textNode = newElement.firstChild || newElement;
+              range.setStart(textNode, 0);
+              range.setEnd(textNode, 0);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+              
+              console.log('Focus and cursor position set:', {
+                success: true,
+                timestamp: new Date().toISOString()
+              });
+            } catch (err) {
+              console.error('Failed to set cursor position:', err);
             }
           }
           isSplittingRef.current = false;
-          lastContentRef.current = beforeCursor;
         });
       }
-    } else if (e.key === "Tab") {
-      handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
     } else if (e.key === "Backspace") {
       console.log('Backspace pressed:', {
         bulletId: bullet.id,
@@ -182,13 +168,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
         timestamp: new Date().toISOString()
       });
 
-      const selection = window.getSelection();
-      
-      if (selection && !selection.isCollapsed) {
-        console.log('Text is selected, allowing default backspace behavior');
-        return;
-      }
-      
       if (pos === 0) {
         const visibleBullets = Array.from(
           document.querySelectorAll('.bullet-content')
@@ -214,15 +193,18 @@ const BulletContent: React.FC<BulletContentProps> = ({
             previousBulletId,
             previousContent,
             currentContent: content,
+            timeSinceSplit: splitTimestampRef.current ? Date.now() - splitTimestampRef.current : null,
             timestamp: new Date().toISOString()
           });
           
           if (previousBulletId) {
             if (content.length === 0) {
-              console.log('Current bullet is empty, attempting deletion:', {
+              console.log('Empty bullet deletion:', {
                 bulletId: bullet.id,
+                previousBulletId,
                 timestamp: new Date().toISOString()
               });
+              
               if (visibleBullets.length > 1 && bullet.children.length === 0) {
                 onDelete(bullet.id);
                 
@@ -237,18 +219,24 @@ const BulletContent: React.FC<BulletContentProps> = ({
                     range.setEnd(textNode, position);
                     selection?.removeAllRanges();
                     selection?.addRange(range);
+                    
+                    console.log('Focus returned to previous bullet:', {
+                      success: true,
+                      position,
+                      timestamp: new Date().toISOString()
+                    });
                   } catch (err) {
                     console.error('Failed to set cursor position:', err);
                   }
                 });
               }
             } else {
-              // Normal backspace merge behavior
               console.log('Normal backspace merge:', {
                 fromBulletId: bullet.id,
                 toBulletId: previousBulletId,
                 timestamp: new Date().toISOString()
               });
+              
               e.preventDefault();
               onUpdate(previousBulletId, previousContent + content);
               onDelete(bullet.id);
@@ -264,6 +252,12 @@ const BulletContent: React.FC<BulletContentProps> = ({
                   range.setEnd(textNode, position);
                   selection?.removeAllRanges();
                   selection?.addRange(range);
+                  
+                  console.log('Merge complete, focus set:', {
+                    success: true,
+                    position,
+                    timestamp: new Date().toISOString()
+                  });
                 } catch (err) {
                   console.error('Failed to set cursor position:', err);
                 }
@@ -272,15 +266,46 @@ const BulletContent: React.FC<BulletContentProps> = ({
           }
         }
       }
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      onUpdate(bullet.id, content);
+      
+      if (e.shiftKey && onOutdent) {
+        onOutdent(bullet.id);
+      } else if (!e.shiftKey && onIndent) {
+        onIndent(bullet.id);
+      }
+
+      setTimeout(() => {
+        const element = document.querySelector(
+          `[data-id="${bullet.id}"] .bullet-content`
+        ) as HTMLElement;
+        if (element) {
+          element.focus();
+          try {
+            const range = document.createRange();
+            const selection = window.getSelection();
+            const textNode = element.firstChild || element;
+            range.setStart(textNode, pos);
+            range.setEnd(textNode, pos);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          } catch (err) {
+            console.error('Failed to restore cursor position:', err);
+          }
+        }
+      }, 0);
     } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
+      e.preventDefault();
+      onUpdate(bullet.id, content);
+      onNavigate(e.key === "ArrowUp" ? "up" : "down", bullet.id);
     }
   };
 
   const handleInput = () => {
     if (mode === "theirs") return;
     if (skipNextInputRef.current) {
-      console.log('Skipping input handler due to skipNextInputRef:', {
+      console.log('Skipping input handler:', {
         bulletId: bullet.id,
         timestamp: new Date().toISOString()
       });
