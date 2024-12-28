@@ -37,6 +37,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const lastContentRef = useRef(bullet.content);
   const isSplittingRef = useRef(false);
   const splitTimestampRef = useRef<number | null>(null);
+  const lastOperationTimestampRef = useRef<number>(Date.now());
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -46,6 +47,21 @@ const BulletContent: React.FC<BulletContentProps> = ({
     }
   }, [bullet.content]);
 
+  const logOperationTiming = (operation: string, details: any = {}) => {
+    const now = Date.now();
+    const timeSinceLastOperation = now - lastOperationTimestampRef.current;
+    console.log(`Operation Timing - ${operation}:`, {
+      ...details,
+      timeSinceLastOperation,
+      timestamp: new Date(now).toISOString(),
+      bulletId: bullet.id,
+      isSplitting: isSplittingRef.current,
+      splitTimestamp: splitTimestampRef.current ? new Date(splitTimestampRef.current).toISOString() : null,
+      timeSinceSplit: splitTimestampRef.current ? now - splitTimestampRef.current : null,
+    });
+    lastOperationTimestampRef.current = now;
+  };
+
   const handleKeyDown = (e: KeyboardEvent) => {
     if (mode === "theirs") return;
     
@@ -53,29 +69,27 @@ const BulletContent: React.FC<BulletContentProps> = ({
     saveCaretPosition();
     const pos = currentPosition();
 
-    console.log('KeyDown Event:', {
+    logOperationTiming('KeyDown', {
       key: e.key,
-      bulletId: bullet.id,
       content,
       cursorPosition: pos,
       bulletChildren: bullet.children.length,
       skipNextInput: skipNextInputRef.current,
       isSplitting: isSplittingRef.current,
-      splitTimestamp: splitTimestampRef.current,
-      timeSinceSplit: splitTimestampRef.current ? Date.now() - splitTimestampRef.current : null,
-      timestamp: new Date().toISOString(),
-      contentRefExists: !!contentRef.current,
-      selectionState: window.getSelection()?.toString() || 'No selection'
+      domState: {
+        contentRefExists: !!contentRef.current,
+        hasSelection: window.getSelection()?.toString() || 'No selection',
+        activeElement: document.activeElement?.tagName,
+      }
     });
 
     if (e.key === "Enter") {
       e.preventDefault();
-      console.log('Enter pressed:', {
+      logOperationTiming('Enter pressed', {
         beforeSplit: {
           content,
           cursorPosition: pos,
-          bulletId: bullet.id,
-          timestamp: new Date().toISOString()
+          bulletId: bullet.id
         }
       });
 
@@ -86,55 +100,43 @@ const BulletContent: React.FC<BulletContentProps> = ({
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
       
-      console.log('Content split:', {
+      logOperationTiming('Content split', {
         beforeCursor,
         afterCursor,
-        originalContent: content,
-        timestamp: new Date().toISOString()
+        originalContent: content
       });
 
-      // First update the original bullet to only keep content before cursor
       if (contentRef.current) {
         contentRef.current.textContent = beforeCursor;
       }
       onUpdate(bullet.id, beforeCursor);
       
-      // Create new bullet with content after cursor
       const newBulletId = onNewBullet(bullet.id);
       
-      console.log('New bullet created:', {
+      logOperationTiming('New bullet created', {
         newBulletId,
-        contentToMove: afterCursor,
-        timestamp: new Date().toISOString()
+        contentToMove: afterCursor
       });
       
       if (newBulletId) {
         onUpdate(newBulletId, afterCursor);
         
         if (bullet.children.length > 0 && onTransferChildren) {
-          console.log('Transferring children:', {
+          logOperationTiming('Transferring children', {
             fromBulletId: bullet.id,
             toBulletId: newBulletId,
-            childrenCount: bullet.children.length,
-            timestamp: new Date().toISOString()
+            childrenCount: bullet.children.length
           });
           onTransferChildren(bullet.id, newBulletId);
         }
 
-        // Handle focus movement
-        console.log('Moving focus to new bullet:', {
-          newBulletId,
-          timestamp: new Date().toISOString()
-        });
-        
         requestAnimationFrame(() => {
           const newElement = document.querySelector(
             `[data-id="${newBulletId}"] .bullet-content`
           ) as HTMLElement;
           
-          console.log('Focus movement attempt:', {
-            newElementFound: !!newElement,
-            timestamp: new Date().toISOString()
+          logOperationTiming('Focus movement attempt', {
+            newElementFound: !!newElement
           });
           
           if (newElement) {
@@ -148,24 +150,26 @@ const BulletContent: React.FC<BulletContentProps> = ({
               selection?.removeAllRanges();
               selection?.addRange(range);
               
-              console.log('Focus and cursor position set:', {
-                success: true,
-                timestamp: new Date().toISOString()
+              logOperationTiming('Focus and cursor position set', {
+                success: true
               });
             } catch (err) {
               console.error('Failed to set cursor position:', err);
+              logOperationTiming('Focus and cursor position set', {
+                success: false,
+                error: err
+              });
             }
           }
           isSplittingRef.current = false;
         });
       }
     } else if (e.key === "Backspace") {
-      console.log('Backspace pressed:', {
+      logOperationTiming('Backspace pressed', {
         bulletId: bullet.id,
         content,
         cursorPosition: pos,
-        skipNextInput: skipNextInputRef.current,
-        timestamp: new Date().toISOString()
+        skipNextInput: skipNextInputRef.current
       });
 
       if (pos === 0) {
@@ -177,11 +181,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
           el => el === contentRef.current
         );
         
-        console.log('Cursor at start of line:', {
+        logOperationTiming('Cursor at start of line', {
           currentIndex,
           totalBullets: visibleBullets.length,
-          hasContent: content.length > 0,
-          timestamp: new Date().toISOString()
+          hasContent: content.length > 0
         });
         
         if (currentIndex > 0) {
@@ -189,20 +192,18 @@ const BulletContent: React.FC<BulletContentProps> = ({
           const previousContent = previousElement.textContent || '';
           const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
           
-          console.log('Previous bullet found:', {
+          logOperationTiming('Previous bullet found', {
             previousBulletId,
             previousContent,
             currentContent: content,
-            timeSinceSplit: splitTimestampRef.current ? Date.now() - splitTimestampRef.current : null,
-            timestamp: new Date().toISOString()
+            timeSinceSplit: splitTimestampRef.current ? Date.now() - splitTimestampRef.current : null
           });
           
           if (previousBulletId) {
             if (content.length === 0) {
-              console.log('Empty bullet deletion:', {
+              logOperationTiming('Empty bullet deletion', {
                 bulletId: bullet.id,
-                previousBulletId,
-                timestamp: new Date().toISOString()
+                previousBulletId
               });
               
               if (visibleBullets.length > 1 && bullet.children.length === 0) {
@@ -220,26 +221,31 @@ const BulletContent: React.FC<BulletContentProps> = ({
                     selection?.removeAllRanges();
                     selection?.addRange(range);
                     
-                    console.log('Focus returned to previous bullet:', {
+                    logOperationTiming('Focus returned to previous bullet', {
                       success: true,
-                      position,
-                      timestamp: new Date().toISOString()
+                      position
                     });
                   } catch (err) {
                     console.error('Failed to set cursor position:', err);
+                    logOperationTiming('Focus returned to previous bullet', {
+                      success: false,
+                      error: err
+                    });
                   }
                 });
               }
             } else {
-              console.log('Normal backspace merge:', {
+              logOperationTiming('Normal backspace merge', {
                 fromBulletId: bullet.id,
-                toBulletId: previousBulletId,
-                timestamp: new Date().toISOString()
+                toBulletId: previousBulletId
               });
               
               e.preventDefault();
               onUpdate(previousBulletId, previousContent + content);
-              onDelete(bullet.id);
+              
+              setTimeout(() => {
+                onDelete(bullet.id);
+              }, 100);
               
               requestAnimationFrame(() => {
                 previousElement.focus();
@@ -253,13 +259,16 @@ const BulletContent: React.FC<BulletContentProps> = ({
                   selection?.removeAllRanges();
                   selection?.addRange(range);
                   
-                  console.log('Merge complete, focus set:', {
+                  logOperationTiming('Merge complete, focus set', {
                     success: true,
-                    position,
-                    timestamp: new Date().toISOString()
+                    position
                   });
                 } catch (err) {
                   console.error('Failed to set cursor position:', err);
+                  logOperationTiming('Merge complete, focus set', {
+                    success: false,
+                    error: err
+                  });
                 }
               });
             }
@@ -305,21 +314,19 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const handleInput = () => {
     if (mode === "theirs") return;
     if (skipNextInputRef.current) {
-      console.log('Skipping input handler:', {
-        bulletId: bullet.id,
-        timestamp: new Date().toISOString()
+      logOperationTiming('Skipping input handler', {
+        bulletId: bullet.id
       });
       skipNextInputRef.current = false;
       return;
     }
     saveCaretPosition();
     const content = contentRef.current?.textContent || lastContentRef.current;
-    console.log('Input handler:', {
+    logOperationTiming('Input handler', {
       bulletId: bullet.id,
       newContent: content,
       previousContent: lastContentRef.current,
-      isSplitting: isSplittingRef.current,
-      timestamp: new Date().toISOString()
+      isSplitting: isSplittingRef.current
     });
     onUpdate(bullet.id, content);
     if (!isSplittingRef.current) {
