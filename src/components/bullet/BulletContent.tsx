@@ -36,11 +36,14 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const { saveCaretPosition, restoreCaretPosition, currentPosition } = useCaretPosition(contentRef);
   const skipNextInputRef = useRef(false);
   const lastContentRef = useRef(bullet.content);
+  const isSplittingRef = useRef(false);
 
   useEffect(() => {
     if (!contentRef.current) return;
     contentRef.current.textContent = bullet.content;
-    lastContentRef.current = bullet.content;
+    if (!isSplittingRef.current) {
+      lastContentRef.current = bullet.content;
+    }
   }, [bullet.content]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -53,6 +56,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
     if (e.key === "Enter") {
       e.preventDefault();
       skipNextInputRef.current = true;
+      isSplittingRef.current = true;
       
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
@@ -60,7 +64,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
       // First update the original bullet to only keep content before cursor
       if (contentRef.current) {
         contentRef.current.textContent = beforeCursor;
-        lastContentRef.current = beforeCursor;
       }
       onUpdate(bullet.id, beforeCursor);
       
@@ -117,6 +120,9 @@ const BulletContent: React.FC<BulletContentProps> = ({
               }
             }
           }
+          // Reset the splitting flag after focus is handled
+          isSplittingRef.current = false;
+          lastContentRef.current = beforeCursor;
         });
       }
     } else if (e.key === "Tab") {
@@ -205,7 +211,9 @@ const BulletContent: React.FC<BulletContentProps> = ({
     saveCaretPosition();
     const content = contentRef.current?.textContent || lastContentRef.current;
     onUpdate(bullet.id, content);
-    lastContentRef.current = content;
+    if (!isSplittingRef.current) {
+      lastContentRef.current = content;
+    }
     requestAnimationFrame(() => {
       restoreCaretPosition();
     });
