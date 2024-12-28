@@ -1,8 +1,9 @@
-import React, { useRef, KeyboardEvent, useEffect } from "react";
+import React, { useRef, KeyboardEvent } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { BulletIcon } from "./BulletIcon";
 import { CollapseButton } from "./CollapseButton";
 import { useCaretPosition } from "@/hooks/useCaretPosition";
+import { handleBackspaceAtStart } from "@/utils/bulletKeyboardHandlers";
 
 interface BulletContentProps {
   bullet: BulletPoint;
@@ -62,7 +63,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
     lastOperationTimestampRef.current = now;
   };
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = async (e: KeyboardEvent) => {
     if (mode === "theirs") return;
     
     const content = contentRef.current?.textContent || "";
@@ -173,107 +174,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
       });
 
       if (pos === 0) {
-        const visibleBullets = Array.from(
-          document.querySelectorAll('.bullet-content')
-        ) as HTMLElement[];
-        
-        const currentIndex = visibleBullets.findIndex(
-          el => el === contentRef.current
-        );
-        
-        logOperationTiming('Cursor at start of line', {
-          currentIndex,
-          totalBullets: visibleBullets.length,
-          hasContent: content.length > 0
-        });
-        
-        if (currentIndex > 0) {
-          const previousElement = visibleBullets[currentIndex - 1];
-          const previousContent = previousElement.textContent || '';
-          const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
-          
-          logOperationTiming('Previous bullet found', {
-            previousBulletId,
-            previousContent,
-            currentContent: content,
-            timeSinceSplit: splitTimestampRef.current ? Date.now() - splitTimestampRef.current : null
-          });
-          
-          if (previousBulletId) {
-            if (content.length === 0) {
-              logOperationTiming('Empty bullet deletion', {
-                bulletId: bullet.id,
-                previousBulletId
-              });
-              
-              if (visibleBullets.length > 1 && bullet.children.length === 0) {
-                onDelete(bullet.id);
-                
-                requestAnimationFrame(() => {
-                  previousElement.focus();
-                  try {
-                    const selection = window.getSelection();
-                    const range = document.createRange();
-                    const textNode = previousElement.firstChild || previousElement;
-                    const position = previousContent.length;
-                    range.setStart(textNode, position);
-                    range.setEnd(textNode, position);
-                    selection?.removeAllRanges();
-                    selection?.addRange(range);
-                    
-                    logOperationTiming('Focus returned to previous bullet', {
-                      success: true,
-                      position
-                    });
-                  } catch (err) {
-                    console.error('Failed to set cursor position:', err);
-                    logOperationTiming('Focus returned to previous bullet', {
-                      success: false,
-                      error: err
-                    });
-                  }
-                });
-              }
-            } else {
-              logOperationTiming('Normal backspace merge', {
-                fromBulletId: bullet.id,
-                toBulletId: previousBulletId
-              });
-              
-              e.preventDefault();
-              onUpdate(previousBulletId, previousContent + content);
-              
-              setTimeout(() => {
-                onDelete(bullet.id);
-              }, 100);
-              
-              requestAnimationFrame(() => {
-                previousElement.focus();
-                try {
-                  const selection = window.getSelection();
-                  const range = document.createRange();
-                  const textNode = previousElement.firstChild || previousElement;
-                  const position = previousContent.length;
-                  range.setStart(textNode, position);
-                  range.setEnd(textNode, position);
-                  selection?.removeAllRanges();
-                  selection?.addRange(range);
-                  
-                  logOperationTiming('Merge complete, focus set', {
-                    success: true,
-                    position
-                  });
-                } catch (err) {
-                  console.error('Failed to set cursor position:', err);
-                  logOperationTiming('Merge complete, focus set', {
-                    success: false,
-                    error: err
-                  });
-                }
-              });
-            }
-          }
-        }
+        e.preventDefault();
+        await handleBackspaceAtStart(content, bullet, contentRef, onUpdate, onDelete);
       }
     } else if (e.key === "Tab") {
       e.preventDefault();
