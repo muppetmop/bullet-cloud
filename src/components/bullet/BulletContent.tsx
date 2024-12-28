@@ -35,6 +35,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const { saveCaretPosition, restoreCaretPosition, currentPosition } = useCaretPosition(contentRef);
   const skipNextInputRef = useRef(false);
+  const mergeInProgressRef = useRef(false);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -69,7 +70,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
           onTransferChildren(bullet.id, newBulletId);
         }
 
-        // Handle focus based on cursor position
+        // Focus handling
         requestAnimationFrame(() => {
           if (pos === 0) {
             // When at start of line, focus stays on original bullet
@@ -117,37 +118,53 @@ const BulletContent: React.FC<BulletContentProps> = ({
     } else if (e.key === "Tab") {
       handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
     } else if (e.key === "Backspace") {
-      handleBackspace(e, content, pos);
-    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
-    }
-  };
-
-  const handleBackspace = (e: KeyboardEvent, content: string, pos: number) => {
-    const selection = window.getSelection();
-    
-    if (selection && !selection.isCollapsed) {
-      return;
-    }
-    
-    if (pos === 0) {
-      const visibleBullets = Array.from(
-        document.querySelectorAll('.bullet-content')
-      ) as HTMLElement[];
-      
-      const currentIndex = visibleBullets.findIndex(
-        el => el === contentRef.current
-      );
-      
-      if (currentIndex > 0) {
-        const previousElement = visibleBullets[currentIndex - 1];
-        const previousContent = previousElement.textContent || '';
-        const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
+      if (pos === 0 && !mergeInProgressRef.current) {
+        const visibleBullets = Array.from(
+          document.querySelectorAll('.bullet-content')
+        ) as HTMLElement[];
         
-        if (previousBulletId) {
-          if (content.length === 0) {
-            if (visibleBullets.length > 1 && bullet.children.length === 0) {
-              onDelete(bullet.id);
+        const currentIndex = visibleBullets.findIndex(
+          el => el === contentRef.current
+        );
+        
+        if (currentIndex > 0) {
+          const previousElement = visibleBullets[currentIndex - 1];
+          const previousContent = previousElement.textContent || '';
+          const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
+          
+          if (previousBulletId) {
+            if (content.length === 0) {
+              if (visibleBullets.length > 1 && bullet.children.length === 0) {
+                onDelete(bullet.id);
+                
+                requestAnimationFrame(() => {
+                  previousElement.focus();
+                  try {
+                    const selection = window.getSelection();
+                    const range = document.createRange();
+                    const textNode = previousElement.firstChild || previousElement;
+                    const position = previousContent.length;
+                    range.setStart(textNode, position);
+                    range.setEnd(textNode, position);
+                    selection?.removeAllRanges();
+                    selection?.addRange(range);
+                  } catch (err) {
+                    console.error('Failed to set cursor position:', err);
+                  }
+                });
+              }
+            } else {
+              e.preventDefault();
+              mergeInProgressRef.current = true;
+              
+              // Update previous bullet with merged content
+              onUpdate(previousBulletId, previousContent + content);
+              
+              // Delete current bullet after content is merged
+              setTimeout(() => {
+                onDelete(bullet.id);
+                mergeInProgressRef.current = false;
+              }, 0);
               
               requestAnimationFrame(() => {
                 previousElement.focus();
@@ -165,29 +182,11 @@ const BulletContent: React.FC<BulletContentProps> = ({
                 }
               });
             }
-          } else {
-            e.preventDefault();
-            onUpdate(previousBulletId, previousContent + content);
-            onDelete(bullet.id);
-            
-            requestAnimationFrame(() => {
-              previousElement.focus();
-              try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const textNode = previousElement.firstChild || previousElement;
-                const position = previousContent.length;
-                range.setStart(textNode, position);
-                range.setEnd(textNode, position);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-              } catch (err) {
-                console.error('Failed to set cursor position:', err);
-              }
-            });
           }
         }
       }
+    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
     }
   };
 
@@ -195,6 +194,9 @@ const BulletContent: React.FC<BulletContentProps> = ({
     if (mode === "theirs") return;
     if (skipNextInputRef.current) {
       skipNextInputRef.current = false;
+      return;
+    }
+    if (mergeInProgressRef.current) {
       return;
     }
     saveCaretPosition();
