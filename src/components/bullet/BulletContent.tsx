@@ -60,7 +60,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
       cursorPosition: pos,
       bulletChildren: bullet.children.length,
       skipNextInput: skipNextInputRef.current,
-      isSplitting: isSplittingRef.current
+      isSplitting: isSplittingRef.current,
+      timestamp: new Date().toISOString(),
+      contentRefExists: !!contentRef.current,
+      selectionState: window.getSelection()?.toString() || 'No selection'
     });
 
     if (e.key === "Enter") {
@@ -69,7 +72,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
         beforeSplit: {
           content,
           cursorPosition: pos,
-          bulletId: bullet.id
+          bulletId: bullet.id,
+          timestamp: new Date().toISOString()
         }
       });
 
@@ -82,7 +86,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
       console.log('Content split:', {
         beforeCursor,
         afterCursor,
-        originalContent: content
+        originalContent: content,
+        timestamp: new Date().toISOString()
       });
 
       // First update the original bullet to only keep content before cursor
@@ -96,7 +101,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
       
       console.log('New bullet created:', {
         newBulletId,
-        contentToMove: afterCursor
+        contentToMove: afterCursor,
+        timestamp: new Date().toISOString()
       });
       
       if (newBulletId) {
@@ -106,7 +112,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
           console.log('Transferring children:', {
             fromBulletId: bullet.id,
             toBulletId: newBulletId,
-            childrenCount: bullet.children.length
+            childrenCount: bullet.children.length,
+            timestamp: new Date().toISOString()
           });
           onTransferChildren(bullet.id, newBulletId);
         }
@@ -114,7 +121,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
         // Handle focus based on cursor position
         requestAnimationFrame(() => {
           if (pos === 0) {
-            console.log('Cursor at start, keeping focus on original bullet:', bullet.id);
+            console.log('Cursor at start, keeping focus on original bullet:', {
+              bulletId: bullet.id,
+              timestamp: new Date().toISOString()
+            });
             const originalElement = document.querySelector(
               `[data-id="${bullet.id}"] .bullet-content`
             ) as HTMLElement;
@@ -134,7 +144,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
               }
             }
           } else {
-            console.log('Moving focus to new bullet:', newBulletId);
+            console.log('Moving focus to new bullet:', {
+              newBulletId,
+              timestamp: new Date().toISOString()
+            });
             const newElement = document.querySelector(
               `[data-id="${newBulletId}"] .bullet-content`
             ) as HTMLElement;
@@ -165,7 +178,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
         bulletId: bullet.id,
         content,
         cursorPosition: pos,
-        skipNextInput: skipNextInputRef.current
+        skipNextInput: skipNextInputRef.current,
+        timestamp: new Date().toISOString()
       });
 
       const selection = window.getSelection();
@@ -187,7 +201,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
         console.log('Cursor at start of line:', {
           currentIndex,
           totalBullets: visibleBullets.length,
-          hasContent: content.length > 0
+          hasContent: content.length > 0,
+          timestamp: new Date().toISOString()
         });
         
         if (currentIndex > 0) {
@@ -198,12 +213,16 @@ const BulletContent: React.FC<BulletContentProps> = ({
           console.log('Previous bullet found:', {
             previousBulletId,
             previousContent,
-            currentContent: content
+            currentContent: content,
+            timestamp: new Date().toISOString()
           });
           
           if (previousBulletId) {
             if (content.length === 0) {
-              console.log('Current bullet is empty, attempting deletion');
+              console.log('Current bullet is empty, attempting deletion:', {
+                bulletId: bullet.id,
+                timestamp: new Date().toISOString()
+              });
               if (visibleBullets.length > 1 && bullet.children.length === 0) {
                 onDelete(bullet.id);
                 
@@ -225,7 +244,11 @@ const BulletContent: React.FC<BulletContentProps> = ({
               }
             } else {
               // Normal backspace merge behavior
-              console.log('Normal backspace merge');
+              console.log('Normal backspace merge:', {
+                fromBulletId: bullet.id,
+                toBulletId: previousBulletId,
+                timestamp: new Date().toISOString()
+              });
               e.preventDefault();
               onUpdate(previousBulletId, previousContent + content);
               onDelete(bullet.id);
@@ -257,7 +280,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const handleInput = () => {
     if (mode === "theirs") return;
     if (skipNextInputRef.current) {
-      console.log('Skipping input handler due to skipNextInputRef');
+      console.log('Skipping input handler due to skipNextInputRef:', {
+        bulletId: bullet.id,
+        timestamp: new Date().toISOString()
+      });
       skipNextInputRef.current = false;
       return;
     }
@@ -267,7 +293,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
       bulletId: bullet.id,
       newContent: content,
       previousContent: lastContentRef.current,
-      isSplitting: isSplittingRef.current
+      isSplitting: isSplittingRef.current,
+      timestamp: new Date().toISOString()
     });
     onUpdate(bullet.id, content);
     if (!isSplittingRef.current) {
