@@ -35,10 +35,12 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const { saveCaretPosition, restoreCaretPosition, currentPosition } = useCaretPosition(contentRef);
   const skipNextInputRef = useRef(false);
+  const lastContentRef = useRef(bullet.content);
 
   useEffect(() => {
     if (!contentRef.current) return;
     contentRef.current.textContent = bullet.content;
+    lastContentRef.current = bullet.content;
   }, [bullet.content]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -58,6 +60,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
       // First update the original bullet to only keep content before cursor
       if (contentRef.current) {
         contentRef.current.textContent = beforeCursor;
+        lastContentRef.current = beforeCursor;
       }
       onUpdate(bullet.id, beforeCursor);
       
@@ -200,8 +203,9 @@ const BulletContent: React.FC<BulletContentProps> = ({
       return;
     }
     saveCaretPosition();
-    const content = contentRef.current?.textContent || "";
+    const content = contentRef.current?.textContent || lastContentRef.current;
     onUpdate(bullet.id, content);
+    lastContentRef.current = content;
     requestAnimationFrame(() => {
       restoreCaretPosition();
     });
