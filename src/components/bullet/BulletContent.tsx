@@ -52,18 +52,21 @@ const BulletContent: React.FC<BulletContentProps> = ({
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
       
-      if (pos === 0 && content.length > 0) {
-        // When at start of line with content after cursor
-        onUpdate(bullet.id, afterCursor);
-        const newBulletId = onNewBullet(bullet.id);
+      // Update original bullet with content before cursor
+      onUpdate(bullet.id, beforeCursor);
+      
+      // Create new bullet with content after cursor
+      const newBulletId = onNewBullet(bullet.id);
+      
+      if (newBulletId) {
+        onUpdate(newBulletId, afterCursor);
         
-        if (newBulletId) {
-          onUpdate(newBulletId, '');
-          
-          if (bullet.children.length > 0 && onTransferChildren) {
-            onTransferChildren(bullet.id, newBulletId);
-          }
+        if (bullet.children.length > 0 && onTransferChildren) {
+          onTransferChildren(bullet.id, newBulletId);
+        }
 
+        // If at start of line, focus original bullet
+        if (pos === 0) {
           requestAnimationFrame(() => {
             const originalElement = document.querySelector(
               `[data-id="${bullet.id}"] .bullet-content`
@@ -84,19 +87,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
               }
             }
           });
-        }
-      } else {
-        // Normal enter behavior
-        onUpdate(bullet.id, beforeCursor);
-        const newBulletId = onNewBullet(bullet.id);
-        
-        if (newBulletId) {
-          onUpdate(newBulletId, afterCursor);
-          
-          if (bullet.children.length > 0 && onTransferChildren) {
-            onTransferChildren(bullet.id, newBulletId);
-          }
-
+        } else {
+          // Otherwise, focus new bullet
           requestAnimationFrame(() => {
             const newElement = document.querySelector(
               `[data-id="${newBulletId}"] .bullet-content`
