@@ -35,15 +35,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const { saveCaretPosition, restoreCaretPosition, currentPosition } = useCaretPosition(contentRef);
   const skipNextInputRef = useRef(false);
-  const lastContentRef = useRef(bullet.content);
-  const isSplittingRef = useRef(false);
 
   useEffect(() => {
     if (!contentRef.current) return;
     contentRef.current.textContent = bullet.content;
-    if (!isSplittingRef.current) {
-      lastContentRef.current = bullet.content;
-    }
   }, [bullet.content]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -56,21 +51,18 @@ const BulletContent: React.FC<BulletContentProps> = ({
     if (e.key === "Enter") {
       e.preventDefault();
       skipNextInputRef.current = true;
-      isSplittingRef.current = true;
       
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
       
-      // First update the original bullet to only keep content before cursor
-      if (contentRef.current) {
-        contentRef.current.textContent = beforeCursor;
-      }
+      // Update original bullet with content before cursor
       onUpdate(bullet.id, beforeCursor);
       
       // Create new bullet with content after cursor
       const newBulletId = onNewBullet(bullet.id);
       
       if (newBulletId) {
+        // Update new bullet with content after cursor
         onUpdate(newBulletId, afterCursor);
         
         if (bullet.children.length > 0 && onTransferChildren) {
@@ -120,9 +112,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
               }
             }
           }
-          // Reset the splitting flag after focus is handled
-          isSplittingRef.current = false;
-          lastContentRef.current = beforeCursor;
         });
       }
     } else if (e.key === "Tab") {
@@ -209,11 +198,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
       return;
     }
     saveCaretPosition();
-    const content = contentRef.current?.textContent || lastContentRef.current;
+    const content = contentRef.current?.textContent || "";
     onUpdate(bullet.id, content);
-    if (!isSplittingRef.current) {
-      lastContentRef.current = content;
-    }
     requestAnimationFrame(() => {
       restoreCaretPosition();
     });
