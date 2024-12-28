@@ -185,23 +185,55 @@ export const useBulletOperations = (
   };
 
   const deleteBullet = (id: string) => {
+    // Find the bullet and all its descendants
+    const getAllDescendantIds = (bullet: BulletPoint): string[] => {
+      let ids: string[] = [bullet.id];
+      bullet.children.forEach(child => {
+        ids = [...ids, ...getAllDescendantIds(child)];
+      });
+      return ids;
+    };
+
     setBullets(prevBullets => {
-      const deleteBulletById = (bullets: BulletPoint[]): BulletPoint[] => {
-        return bullets.filter(bullet => {
-          if (bullet.id === id) return false;
+      const findAndCollectIds = (bullets: BulletPoint[]): string[] => {
+        for (const bullet of bullets) {
+          if (bullet.id === id) {
+            return getAllDescendantIds(bullet);
+          }
           if (bullet.children.length > 0) {
-            bullet.children = deleteBulletById(bullet.children);
+            const descendantIds = findAndCollectIds(bullet.children);
+            if (descendantIds.length > 0) {
+              return descendantIds;
+            }
+          }
+        }
+        return [];
+      };
+
+      // Get all IDs that need to be deleted
+      const idsToDelete = findAndCollectIds(prevBullets);
+
+      // Queue delete operations for all affected bullets
+      idsToDelete.forEach(bulletId => {
+        addToQueue({
+          id: bulletId,
+          type: 'delete',
+          data: null
+        });
+      });
+
+      // Remove all bullets with the collected IDs
+      const deleteBulletsById = (bullets: BulletPoint[], ids: string[]): BulletPoint[] => {
+        return bullets.filter(bullet => {
+          if (ids.includes(bullet.id)) return false;
+          if (bullet.children.length > 0) {
+            bullet.children = deleteBulletsById(bullet.children, ids);
           }
           return true;
         });
       };
-      return deleteBulletById(prevBullets);
-    });
 
-    addToQueue({
-      id,
-      type: 'delete',
-      data: null
+      return deleteBulletsById(prevBullets, idsToDelete);
     });
   };
 
