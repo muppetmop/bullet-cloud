@@ -52,13 +52,14 @@ const BulletContent: React.FC<BulletContentProps> = ({
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
       
-      // Update original bullet with content before cursor
+      // Always update original bullet with content before cursor
       onUpdate(bullet.id, beforeCursor);
       
-      // Create new bullet with content after cursor
+      // Create new bullet
       const newBulletId = onNewBullet(bullet.id);
       
       if (newBulletId) {
+        // Update new bullet with content after cursor
         onUpdate(newBulletId, afterCursor);
         
         if (bullet.children.length > 0 && onTransferChildren) {
