@@ -39,6 +39,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const isSplittingRef = useRef(false);
   const splitTimestampRef = useRef<number | null>(null);
   const lastOperationTimestampRef = useRef<number>(Date.now());
+  const domUpdatePromiseRef = useRef<Promise<void> | null>(null);
+  const domUpdateResolveRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -63,6 +65,23 @@ const BulletContent: React.FC<BulletContentProps> = ({
     lastOperationTimestampRef.current = now;
   };
 
+  const waitForDomUpdate = () => {
+    if (!domUpdatePromiseRef.current) {
+      domUpdatePromiseRef.current = new Promise((resolve) => {
+        domUpdateResolveRef.current = resolve;
+      });
+    }
+    return domUpdatePromiseRef.current;
+  };
+
+  const completeDomUpdate = () => {
+    if (domUpdateResolveRef.current) {
+      domUpdateResolveRef.current();
+      domUpdatePromiseRef.current = null;
+      domUpdateResolveRef.current = null;
+    }
+  };
+
   const handleKeyDown = async (e: KeyboardEvent) => {
     if (mode === "theirs") return;
     
@@ -77,11 +96,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
       bulletChildren: bullet.children.length,
       skipNextInput: skipNextInputRef.current,
       isSplitting: isSplittingRef.current,
-      domState: {
-        contentRefExists: !!contentRef.current,
-        hasSelection: window.getSelection()?.toString() || 'No selection',
-        activeElement: document.activeElement?.tagName,
-      }
     });
 
     if (e.key === "Enter") {
@@ -101,12 +115,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
       
-      logOperationTiming('Content split', {
-        beforeCursor,
-        afterCursor,
-        originalContent: content
-      });
-
       if (contentRef.current) {
         contentRef.current.textContent = beforeCursor;
       }
@@ -114,31 +122,20 @@ const BulletContent: React.FC<BulletContentProps> = ({
       
       const newBulletId = onNewBullet(bullet.id);
       
-      logOperationTiming('New bullet created', {
-        newBulletId,
-        contentToMove: afterCursor
-      });
-      
       if (newBulletId) {
         onUpdate(newBulletId, afterCursor);
         
         if (bullet.children.length > 0 && onTransferChildren) {
-          logOperationTiming('Transferring children', {
-            fromBulletId: bullet.id,
-            toBulletId: newBulletId,
-            childrenCount: bullet.children.length
-          });
           onTransferChildren(bullet.id, newBulletId);
         }
+
+        // Create a new DOM update promise
+        await waitForDomUpdate();
 
         requestAnimationFrame(() => {
           const newElement = document.querySelector(
             `[data-id="${newBulletId}"] .bullet-content`
           ) as HTMLElement;
-          
-          logOperationTiming('Focus movement attempt', {
-            newElementFound: !!newElement
-          });
           
           if (newElement) {
             newElement.focus();
@@ -151,29 +148,25 @@ const BulletContent: React.FC<BulletContentProps> = ({
               selection?.removeAllRanges();
               selection?.addRange(range);
               
-              logOperationTiming('Focus and cursor position set', {
-                success: true
-              });
+              // Complete the DOM update
+              completeDomUpdate();
             } catch (err) {
               console.error('Failed to set cursor position:', err);
-              logOperationTiming('Focus and cursor position set', {
-                success: false,
-                error: err
-              });
+              completeDomUpdate();
             }
+          } else {
+            completeDomUpdate();
           }
           isSplittingRef.current = false;
         });
       }
     } else if (e.key === "Backspace") {
-      logOperationTiming('Backspace pressed', {
-        bulletId: bullet.id,
-        content,
-        cursorPosition: pos,
-        skipNextInput: skipNextInputRef.current
-      });
-
       if (pos === 0) {
+        // Wait for any pending DOM updates before processing backspace
+        if (domUpdatePromiseRef.current) {
+          await domUpdatePromiseRef.current;
+        }
+        
         e.preventDefault();
         await handleBackspaceAtStart(content, bullet, contentRef, onUpdate, onDelete);
       }
