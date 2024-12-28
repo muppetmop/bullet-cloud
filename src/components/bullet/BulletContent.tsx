@@ -34,6 +34,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const { saveCaretPosition, restoreCaretPosition, currentPosition } = useCaretPosition(contentRef);
+  const skipNextInputRef = useRef(false);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -49,10 +50,15 @@ const BulletContent: React.FC<BulletContentProps> = ({
 
     if (e.key === "Enter") {
       e.preventDefault();
+      skipNextInputRef.current = true;
+      
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
       
       // First update the original bullet to only keep content before cursor
+      if (contentRef.current) {
+        contentRef.current.textContent = beforeCursor;
+      }
       onUpdate(bullet.id, beforeCursor);
       
       // Create new bullet with content after cursor
@@ -189,6 +195,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
 
   const handleInput = () => {
     if (mode === "theirs") return;
+    if (skipNextInputRef.current) {
+      skipNextInputRef.current = false;
+      return;
+    }
     saveCaretPosition();
     const content = contentRef.current?.textContent || "";
     onUpdate(bullet.id, content);
