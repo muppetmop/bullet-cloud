@@ -37,7 +37,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const skipNextInputRef = useRef(false);
   const lastContentRef = useRef(bullet.content);
   const isSplittingRef = useRef(false);
-  const justSplitRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -61,8 +60,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
       cursorPosition: pos,
       bulletChildren: bullet.children.length,
       skipNextInput: skipNextInputRef.current,
-      isSplitting: isSplittingRef.current,
-      justSplit: justSplitRef.current
+      isSplitting: isSplittingRef.current
     });
 
     if (e.key === "Enter") {
@@ -103,7 +101,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
       
       if (newBulletId) {
         onUpdate(newBulletId, afterCursor);
-        justSplitRef.current = newBulletId; // Track the newly created bullet
         
         if (bullet.children.length > 0 && onTransferChildren) {
           console.log('Transferring children:', {
@@ -163,21 +160,18 @@ const BulletContent: React.FC<BulletContentProps> = ({
       }
     } else if (e.key === "Tab") {
       handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
-      justSplitRef.current = null; // Reset split tracking on any other key
     } else if (e.key === "Backspace") {
       console.log('Backspace pressed:', {
         bulletId: bullet.id,
         content,
         cursorPosition: pos,
-        skipNextInput: skipNextInputRef.current,
-        justSplit: justSplitRef.current
+        skipNextInput: skipNextInputRef.current
       });
 
       const selection = window.getSelection();
       
       if (selection && !selection.isCollapsed) {
         console.log('Text is selected, allowing default backspace behavior');
-        justSplitRef.current = null; // Reset split tracking
         return;
       }
       
@@ -204,8 +198,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
           console.log('Previous bullet found:', {
             previousBulletId,
             previousContent,
-            currentContent: content,
-            isJustSplit: justSplitRef.current === bullet.id
+            currentContent: content
           });
           
           if (previousBulletId) {
@@ -231,67 +224,33 @@ const BulletContent: React.FC<BulletContentProps> = ({
                 });
               }
             } else {
-              // Special handling for just-split bullets
-              if (justSplitRef.current === bullet.id) {
-                console.log('Handling backspace for just-split bullet');
-                e.preventDefault();
-                
-                // Update previous bullet first
-                onUpdate(previousBulletId, previousContent + content);
-                
-                // Wait for the update to complete before deleting
-                setTimeout(() => {
-                  onDelete(bullet.id);
-                  
-                  requestAnimationFrame(() => {
-                    previousElement.focus();
-                    try {
-                      const selection = window.getSelection();
-                      const range = document.createRange();
-                      const textNode = previousElement.firstChild || previousElement;
-                      const position = previousContent.length;
-                      range.setStart(textNode, position);
-                      range.setEnd(textNode, position);
-                      selection?.removeAllRanges();
-                      selection?.addRange(range);
-                    } catch (err) {
-                      console.error('Failed to set cursor position:', err);
-                    }
-                  });
-                }, 100);
-              } else {
-                // Normal backspace merge behavior
-                console.log('Normal backspace merge');
-                e.preventDefault();
-                onUpdate(previousBulletId, previousContent + content);
-                onDelete(bullet.id);
-                
-                requestAnimationFrame(() => {
-                  previousElement.focus();
-                  try {
-                    const selection = window.getSelection();
-                    const range = document.createRange();
-                    const textNode = previousElement.firstChild || previousElement;
-                    const position = previousContent.length;
-                    range.setStart(textNode, position);
-                    range.setEnd(textNode, position);
-                    selection?.removeAllRanges();
-                    selection?.addRange(range);
-                  } catch (err) {
-                    console.error('Failed to set cursor position:', err);
-                  }
-                });
-              }
+              // Normal backspace merge behavior
+              console.log('Normal backspace merge');
+              e.preventDefault();
+              onUpdate(previousBulletId, previousContent + content);
+              onDelete(bullet.id);
+              
+              requestAnimationFrame(() => {
+                previousElement.focus();
+                try {
+                  const selection = window.getSelection();
+                  const range = document.createRange();
+                  const textNode = previousElement.firstChild || previousElement;
+                  const position = previousContent.length;
+                  range.setStart(textNode, position);
+                  range.setEnd(textNode, position);
+                  selection?.removeAllRanges();
+                  selection?.addRange(range);
+                } catch (err) {
+                  console.error('Failed to set cursor position:', err);
+                }
+              });
             }
           }
         }
       }
-      justSplitRef.current = null; // Reset split tracking after backspace
     } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
-      justSplitRef.current = null; // Reset split tracking on any other key
-    } else {
-      justSplitRef.current = null; // Reset split tracking on any other key
     }
   };
 
