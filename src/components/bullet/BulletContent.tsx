@@ -1,4 +1,4 @@
-import React, { useRef, KeyboardEvent } from "react";
+import React, { useRef, KeyboardEvent, useEffect } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { BulletIcon } from "./BulletIcon";
 import { CollapseButton } from "./CollapseButton";
