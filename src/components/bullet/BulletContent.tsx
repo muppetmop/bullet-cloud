@@ -65,15 +65,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
       const newBulletId = onNewBullet(bullet.id);
       
       if (newBulletId) {
-        // Update the new bullet's content in DOM and state
-        const newElement = document.querySelector(
-          `[data-id="${newBulletId}"] .bullet-content`
-        ) as HTMLElement;
-        
-        if (newElement) {
-          newElement.textContent = afterCursor;
-        }
-        onUpdate(newBulletId, afterCursor); // Make sure to update state for new bullet
+        onUpdate(newBulletId, afterCursor);
         
         if (bullet.children.length > 0 && onTransferChildren) {
           onTransferChildren(bullet.id, newBulletId);
