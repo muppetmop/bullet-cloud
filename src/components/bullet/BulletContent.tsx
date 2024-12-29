@@ -34,7 +34,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const { saveCaretPosition, restoreCaretPosition, currentPosition } = useCaretPosition(contentRef);
-  const skipNextInputRef = useRef(false);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -50,27 +49,22 @@ const BulletContent: React.FC<BulletContentProps> = ({
 
     if (e.key === "Enter") {
       e.preventDefault();
-      skipNextInputRef.current = true;
-      
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
       
-      if (contentRef.current) {
-        contentRef.current.textContent = beforeCursor;
-      }
-      onUpdate(bullet.id, beforeCursor);
-      
-      const newBulletId = onNewBullet(bullet.id);
-      
-      if (newBulletId) {
-        onUpdate(newBulletId, afterCursor);
+      if (pos === 0 && content.length > 0) {
+        // When at start of line with content after cursor
+        onUpdate(bullet.id, afterCursor);
+        const newBulletId = onNewBullet(bullet.id);
         
-        if (bullet.children.length > 0 && onTransferChildren) {
-          onTransferChildren(bullet.id, newBulletId);
-        }
+        if (newBulletId) {
+          onUpdate(newBulletId, '');
+          
+          if (bullet.children.length > 0 && onTransferChildren) {
+            onTransferChildren(bullet.id, newBulletId);
+          }
 
-        requestAnimationFrame(() => {
-          if (pos === 0) {
+          requestAnimationFrame(() => {
             const originalElement = document.querySelector(
               `[data-id="${bullet.id}"] .bullet-content`
             ) as HTMLElement;
@@ -89,7 +83,21 @@ const BulletContent: React.FC<BulletContentProps> = ({
                 console.error('Failed to set cursor position:', err);
               }
             }
-          } else {
+          });
+        }
+      } else {
+        // Normal enter behavior
+        onUpdate(bullet.id, beforeCursor);
+        const newBulletId = onNewBullet(bullet.id);
+        
+        if (newBulletId) {
+          onUpdate(newBulletId, afterCursor);
+          
+          if (bullet.children.length > 0 && onTransferChildren) {
+            onTransferChildren(bullet.id, newBulletId);
+          }
+
+          requestAnimationFrame(() => {
             const newElement = document.querySelector(
               `[data-id="${newBulletId}"] .bullet-content`
             ) as HTMLElement;
@@ -108,8 +116,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
                 console.error('Failed to set cursor position:', err);
               }
             }
-          }
-        });
+          });
+        }
       }
     } else if (e.key === "Tab") {
       handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
@@ -190,12 +198,12 @@ const BulletContent: React.FC<BulletContentProps> = ({
 
   const handleInput = () => {
     if (mode === "theirs") return;
-    if (skipNextInputRef.current) {
-      skipNextInputRef.current = false;
-      return;
-    }
+    saveCaretPosition();
     const content = contentRef.current?.textContent || "";
     onUpdate(bullet.id, content);
+    requestAnimationFrame(() => {
+      restoreCaretPosition();
+    });
   };
 
   return (
