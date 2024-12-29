@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchBulletsForUser, createInitialBullet } from "@/services/bulletService";
 import { toast } from "sonner";
-import { debounce } from "lodash";
 
 export const useBulletState = () => {
   const [bullets, setBullets] = useState<BulletPoint[]>(() => {
@@ -11,14 +10,8 @@ export const useBulletState = () => {
     const savedBullets = localStorage.getItem('bullets');
     return savedBullets ? JSON.parse(savedBullets) : [];
   });
-  
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const saveToLocalStorageDebounced = useRef(
-    debounce((bullets: BulletPoint[]) => {
-      localStorage.setItem('bullets', JSON.stringify(bullets));
-    }, 1000)
-  ).current;
 
   // Get user ID on mount
   useEffect(() => {
@@ -80,12 +73,13 @@ export const useBulletState = () => {
           });
           
           setBullets(rootBullets);
-          saveToLocalStorageDebounced(rootBullets);
+          // Save to localStorage
+          localStorage.setItem('bullets', JSON.stringify(rootBullets));
         } else {
           // Create initial bullet if none exist
           const initialBullet = createInitialBullet(userId);
           setBullets([initialBullet]);
-          saveToLocalStorageDebounced([initialBullet]);
+          localStorage.setItem('bullets', JSON.stringify([initialBullet]));
         }
       } catch (error) {
         console.error('Error loading bullets:', error);
@@ -101,14 +95,14 @@ export const useBulletState = () => {
     };
     
     loadBullets();
-  }, [userId, saveToLocalStorageDebounced]);
+  }, [userId]);
 
   // Save to localStorage whenever bullets change
   useEffect(() => {
     if (bullets.length > 0) {
-      saveToLocalStorageDebounced(bullets);
+      localStorage.setItem('bullets', JSON.stringify(bullets));
     }
-  }, [bullets, saveToLocalStorageDebounced]);
+  }, [bullets]);
 
   return {
     bullets,

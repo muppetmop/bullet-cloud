@@ -55,23 +55,23 @@ const BulletContent: React.FC<BulletContentProps> = ({
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
       
-      // First update the original bullet synchronously
+      // First update the original bullet to only keep content before cursor
       if (contentRef.current) {
         contentRef.current.textContent = beforeCursor;
       }
       onUpdate(bullet.id, beforeCursor);
       
-      // Create new bullet and update its content synchronously
+      // Create new bullet with content after cursor
       const newBulletId = onNewBullet(bullet.id);
       
       if (newBulletId) {
-        // Immediately update the new bullet's content
         onUpdate(newBulletId, afterCursor);
         
         if (bullet.children.length > 0 && onTransferChildren) {
           onTransferChildren(bullet.id, newBulletId);
         }
 
+        // Handle focus based on cursor position
         requestAnimationFrame(() => {
           if (pos === 0) {
             // When at start of line, focus stays on original bullet
