@@ -11,14 +11,14 @@ export const handleEnterKey = (
   onUpdate(bullet.id, content);
   const newBulletId = onNewBullet(bullet.id);
   if (newBulletId !== null) {
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       const newElement = document.querySelector(
         `[data-id="${newBulletId}"] .bullet-content`
       ) as HTMLElement;
       if (newElement) {
         newElement.focus();
       }
-    }, 0);
+    });
   }
 };
 
@@ -40,7 +40,7 @@ export const handleTabKey = (
     onIndent(bullet.id);
   }
 
-  setTimeout(() => {
+  requestAnimationFrame(() => {
     const element = document.querySelector(
       `[data-id="${bullet.id}"] .bullet-content`
     ) as HTMLElement;
@@ -58,7 +58,7 @@ export const handleTabKey = (
         console.error('Failed to restore cursor position:', err);
       }
     }
-  }, 0);
+  });
 };
 
 export const handleBackspaceKey = (
@@ -92,9 +92,13 @@ export const handleBackspaceKey = (
         if (content.length === 0) {
           // If current bullet is empty, delete it and move cursor to end of previous bullet
           if (visibleBullets.length > 1 && bullet.children.length === 0) {
-            onDelete(bullet.id);
+            e.preventDefault();
             
+            // Use requestAnimationFrame to ensure DOM is ready
             requestAnimationFrame(() => {
+              onDelete(bullet.id);
+              
+              // Focus previous element after deletion
               previousElement.focus();
               try {
                 const selection = window.getSelection();
@@ -113,13 +117,15 @@ export const handleBackspaceKey = (
         } else {
           // If current bullet has content, merge with previous bullet
           e.preventDefault();
+          
+          // Update content first
           onUpdate(previousBulletId, previousContent + content);
           
-          setTimeout(() => {
-            onDelete(bullet.id);
-          }, 100);
-          
+          // Then delete the current bullet after content update is complete
           requestAnimationFrame(() => {
+            onDelete(bullet.id);
+            
+            // Focus previous element after merge
             previousElement.focus();
             try {
               const selection = window.getSelection();
