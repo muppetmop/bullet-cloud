@@ -3,13 +3,18 @@ import { getQueue, removeFromQueue, updateLastSync } from "@/utils/queueManager"
 import { toast } from "sonner";
 
 let syncInProgress = false;
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
 
-const processBulletOperation = async (operation: any) => {
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const processBulletOperation = async (operation: any, retryCount = 0): Promise<boolean> => {
   try {
-    // Get current user
+    // Get current user session
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user?.id) {
       console.error('No user session found');
+      toast.error("Please sign in to save changes");
       return false;
     }
 
@@ -20,27 +25,49 @@ const processBulletOperation = async (operation: any) => {
 
     switch (operation.type) {
       case 'create':
-        await supabase.from('bullets').insert(operation.data);
+        const { error: createError } = await supabase
+          .from('bullets')
+          .insert(operation.data);
+        if (createError) throw createError;
         break;
       case 'update':
-        await supabase
+        const { error: updateError } = await supabase
           .from('bullets')
           .update(operation.data)
           .eq('id', operation.id)
           .eq('user_id', session.user.id);
+        if (updateError) throw updateError;
         break;
       case 'delete':
-        await supabase
+        const { error: deleteError } = await supabase
           .from('bullets')
           .delete()
           .eq('id', operation.id)
           .eq('user_id', session.user.id);
+        if (deleteError) throw deleteError;
         break;
     }
     removeFromQueue(operation.id);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error processing operation:', error);
+    
+    // Check if it's a network error and we should retry
+    if (error.message === 'Failed to fetch' && retryCount < MAX_RETRIES) {
+      console.log(`Retrying operation (${retryCount + 1}/${MAX_RETRIES})...`);
+      await delay(RETRY_DELAY * (retryCount + 1));
+      return processBulletOperation(operation, retryCount + 1);
+    }
+    
+    // Handle specific error types
+    if (error.message?.includes('JWT')) {
+      toast.error("Session expired. Please sign in again.");
+    } else if (!navigator.onLine) {
+      toast.error("You're offline. Changes will sync when you're back online.");
+    } else {
+      toast.error("Failed to save changes. Please try again.");
+    }
+    
     return false;
   }
 };
@@ -54,7 +81,7 @@ export const syncWithServer = async () => {
   try {
     const online = navigator.onLine;
     if (!online) {
-      toast.error("You're offline. Changes will sync when you're back online.");
+      console.log("Device is offline, skipping sync");
       return;
     }
 
@@ -81,19 +108,22 @@ export const startSyncService = () => {
   const intervalId = setInterval(syncWithServer, 2000);
   
   // Set up online/offline handlers
-  window.addEventListener('online', () => {
+  const handleOnline = () => {
     toast.success("You're back online! Syncing changes...");
     syncWithServer();
-  });
+  };
   
-  window.addEventListener('offline', () => {
+  const handleOffline = () => {
     toast.warning("You're offline. Changes will be saved locally.");
-  });
+  };
+  
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
   
   // Return cleanup function
   return () => {
     clearInterval(intervalId);
-    window.removeEventListener('online', syncWithServer);
-    window.removeEventListener('offline', syncWithServer);
+    window.removeEventListener('online', handleOnline);
+    window.removeEventListener('offline', handleOffline);
   };
 };
