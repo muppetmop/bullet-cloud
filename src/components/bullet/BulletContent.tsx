@@ -55,63 +55,40 @@ const BulletContent: React.FC<BulletContentProps> = ({
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
       
-      // First update the original bullet to only keep content before cursor
+      // First update the original bullet synchronously
       if (contentRef.current) {
         contentRef.current.textContent = beforeCursor;
       }
       onUpdate(bullet.id, beforeCursor);
       
-      // Create new bullet with content after cursor
+      // Create new bullet and update its content synchronously
       const newBulletId = onNewBullet(bullet.id);
       
       if (newBulletId) {
+        // Immediately update the new bullet's content
         onUpdate(newBulletId, afterCursor);
         
         if (bullet.children.length > 0 && onTransferChildren) {
           onTransferChildren(bullet.id, newBulletId);
         }
 
-        // Handle focus based on cursor position
         requestAnimationFrame(() => {
-          if (pos === 0) {
-            // When at start of line, focus stays on original bullet
-            const originalElement = document.querySelector(
-              `[data-id="${bullet.id}"] .bullet-content`
-            ) as HTMLElement;
-            
-            if (originalElement) {
-              originalElement.focus();
-              try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const textNode = originalElement.firstChild || originalElement;
-                range.setStart(textNode, 0);
-                range.setEnd(textNode, 0);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-              } catch (err) {
-                console.error('Failed to set cursor position:', err);
-              }
-            }
-          } else {
-            // Otherwise, focus moves to new bullet
-            const newElement = document.querySelector(
-              `[data-id="${newBulletId}"] .bullet-content`
-            ) as HTMLElement;
-            
-            if (newElement) {
-              newElement.focus();
-              try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const textNode = newElement.firstChild || newElement;
-                range.setStart(textNode, 0);
-                range.setEnd(textNode, 0);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-              } catch (err) {
-                console.error('Failed to set cursor position:', err);
-              }
+          const newElement = document.querySelector(
+            `[data-id="${newBulletId}"] .bullet-content`
+          ) as HTMLElement;
+          
+          if (newElement) {
+            newElement.focus();
+            try {
+              const selection = window.getSelection();
+              const range = document.createRange();
+              const textNode = newElement.firstChild || newElement;
+              range.setStart(textNode, 0);
+              range.setEnd(textNode, 0);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            } catch (err) {
+              console.error('Failed to set cursor position:', err);
             }
           }
         });
