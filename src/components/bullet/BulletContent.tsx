@@ -55,13 +55,11 @@ const BulletContent: React.FC<BulletContentProps> = ({
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
       
-      // First update the original bullet to only keep content before cursor
       if (contentRef.current) {
         contentRef.current.textContent = beforeCursor;
       }
       onUpdate(bullet.id, beforeCursor);
       
-      // Create new bullet with content after cursor
       const newBulletId = onNewBullet(bullet.id);
       
       if (newBulletId) {
@@ -71,10 +69,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
           onTransferChildren(bullet.id, newBulletId);
         }
 
-        // Handle focus based on cursor position
         requestAnimationFrame(() => {
           if (pos === 0) {
-            // When at start of line, focus stays on original bullet
             const originalElement = document.querySelector(
               `[data-id="${bullet.id}"] .bullet-content`
             ) as HTMLElement;
@@ -94,7 +90,6 @@ const BulletContent: React.FC<BulletContentProps> = ({
               }
             }
           } else {
-            // Otherwise, focus moves to new bullet
             const newElement = document.querySelector(
               `[data-id="${newBulletId}"] .bullet-content`
             ) as HTMLElement;
@@ -199,12 +194,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
       skipNextInputRef.current = false;
       return;
     }
-    saveCaretPosition();
     const content = contentRef.current?.textContent || "";
     onUpdate(bullet.id, content);
-    requestAnimationFrame(() => {
-      restoreCaretPosition();
-    });
   };
 
   return (
