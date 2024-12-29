@@ -5,19 +5,23 @@ import { toast } from "sonner";
 let syncInProgress = false;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
+const AUTH_CHECK_INTERVAL = 5000; // 5 seconds
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+const checkAuthStatus = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user?.id) {
+    throw new Error('No active session');
+  }
+  return session;
+};
+
 const processBulletOperation = async (operation: any, retryCount = 0): Promise<boolean> => {
   try {
-    // Get current user session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user?.id) {
-      console.error('No user session found');
-      toast.error("Please sign in to save changes");
-      return false;
-    }
-
+    // Check auth status before each operation
+    const session = await checkAuthStatus();
+    
     // Ensure user_id is set for all operations
     if (operation.type === 'create' || operation.type === 'update') {
       operation.data.user_id = session.user.id;
@@ -52,8 +56,14 @@ const processBulletOperation = async (operation: any, retryCount = 0): Promise<b
   } catch (error: any) {
     console.error('Error processing operation:', error);
     
-    // Check if it's a network error and we should retry
-    if (error.message === 'Failed to fetch' && retryCount < MAX_RETRIES) {
+    // Handle authentication errors
+    if (error.message === 'No active session') {
+      toast.error("Please sign in to save changes");
+      return false;
+    }
+    
+    // Handle network errors with retry
+    if ((error.message === 'Failed to fetch' || error.code === 'ECONNABORTED') && retryCount < MAX_RETRIES) {
       console.log(`Retrying operation (${retryCount + 1}/${MAX_RETRIES})...`);
       await delay(RETRY_DELAY * (retryCount + 1));
       return processBulletOperation(operation, retryCount + 1);
@@ -62,6 +72,7 @@ const processBulletOperation = async (operation: any, retryCount = 0): Promise<b
     // Handle specific error types
     if (error.message?.includes('JWT')) {
       toast.error("Session expired. Please sign in again.");
+      await supabase.auth.signOut();
     } else if (!navigator.onLine) {
       toast.error("You're offline. Changes will sync when you're back online.");
     } else {
@@ -79,9 +90,17 @@ export const syncWithServer = async () => {
   const queue = getQueue();
   
   try {
-    const online = navigator.onLine;
-    if (!online) {
+    // Check network status
+    if (!navigator.onLine) {
       console.log("Device is offline, skipping sync");
+      return;
+    }
+
+    // Check auth status before processing queue
+    try {
+      await checkAuthStatus();
+    } catch (error) {
+      console.log("No active session, skipping sync");
       return;
     }
 
@@ -105,7 +124,16 @@ export const startSyncService = () => {
   syncWithServer();
   
   // Set up periodic sync
-  const intervalId = setInterval(syncWithServer, 2000);
+  const syncIntervalId = setInterval(syncWithServer, 2000);
+  
+  // Set up periodic auth check
+  const authCheckIntervalId = setInterval(async () => {
+    try {
+      await checkAuthStatus();
+    } catch (error) {
+      console.log("Auth check failed:", error);
+    }
+  }, AUTH_CHECK_INTERVAL);
   
   // Set up online/offline handlers
   const handleOnline = () => {
@@ -122,7 +150,8 @@ export const startSyncService = () => {
   
   // Return cleanup function
   return () => {
-    clearInterval(intervalId);
+    clearInterval(syncIntervalId);
+    clearInterval(authCheckIntervalId);
     window.removeEventListener('online', handleOnline);
     window.removeEventListener('offline', handleOffline);
   };
