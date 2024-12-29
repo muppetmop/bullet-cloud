@@ -1,9 +1,9 @@
 import React, { useRef, KeyboardEvent, useEffect } from "react";
 import { BulletPoint } from "@/types/bullet";
+import { handleTabKey, handleArrowKeys } from "@/utils/keyboardHandlers";
 import { BulletIcon } from "./BulletIcon";
 import { CollapseButton } from "./CollapseButton";
 import { useCaretPosition } from "@/hooks/useCaretPosition";
-import { handleBackspaceAtStart } from "@/utils/bulletKeyboardHandlers";
 
 interface BulletContentProps {
   bullet: BulletPoint;
@@ -35,205 +35,173 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const { saveCaretPosition, restoreCaretPosition, currentPosition } = useCaretPosition(contentRef);
   const skipNextInputRef = useRef(false);
-  const lastContentRef = useRef(bullet.content);
-  const isSplittingRef = useRef(false);
-  const splitTimestampRef = useRef<number | null>(null);
-  const lastOperationTimestampRef = useRef<number>(Date.now());
 
   useEffect(() => {
     if (!contentRef.current) return;
     contentRef.current.textContent = bullet.content;
-    if (!isSplittingRef.current) {
-      lastContentRef.current = bullet.content;
-    }
   }, [bullet.content]);
 
-  const logOperationTiming = (operation: string, details: any = {}) => {
-    const now = Date.now();
-    const timeSinceLastOperation = now - lastOperationTimestampRef.current;
-    console.log(`Operation Timing - ${operation}:`, {
-      ...details,
-      timeSinceLastOperation,
-      timestamp: new Date(now).toISOString(),
-      bulletId: bullet.id,
-      isSplitting: isSplittingRef.current,
-      splitTimestamp: splitTimestampRef.current ? new Date(splitTimestampRef.current).toISOString() : null,
-      timeSinceSplit: splitTimestampRef.current ? now - splitTimestampRef.current : null,
-    });
-    lastOperationTimestampRef.current = now;
-  };
-
-  const handleKeyDown = async (e: KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (mode === "theirs") return;
     
     const content = contentRef.current?.textContent || "";
     saveCaretPosition();
     const pos = currentPosition();
 
-    logOperationTiming('KeyDown', {
-      key: e.key,
-      content,
-      cursorPosition: pos,
-      bulletChildren: bullet.children.length,
-      skipNextInput: skipNextInputRef.current,
-      isSplitting: isSplittingRef.current,
-      domState: {
-        contentRefExists: !!contentRef.current,
-        hasSelection: window.getSelection()?.toString() || 'No selection',
-        activeElement: document.activeElement?.tagName,
-      }
-    });
-
     if (e.key === "Enter") {
       e.preventDefault();
-      logOperationTiming('Enter pressed', {
-        beforeSplit: {
-          content,
-          cursorPosition: pos,
-          bulletId: bullet.id
-        }
-      });
-
       skipNextInputRef.current = true;
-      isSplittingRef.current = true;
-      splitTimestampRef.current = Date.now();
       
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
       
-      logOperationTiming('Content split', {
-        beforeCursor,
-        afterCursor,
-        originalContent: content
-      });
-
+      // First update the original bullet to only keep content before cursor
       if (contentRef.current) {
         contentRef.current.textContent = beforeCursor;
       }
       onUpdate(bullet.id, beforeCursor);
       
+      // Create new bullet with content after cursor
       const newBulletId = onNewBullet(bullet.id);
-      
-      logOperationTiming('New bullet created', {
-        newBulletId,
-        contentToMove: afterCursor
-      });
       
       if (newBulletId) {
         onUpdate(newBulletId, afterCursor);
         
         if (bullet.children.length > 0 && onTransferChildren) {
-          logOperationTiming('Transferring children', {
-            fromBulletId: bullet.id,
-            toBulletId: newBulletId,
-            childrenCount: bullet.children.length
-          });
           onTransferChildren(bullet.id, newBulletId);
         }
 
+        // Handle focus based on cursor position
         requestAnimationFrame(() => {
-          const newElement = document.querySelector(
-            `[data-id="${newBulletId}"] .bullet-content`
-          ) as HTMLElement;
-          
-          logOperationTiming('Focus movement attempt', {
-            newElementFound: !!newElement
-          });
-          
-          if (newElement) {
-            newElement.focus();
-            try {
-              const selection = window.getSelection();
-              const range = document.createRange();
-              const textNode = newElement.firstChild || newElement;
-              range.setStart(textNode, 0);
-              range.setEnd(textNode, 0);
-              selection?.removeAllRanges();
-              selection?.addRange(range);
-              
-              logOperationTiming('Focus and cursor position set', {
-                success: true
-              });
-            } catch (err) {
-              console.error('Failed to set cursor position:', err);
-              logOperationTiming('Focus and cursor position set', {
-                success: false,
-                error: err
-              });
+          if (pos === 0) {
+            // When at start of line, focus stays on original bullet
+            const originalElement = document.querySelector(
+              `[data-id="${bullet.id}"] .bullet-content`
+            ) as HTMLElement;
+            
+            if (originalElement) {
+              originalElement.focus();
+              try {
+                const selection = window.getSelection();
+                const range = document.createRange();
+                const textNode = originalElement.firstChild || originalElement;
+                range.setStart(textNode, 0);
+                range.setEnd(textNode, 0);
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+              } catch (err) {
+                console.error('Failed to set cursor position:', err);
+              }
+            }
+          } else {
+            // Otherwise, focus moves to new bullet
+            const newElement = document.querySelector(
+              `[data-id="${newBulletId}"] .bullet-content`
+            ) as HTMLElement;
+            
+            if (newElement) {
+              newElement.focus();
+              try {
+                const selection = window.getSelection();
+                const range = document.createRange();
+                const textNode = newElement.firstChild || newElement;
+                range.setStart(textNode, 0);
+                range.setEnd(textNode, 0);
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+              } catch (err) {
+                console.error('Failed to set cursor position:', err);
+              }
             }
           }
-          isSplittingRef.current = false;
         });
       }
-    } else if (e.key === "Backspace") {
-      logOperationTiming('Backspace pressed', {
-        bulletId: bullet.id,
-        content,
-        cursorPosition: pos,
-        skipNextInput: skipNextInputRef.current
-      });
-
-      if (pos === 0) {
-        e.preventDefault();
-        await handleBackspaceAtStart(content, bullet, contentRef, onUpdate, onDelete);
-      }
     } else if (e.key === "Tab") {
-      e.preventDefault();
-      onUpdate(bullet.id, content);
-      
-      if (e.shiftKey && onOutdent) {
-        onOutdent(bullet.id);
-      } else if (!e.shiftKey && onIndent) {
-        onIndent(bullet.id);
-      }
+      handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
+    } else if (e.key === "Backspace") {
+      handleBackspace(e, content, pos);
+    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
+    }
+  };
 
-      setTimeout(() => {
-        const element = document.querySelector(
-          `[data-id="${bullet.id}"] .bullet-content`
-        ) as HTMLElement;
-        if (element) {
-          element.focus();
-          try {
-            const range = document.createRange();
-            const selection = window.getSelection();
-            const textNode = element.firstChild || element;
-            range.setStart(textNode, pos);
-            range.setEnd(textNode, pos);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-          } catch (err) {
-            console.error('Failed to restore cursor position:', err);
+  const handleBackspace = (e: KeyboardEvent, content: string, pos: number) => {
+    const selection = window.getSelection();
+    
+    if (selection && !selection.isCollapsed) {
+      return;
+    }
+    
+    if (pos === 0) {
+      const visibleBullets = Array.from(
+        document.querySelectorAll('.bullet-content')
+      ) as HTMLElement[];
+      
+      const currentIndex = visibleBullets.findIndex(
+        el => el === contentRef.current
+      );
+      
+      if (currentIndex > 0) {
+        const previousElement = visibleBullets[currentIndex - 1];
+        const previousContent = previousElement.textContent || '';
+        const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
+        
+        if (previousBulletId) {
+          if (content.length === 0) {
+            if (visibleBullets.length > 1 && bullet.children.length === 0) {
+              onDelete(bullet.id);
+              
+              requestAnimationFrame(() => {
+                previousElement.focus();
+                try {
+                  const selection = window.getSelection();
+                  const range = document.createRange();
+                  const textNode = previousElement.firstChild || previousElement;
+                  const position = previousContent.length;
+                  range.setStart(textNode, position);
+                  range.setEnd(textNode, position);
+                  selection?.removeAllRanges();
+                  selection?.addRange(range);
+                } catch (err) {
+                  console.error('Failed to set cursor position:', err);
+                }
+              });
+            }
+          } else {
+            e.preventDefault();
+            onUpdate(previousBulletId, previousContent + content);
+            onDelete(bullet.id);
+            
+            requestAnimationFrame(() => {
+              previousElement.focus();
+              try {
+                const selection = window.getSelection();
+                const range = document.createRange();
+                const textNode = previousElement.firstChild || previousElement;
+                const position = previousContent.length;
+                range.setStart(textNode, position);
+                range.setEnd(textNode, position);
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+              } catch (err) {
+                console.error('Failed to set cursor position:', err);
+              }
+            });
           }
         }
-      }, 0);
-    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      e.preventDefault();
-      onUpdate(bullet.id, content);
-      onNavigate(e.key === "ArrowUp" ? "up" : "down", bullet.id);
+      }
     }
   };
 
   const handleInput = () => {
     if (mode === "theirs") return;
     if (skipNextInputRef.current) {
-      logOperationTiming('Skipping input handler', {
-        bulletId: bullet.id
-      });
       skipNextInputRef.current = false;
       return;
     }
     saveCaretPosition();
-    const content = contentRef.current?.textContent || lastContentRef.current;
-    logOperationTiming('Input handler', {
-      bulletId: bullet.id,
-      newContent: content,
-      previousContent: lastContentRef.current,
-      isSplitting: isSplittingRef.current
-    });
+    const content = contentRef.current?.textContent || "";
     onUpdate(bullet.id, content);
-    if (!isSplittingRef.current) {
-      lastContentRef.current = content;
-    }
     requestAnimationFrame(() => {
       restoreCaretPosition();
     });
