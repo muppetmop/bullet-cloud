@@ -4,21 +4,24 @@ import { generateBulletId } from "@/utils/idGenerator";
 import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
 import React from "react";
 
-const getMaxPosition = (bullets: BulletPoint[]): number => {
-  let maxPosition = -1;
-  const traverseBullets = (bullet: BulletPoint) => {
-    maxPosition = Math.max(maxPosition, bullet.position);
-    bullet.children.forEach(traverseBullets);
-  };
-  bullets.forEach(traverseBullets);
-  return maxPosition;
-};
+const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null = null): number => {
+  // If no currentBulletId, we're adding at the end
+  if (!currentBulletId) {
+    const allBullets = getAllVisibleBullets(bullets);
+    return allBullets.length > 0 ? allBullets[allBullets.length - 1].position + 1 : 0;
+  }
 
-const findPreviousBulletPosition = (bullets: BulletPoint[], currentBulletId: string): number => {
+  // Find the bullet after the current one
   const allBullets = getAllVisibleBullets(bullets);
   const currentIndex = allBullets.findIndex(b => b.id === currentBulletId);
-  if (currentIndex <= 0) return -1;
-  return allBullets[currentIndex - 1].position;
+  
+  // If bullet not found or it's the last one, use its position + 1
+  if (currentIndex === -1 || currentIndex === allBullets.length - 1) {
+    return allBullets[allBullets.length - 1].position + 1;
+  }
+  
+  // Return position right after the current bullet
+  return allBullets[currentIndex].position + 1;
 };
 
 export const useBulletOperations = (
@@ -35,9 +38,7 @@ export const useBulletOperations = (
       return null;
     }
 
-    // Get position based on the previous bullet's position
-    const prevPosition = findPreviousBulletPosition(bullets, id);
-    const newPosition = prevPosition >= 0 ? prevPosition + 1 : getMaxPosition(bullets) + 1;
+    const newPosition = findNextPosition(bullets, id);
     const newLevel = forcedLevel !== undefined ? forcedLevel : bullet.level;
     const parentId = newLevel > bullet.level ? bullet.id : bullet.parent_id;
 
@@ -88,9 +89,7 @@ export const useBulletOperations = (
       return null;
     }
 
-    // Get position based on the previous bullet's position
-    const prevPosition = findPreviousBulletPosition(bullets, id);
-    const newPosition = prevPosition >= 0 ? prevPosition + 1 : getMaxPosition(bullets) + 1;
+    const newPosition = findNextPosition(bullets, id);
     const newLevel = forcedLevel !== undefined ? forcedLevel : bullet.level;
     const parentId = newLevel > bullet.level ? bullet.id : bullet.parent_id;
 
@@ -157,7 +156,7 @@ export const useBulletOperations = (
   const createNewRootBullet = (): string => {
     if (!userId) return "";
 
-    const newPosition = getMaxPosition(bullets) + 1;
+    const newPosition = findNextPosition(bullets);
 
     const newBullet: BulletPoint = {
       id: generateBulletId(),
@@ -206,7 +205,7 @@ export const useBulletOperations = (
       return updateBulletContent(prevBullets);
     });
 
-    // Only update content, not position
+    // Only update content, not position or other fields
     addToQueue({
       id,
       type: 'update',
