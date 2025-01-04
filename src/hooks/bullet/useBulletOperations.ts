@@ -23,7 +23,6 @@ export const useBulletOperations = (
     const newLevel = forcedLevel !== undefined ? forcedLevel : bullet.level;
     const parentId = newLevel > bullet.level ? bullet.id : bullet.parent_id;
 
-    // Validate that parentId exists in bullets if it's set
     if (parentId) {
       const [parentBullet] = findBulletAndParent(parentId, bullets);
       if (!parentBullet) {
@@ -42,9 +41,12 @@ export const useBulletOperations = (
       parent_id: parentId
     };
 
+    // Create a new array to trigger re-render
+    const newBullets = [...bullets];
     parent.splice(index + 1, 0, newBullet);
-    setBullets([...bullets]);
+    setBullets(newBullets);
 
+    // Queue the create operation
     addToQueue({
       id: newBullet.id,
       type: 'create',
@@ -75,7 +77,6 @@ export const useBulletOperations = (
     const newLevel = forcedLevel !== undefined ? forcedLevel : bullet.level;
     const parentId = newLevel > bullet.level ? bullet.id : bullet.parent_id;
 
-    // Validate that parentId exists in bullets if it's set
     if (parentId) {
       const [parentBullet] = findBulletAndParent(parentId, bullets);
       if (!parentBullet) {
@@ -94,13 +95,12 @@ export const useBulletOperations = (
       parent_id: parentId
     };
 
-    if (parentId) {
-      setBullets(prevBullets => 
-        updateBulletTreeRecursively(prevBullets, parentId, newBullet)
-      );
-    } else {
-      setBullets(prevBullets => [...prevBullets, newBullet]);
-    }
+    setBullets(prevBullets => {
+      if (parentId) {
+        return updateBulletTreeRecursively(prevBullets, parentId, newBullet);
+      }
+      return [...prevBullets, newBullet];
+    });
 
     addToQueue({
       id: newBullet.id,
@@ -135,6 +135,8 @@ export const useBulletOperations = (
       parent_id: null
     };
 
+    setBullets(prevBullets => [...prevBullets, newBullet]);
+
     addToQueue({
       id: newBullet.id,
       type: 'create',
@@ -149,15 +151,17 @@ export const useBulletOperations = (
       }
     });
     
-    setBullets([...bullets, newBullet]);
     return newBullet.id;
   };
 
   const updateBullet = (id: string, content: string) => {
+    console.log('Updating bullet:', { id, content });
+    
     setBullets(prevBullets => {
       const updateBulletContent = (bullets: BulletPoint[]): BulletPoint[] => {
         return bullets.map(bullet => {
           if (bullet.id === id) {
+            console.log('Found bullet to update:', { id: bullet.id, oldContent: bullet.content, newContent: content });
             return { ...bullet, content };
           }
           if (bullet.children.length > 0) {
@@ -169,9 +173,13 @@ export const useBulletOperations = (
           return bullet;
         });
       };
-      return updateBulletContent(prevBullets);
+      
+      const newBullets = updateBulletContent(prevBullets);
+      console.log('Updated bullets:', newBullets);
+      return newBullets;
     });
 
+    // Queue the update operation
     addToQueue({
       id,
       type: 'update',
@@ -230,14 +238,11 @@ export const useBulletOperations = (
       const updateBulletChildren = (bullets: BulletPoint[]): BulletPoint[] => {
         return bullets.map(bullet => {
           if (bullet.id === fromBulletId) {
-            // Clear children from source bullet
             return { ...bullet, children: [] };
           }
           if (bullet.id === toBulletId) {
-            // Find the source bullet to get its children
             const [sourceBullet] = findBulletAndParent(fromBulletId, prevBullets);
             if (sourceBullet) {
-              // Transfer children to new bullet
               return { 
                 ...bullet, 
                 children: sourceBullet.children.map(child => ({
@@ -259,7 +264,6 @@ export const useBulletOperations = (
       
       const newBullets = updateBulletChildren(prevBullets);
       
-      // Queue updates for all transferred children
       const [sourceBullet] = findBulletAndParent(fromBulletId, prevBullets);
       if (sourceBullet) {
         sourceBullet.children.forEach(child => {
