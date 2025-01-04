@@ -1,8 +1,25 @@
 import { BulletPoint } from "@/types/bullet";
 import { addToQueue } from "@/utils/queueManager";
 import { generateBulletId } from "@/utils/idGenerator";
-import { findBulletAndParent, getAllVisibleBullets, updateBulletTreeRecursively } from "@/utils/bulletOperations";
+import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
 import React from "react";
+
+const getMaxPosition = (bullets: BulletPoint[]): number => {
+  let maxPosition = -1;
+  const traverseBullets = (bullet: BulletPoint) => {
+    maxPosition = Math.max(maxPosition, bullet.position);
+    bullet.children.forEach(traverseBullets);
+  };
+  bullets.forEach(traverseBullets);
+  return maxPosition;
+};
+
+const findPreviousBulletPosition = (bullets: BulletPoint[], currentBulletId: string): number => {
+  const allBullets = getAllVisibleBullets(bullets);
+  const currentIndex = allBullets.findIndex(b => b.id === currentBulletId);
+  if (currentIndex <= 0) return -1;
+  return allBullets[currentIndex - 1].position;
+};
 
 export const useBulletOperations = (
   userId: string | null | undefined,
@@ -18,12 +35,12 @@ export const useBulletOperations = (
       return null;
     }
 
-    const index = parent.indexOf(bullet);
-    const newPosition = bullet.position + 1;
+    // Get position based on the previous bullet's position
+    const prevPosition = findPreviousBulletPosition(bullets, id);
+    const newPosition = prevPosition >= 0 ? prevPosition + 1 : getMaxPosition(bullets) + 1;
     const newLevel = forcedLevel !== undefined ? forcedLevel : bullet.level;
     const parentId = newLevel > bullet.level ? bullet.id : bullet.parent_id;
 
-    // Validate that parentId exists in bullets if it's set
     if (parentId) {
       const [parentBullet] = findBulletAndParent(parentId, bullets);
       if (!parentBullet) {
@@ -42,7 +59,7 @@ export const useBulletOperations = (
       parent_id: parentId
     };
 
-    parent.splice(index + 1, 0, newBullet);
+    parent.splice(parent.indexOf(bullet) + 1, 0, newBullet);
     setBullets([...bullets]);
 
     addToQueue({
@@ -71,11 +88,12 @@ export const useBulletOperations = (
       return null;
     }
 
-    const newPosition = bullet.position + 1;
+    // Get position based on the previous bullet's position
+    const prevPosition = findPreviousBulletPosition(bullets, id);
+    const newPosition = prevPosition >= 0 ? prevPosition + 1 : getMaxPosition(bullets) + 1;
     const newLevel = forcedLevel !== undefined ? forcedLevel : bullet.level;
     const parentId = newLevel > bullet.level ? bullet.id : bullet.parent_id;
 
-    // Validate that parentId exists in bullets if it's set
     if (parentId) {
       const [parentBullet] = findBulletAndParent(parentId, bullets);
       if (!parentBullet) {
@@ -95,9 +113,26 @@ export const useBulletOperations = (
     };
 
     if (parentId) {
-      setBullets(prevBullets => 
-        updateBulletTreeRecursively(prevBullets, parentId, newBullet)
-      );
+      setBullets(prevBullets => {
+        const updateBulletTree = (bullets: BulletPoint[]): BulletPoint[] => {
+          return bullets.map(b => {
+            if (b.id === parentId) {
+              return {
+                ...b,
+                children: [...b.children, newBullet]
+              };
+            }
+            if (b.children.length > 0) {
+              return {
+                ...b,
+                children: updateBulletTree(b.children)
+              };
+            }
+            return b;
+          });
+        };
+        return updateBulletTree(prevBullets);
+      });
     } else {
       setBullets(prevBullets => [...prevBullets, newBullet]);
     }
@@ -122,8 +157,7 @@ export const useBulletOperations = (
   const createNewRootBullet = (): string => {
     if (!userId) return "";
 
-    const lastBullet = getAllVisibleBullets(bullets).pop();
-    const newPosition = lastBullet ? lastBullet.position + 1 : 0;
+    const newPosition = getMaxPosition(bullets) + 1;
 
     const newBullet: BulletPoint = {
       id: generateBulletId(),
@@ -172,14 +206,12 @@ export const useBulletOperations = (
       return updateBulletContent(prevBullets);
     });
 
+    // Only update content, not position
     addToQueue({
       id,
       type: 'update',
       data: {
-        content,
-        is_collapsed: false,
-        position: 0,
-        level: 0
+        content
       }
     });
   };
