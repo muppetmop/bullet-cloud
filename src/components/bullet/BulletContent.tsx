@@ -1,9 +1,9 @@
-import React, { useRef, KeyboardEvent, useEffect } from "react";
+import React, { useRef, KeyboardEvent } from "react";
 import { BulletPoint } from "@/types/bullet";
-import { handleTabKey, handleArrowKeys } from "@/utils/keyboardHandlers";
 import { BulletIcon } from "./BulletIcon";
 import { CollapseButton } from "./CollapseButton";
-import { useCaretPosition } from "@/hooks/useCaretPosition";
+import { useBulletHandlers } from "@/hooks/bullet/useBulletHandlers";
+import { isMobileDevice } from "@/utils/deviceDetection";
 
 interface BulletContentProps {
   bullet: BulletPoint;
@@ -33,178 +33,43 @@ const BulletContent: React.FC<BulletContentProps> = ({
   onTransferChildren,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const { saveCaretPosition, restoreCaretPosition, currentPosition } = useCaretPosition(contentRef);
-
-  useEffect(() => {
-    if (!contentRef.current) return;
-    contentRef.current.textContent = bullet.content;
-  }, [bullet.content]);
+  const { handleEnterKey, handleBackspaceKey } = useBulletHandlers({
+    onUpdate,
+    onDelete,
+    onNewBullet,
+    onTransferChildren
+  });
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (mode === "theirs") return;
-    
-    const content = contentRef.current?.textContent || "";
-    saveCaretPosition();
-    const pos = currentPosition();
 
     if (e.key === "Enter") {
-      e.preventDefault();
-      const beforeCursor = content.slice(0, pos);
-      const afterCursor = content.slice(pos);
-      
-      if (pos === 0 && content.length > 0) {
-        // When at start of line with content after cursor
-        onUpdate(bullet.id, afterCursor);
-        const newBulletId = onNewBullet(bullet.id);
-        
-        if (newBulletId) {
-          onUpdate(newBulletId, '');
-          
-          if (bullet.children.length > 0 && onTransferChildren) {
-            onTransferChildren(bullet.id, newBulletId);
-          }
-
-          requestAnimationFrame(() => {
-            const originalElement = document.querySelector(
-              `[data-id="${bullet.id}"] .bullet-content`
-            ) as HTMLElement;
-            
-            if (originalElement) {
-              originalElement.focus();
-              try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const textNode = originalElement.firstChild || originalElement;
-                range.setStart(textNode, 0);
-                range.setEnd(textNode, 0);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-              } catch (err) {
-                console.error('Failed to set cursor position:', err);
-              }
-            }
-          });
-        }
-      } else {
-        // Normal enter behavior
-        onUpdate(bullet.id, beforeCursor);
-        const newBulletId = onNewBullet(bullet.id);
-        
-        if (newBulletId) {
-          onUpdate(newBulletId, afterCursor);
-          
-          if (bullet.children.length > 0 && onTransferChildren) {
-            onTransferChildren(bullet.id, newBulletId);
-          }
-
-          requestAnimationFrame(() => {
-            const newElement = document.querySelector(
-              `[data-id="${newBulletId}"] .bullet-content`
-            ) as HTMLElement;
-            
-            if (newElement) {
-              newElement.focus();
-              try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const textNode = newElement.firstChild || newElement;
-                range.setStart(textNode, 0);
-                range.setEnd(textNode, 0);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-              } catch (err) {
-                console.error('Failed to set cursor position:', err);
-              }
-            }
-          });
-        }
-      }
-    } else if (e.key === "Tab") {
-      handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
+      handleEnterKey(e, contentRef, bullet);
     } else if (e.key === "Backspace") {
-      handleBackspace(e, content, pos);
-    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
-    }
-  };
-
-  const handleBackspace = (e: KeyboardEvent, content: string, pos: number) => {
-    const selection = window.getSelection();
-    
-    if (selection && !selection.isCollapsed) {
-      return;
-    }
-    
-    if (pos === 0) {
-      const visibleBullets = Array.from(
-        document.querySelectorAll('.bullet-content')
-      ) as HTMLElement[];
-      
-      const currentIndex = visibleBullets.findIndex(
-        el => el === contentRef.current
-      );
-      
-      if (currentIndex > 0) {
-        const previousElement = visibleBullets[currentIndex - 1];
-        const previousContent = previousElement.textContent || '';
-        const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
-        
-        if (previousBulletId) {
-          if (content.length === 0) {
-            if (visibleBullets.length > 1 && bullet.children.length === 0) {
-              onDelete(bullet.id);
-              
-              requestAnimationFrame(() => {
-                previousElement.focus();
-                try {
-                  const selection = window.getSelection();
-                  const range = document.createRange();
-                  const textNode = previousElement.firstChild || previousElement;
-                  const position = previousContent.length;
-                  range.setStart(textNode, position);
-                  range.setEnd(textNode, position);
-                  selection?.removeAllRanges();
-                  selection?.addRange(range);
-                } catch (err) {
-                  console.error('Failed to set cursor position:', err);
-                }
-              });
-            }
-          } else {
-            e.preventDefault();
-            onUpdate(previousBulletId, previousContent + content);
-            onDelete(bullet.id);
-            
-            requestAnimationFrame(() => {
-              previousElement.focus();
-              try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const textNode = previousElement.firstChild || previousElement;
-                const position = previousContent.length;
-                range.setStart(textNode, position);
-                range.setEnd(textNode, position);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-              } catch (err) {
-                console.error('Failed to set cursor position:', err);
-              }
-            });
-          }
-        }
+      handleBackspaceKey(e, contentRef, bullet);
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      if (e.shiftKey && onOutdent) {
+        onOutdent(bullet.id);
+      } else if (!e.shiftKey && onIndent) {
+        onIndent(bullet.id);
       }
+    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+      onNavigate(e.key === "ArrowUp" ? "up" : "down", bullet.id);
     }
   };
 
   const handleInput = () => {
     if (mode === "theirs") return;
-    saveCaretPosition();
     const content = contentRef.current?.textContent || "";
     onUpdate(bullet.id, content);
-    requestAnimationFrame(() => {
-      restoreCaretPosition();
-    });
   };
+
+  React.useEffect(() => {
+    if (!contentRef.current) return;
+    contentRef.current.textContent = bullet.content;
+  }, [bullet.content]);
 
   return (
     <>
