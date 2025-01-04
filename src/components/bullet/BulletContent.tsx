@@ -52,72 +52,41 @@ const BulletContent: React.FC<BulletContentProps> = ({
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
       
-      if (pos === 0 && content.length > 0) {
-        // When at start of line with content after cursor
-        onUpdate(bullet.id, afterCursor);
-        const newBulletId = onNewBullet(bullet.id);
+      // Immediately update the current bullet with content before cursor
+      onUpdate(bullet.id, beforeCursor);
+      
+      // Create new bullet and update it with content after cursor
+      const newBulletId = onNewBullet(bullet.id);
+      if (newBulletId) {
+        // Update the new bullet with content after cursor
+        onUpdate(newBulletId, afterCursor);
         
-        if (newBulletId) {
-          onUpdate(newBulletId, '');
-          
-          if (bullet.children.length > 0 && onTransferChildren) {
-            onTransferChildren(bullet.id, newBulletId);
-          }
-
-          requestAnimationFrame(() => {
-            const originalElement = document.querySelector(
-              `[data-id="${bullet.id}"] .bullet-content`
-            ) as HTMLElement;
-            
-            if (originalElement) {
-              originalElement.focus();
-              try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const textNode = originalElement.firstChild || originalElement;
-                range.setStart(textNode, 0);
-                range.setEnd(textNode, 0);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-              } catch (err) {
-                console.error('Failed to set cursor position:', err);
-              }
-            }
-          });
+        // Handle children transfer if needed
+        if (bullet.children.length > 0 && onTransferChildren) {
+          onTransferChildren(bullet.id, newBulletId);
         }
-      } else {
-        // Normal enter behavior
-        onUpdate(bullet.id, beforeCursor);
-        const newBulletId = onNewBullet(bullet.id);
-        
-        if (newBulletId) {
-          onUpdate(newBulletId, afterCursor);
-          
-          if (bullet.children.length > 0 && onTransferChildren) {
-            onTransferChildren(bullet.id, newBulletId);
-          }
 
-          requestAnimationFrame(() => {
-            const newElement = document.querySelector(
-              `[data-id="${newBulletId}"] .bullet-content`
-            ) as HTMLElement;
-            
-            if (newElement) {
-              newElement.focus();
-              try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const textNode = newElement.firstChild || newElement;
-                range.setStart(textNode, 0);
-                range.setEnd(textNode, 0);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-              } catch (err) {
-                console.error('Failed to set cursor position:', err);
-              }
+        // Focus the new bullet and set cursor to start
+        requestAnimationFrame(() => {
+          const newElement = document.querySelector(
+            `[data-id="${newBulletId}"] .bullet-content`
+          ) as HTMLElement;
+          
+          if (newElement) {
+            newElement.focus();
+            try {
+              const selection = window.getSelection();
+              const range = document.createRange();
+              const textNode = newElement.firstChild || newElement;
+              range.setStart(textNode, 0);
+              range.setEnd(textNode, 0);
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            } catch (err) {
+              console.error('Failed to set cursor position:', err);
             }
-          });
-        }
+          }
+        });
       }
     } else if (e.key === "Tab") {
       handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
