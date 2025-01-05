@@ -12,6 +12,14 @@ export const handleBackspaceKey = (
 ) => {
   // Only handle backspace at start of line
   if (pos === 0) {
+    const visibleBullets = Array.from(
+      document.querySelectorAll('.bullet-content')
+    ) as HTMLElement[];
+    
+    const currentIndex = visibleBullets.findIndex(
+      el => el === contentRef.current
+    );
+    
     console.log('Backspace pressed at start:', {
       bullet: {
         id: bullet.id,
@@ -22,35 +30,17 @@ export const handleBackspaceKey = (
       caretPosition: pos,
       hasChildren: bullet.children.length > 0,
       parentId: bullet.parent_id,
-      domContent: contentRef.current?.textContent,
-      localStorageContent: localStorage.getItem('bullets'),
-      operationState: {
-        isDeleting: false,
-        isMerging: false,
-        isUpdatingDOM: false,
-        lastOperation: null
+      domState: {
+        currentContent: contentRef.current?.textContent,
+        selection: window.getSelection()?.toString(),
+        activeElement: document.activeElement,
+        visibleBullets: visibleBullets.map(el => ({
+          id: el.closest('[data-id]')?.getAttribute('data-id'),
+          content: el.textContent,
+          isActive: el === document.activeElement
+        }))
       }
     });
-
-    const visibleBullets = Array.from(
-      document.querySelectorAll('.bullet-content')
-    ) as HTMLElement[];
-    
-    console.log('Visible bullets state:', {
-      totalCount: visibleBullets.length,
-      bullets: visibleBullets.map(el => ({
-        id: el.closest('[data-id]')?.getAttribute('data-id'),
-        content: el.textContent,
-        position: el.closest('[data-id]')?.getAttribute('data-position'),
-        domContent: el.textContent,
-        isContentEditable: el.isContentEditable,
-        hasSelection: window.getSelection()?.containsNode(el, true)
-      }))
-    });
-    
-    const currentIndex = visibleBullets.findIndex(
-      el => el === contentRef.current
-    );
     
     if (currentIndex > 0) {
       const previousElement = visibleBullets[currentIndex - 1];
@@ -64,7 +54,12 @@ export const handleBackspaceKey = (
               bulletId: bullet.id,
               currentDOMContent: contentRef.current?.textContent,
               currentLocalContent: content,
-              operation: 'delete'
+              operation: 'delete',
+              domState: {
+                previousContent,
+                previousElementContent: previousElement.textContent,
+                currentElementContent: contentRef.current?.textContent
+              }
             });
             
             onDelete(bullet.id);
@@ -74,7 +69,18 @@ export const handleBackspaceKey = (
               previousId: previousBulletId,
               previousContent,
               domExists: !!document.querySelector(`[data-id="${bullet.id}"]`),
-              previousElementContent: previousElement.textContent
+              previousElementContent: previousElement.textContent,
+              domState: {
+                activeElement: document.activeElement,
+                selection: window.getSelection()?.toString()
+              }
+            });
+            
+            console.log('State after visual update (Delete):', {
+              previousBulletId,
+              domContent: previousElement.textContent,
+              localContent: previousContent,
+              deletedBulletExists: !!document.querySelector(`[data-id="${bullet.id}"]`)
             });
             
             requestAnimationFrame(() => {
@@ -89,7 +95,7 @@ export const handleBackspaceKey = (
                 selection?.removeAllRanges();
                 selection?.addRange(range);
                 
-                console.log('Cursor position set:', {
+                console.log('Cursor position set after delete:', {
                   element: previousBulletId,
                   position,
                   success: true,
@@ -122,7 +128,11 @@ export const handleBackspaceKey = (
               content: previousContent,
               domContent: previousElement.textContent
             },
-            operation: 'merge'
+            operation: 'merge',
+            domState: {
+              activeElement: document.activeElement,
+              selection: window.getSelection()?.toString()
+            }
           });
           
           onUpdate(previousBulletId, previousContent + content);
@@ -137,7 +147,18 @@ export const handleBackspaceKey = (
               id: previousBulletId,
               newContent: previousContent + content,
               domContent: previousElement.textContent
+            },
+            domState: {
+              activeElement: document.activeElement,
+              selection: window.getSelection()?.toString()
             }
+          });
+          
+          console.log('State after visual update (Merge):', {
+            previousBulletId,
+            domContent: previousElement.textContent,
+            localContent: previousContent + content,
+            mergedBulletExists: !!document.querySelector(`[data-id="${bullet.id}"]`)
           });
           
           setTimeout(() => {
@@ -167,7 +188,13 @@ export const handleBackspaceKey = (
                     startOffset: range.startOffset,
                     endOffset: range.endOffset
                   },
-                  localStorageContent: localStorage.getItem('bullets')
+                  domState: {
+                    activeElement: document.activeElement,
+                    visibleBullets: Array.from(document.querySelectorAll('.bullet-content')).map(el => ({
+                      id: el.closest('[data-id]')?.getAttribute('data-id'),
+                      content: el.textContent
+                    }))
+                  }
                 }
               });
             } catch (err) {
