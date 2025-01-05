@@ -8,20 +8,30 @@ const INITIAL_SEGMENT_LENGTH = 4;
 const calculateMidpoint = (pos1: string, pos2: string): string => {
   console.log('Calculating midpoint between:', { pos1, pos2 });
   
-  // If positions are sequential (like a0001 and a0002), add a digit
-  if (pos2 && Math.abs(parseInt(pos1.slice(1)) - parseInt(pos2.slice(1))) === 1) {
+  // Extract numeric parts
+  const num1 = parseInt(pos1.slice(1));
+  const num2 = pos2 ? parseInt(pos2.slice(1)) : num1 + 1000;
+  
+  // If positions are sequential or reversed, add a digit
+  if (Math.abs(num2 - num1) === 1 || num2 < num1) {
+    // If the first position already has a 5, append another 5
+    if (pos1.endsWith('5')) {
+      return pos1 + '5';
+    }
     return pos1 + '5';
   }
   
-  // Calculate numeric midpoint
-  const num1 = parseInt(pos1.slice(1));
-  const num2 = pos2 ? parseInt(pos2.slice(1)) : num1 + 1000; // Large gap if no next position
+  // Calculate numeric midpoint ensuring it's between the two numbers
+  let midpoint = Math.floor((num1 + num2) / 2);
+  if (midpoint <= num1) {
+    midpoint = num1 + Math.floor((num2 - num1) / 3);
+  }
   
-  const midpoint = Math.floor((num1 + num2) / 2);
   console.log('Calculated numeric midpoint:', {
     pos1: num1,
     pos2: num2,
-    midpoint
+    midpoint,
+    resultingPosition: POSITION_BASE + midpoint.toString().padStart(INITIAL_SEGMENT_LENGTH, '0')
   });
   
   return POSITION_BASE + midpoint.toString().padStart(INITIAL_SEGMENT_LENGTH, '0');
