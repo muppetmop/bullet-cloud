@@ -36,7 +36,8 @@ export const useBulletCreation = (
       isCollapsed: false,
       position: newPosition,
       level: newLevel,
-      parent_id: parentId
+      parent_id: parentId,
+      user_id: userId
     };
 
     parent.splice(parent.indexOf(bullet) + 1, 0, newBullet);
@@ -84,7 +85,8 @@ export const useBulletCreation = (
       isCollapsed: false,
       position: newPosition,
       level: newLevel,
-      parent_id: id
+      parent_id: id,
+      user_id: userId
     };
 
     bullet.children.push(newBullet);
@@ -125,7 +127,8 @@ export const useBulletCreation = (
       isCollapsed: false,
       position: newPosition,
       level: newLevel,
-      parent_id: null
+      parent_id: null,
+      user_id: userId
     };
 
     addToQueue({

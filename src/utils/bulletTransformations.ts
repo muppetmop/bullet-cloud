@@ -20,7 +20,8 @@ export const transformUserBullets = (
     level: (bullet.level || 0) + baseLevel,
     children: (bullet.children || []).map((child: any) => 
       transformUserBullets(child, baseLevel + 1)
-    )
+    ),
+    user_id: bullet.user_id
   };
 };
 
@@ -39,6 +40,7 @@ export const transformUserToRootBullet = (user: any): BulletPoint => {
     ),
     isCollapsed: false,
     position: 'a0000',
-    level: 0
+    level: 0,
+    user_id: user.id
   };
 };

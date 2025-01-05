@@ -44,7 +44,6 @@ export const fetchBulletsForUser = async (userId: string) => {
   } catch (error: any) {
     console.error('Error fetching bullets:', error);
     
-    // Show user-friendly error message
     if (!navigator.onLine) {
       toast.error("You're offline. Please check your internet connection.");
     } else if (error.message?.includes('Failed to fetch')) {
@@ -65,7 +64,8 @@ export const createInitialBullet = (userId: string): BulletPoint => {
     isCollapsed: false,
     position: 'a0000',
     level: 0,
-    parent_id: null
+    parent_id: null,
+    user_id: userId
   };
 };
 
