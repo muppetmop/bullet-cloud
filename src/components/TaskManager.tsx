@@ -378,7 +378,7 @@ const TaskManager = () => {
     return null;
   };
 
-  const handleNewBullet = async () => {
+  const handleNewBullet = async (id: string) => {
     console.log('Creating new bullet. Current state:', {
       currentBulletId,
       isEmptyZoomed: isEmptyZoomedState()
@@ -418,6 +418,7 @@ const TaskManager = () => {
           }
         });
       }
+      return newBulletId;
     } else {
       console.log('Creating root bullet');
       const newBulletId = await createNewRootBullet();
@@ -431,6 +432,7 @@ const TaskManager = () => {
           }
         });
       }
+      return newBulletId;
     }
   };
 

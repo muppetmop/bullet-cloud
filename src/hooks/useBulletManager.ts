@@ -19,17 +19,20 @@ export const useBulletManager = () => {
     deleteBullet,
     toggleCollapse,
     transferChildren
-  } = useBulletOperations(bullets, setBullets);
+  } = useBulletOperations(user?.id, bullets, setBullets);
   const { indentBullet, outdentBullet } = useBulletIndentation(bullets, setBullets);
 
   const getAllVisibleBullets = useCallback(() => {
-    return bullets.reduce((acc: BulletPoint[], bullet) => {
-      return [
-        ...acc,
-        bullet,
-        ...(bullet.isCollapsed ? [] : getAllVisibleBullets(bullet.children)),
-      ];
-    }, []);
+    const getVisibleBullets = (bullets: BulletPoint[]): BulletPoint[] => {
+      return bullets.reduce((acc: BulletPoint[], bullet) => {
+        return [
+          ...acc,
+          bullet,
+          ...(bullet.isCollapsed ? [] : getVisibleBullets(bullet.children)),
+        ];
+      }, []);
+    };
+    return getVisibleBullets(bullets);
   }, [bullets]);
 
   return {
