@@ -5,24 +5,13 @@ import { fetchBulletsForUser, createInitialBullet } from "@/services/bulletServi
 import { toast } from "sonner";
 
 export const useBulletState = () => {
-  // Initialize with empty array instead of accessing localStorage
-  const [bullets, setBullets] = useState<BulletPoint[]>([]);
+  const [bullets, setBullets] = useState<BulletPoint[]>(() => {
+    // Try to load from localStorage first
+    const savedBullets = localStorage.getItem('bullets');
+    return savedBullets ? JSON.parse(savedBullets) : [];
+  });
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  // Load initial data from localStorage
-  useEffect(() => {
-    const savedBullets = localStorage.getItem('bullets');
-    if (savedBullets) {
-      try {
-        const parsedBullets = JSON.parse(savedBullets);
-        setBullets(parsedBullets);
-      } catch (e) {
-        console.error('Error parsing bullets from localStorage:', e);
-      }
-    }
-  }, []);
 
   // Get user ID on mount
   useEffect(() => {
@@ -30,24 +19,17 @@ export const useBulletState = () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user?.id) {
-          console.log('User session found:', session.user.id);
           setUserId(session.user.id);
-        } else {
-          console.log('No user session found');
-          setIsLoading(false);
         }
       } catch (error) {
         console.error('Error getting session:', error);
         toast.error("Error loading user session. Please try signing in again.");
-        setIsLoading(false);
       }
     };
     getUserId();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const newUserId = session?.user?.id || null;
-      console.log('Auth state changed:', { newUserId });
-      setUserId(newUserId);
+      setUserId(session?.user?.id || null);
     });
 
     return () => subscription.unsubscribe();
@@ -62,18 +44,10 @@ export const useBulletState = () => {
       }
 
       setIsLoading(true);
-      setError(null);
-      
       try {
-        console.log('Fetching bullets for user:', userId);
         const data = await fetchBulletsForUser(userId);
         
         if (data && data.length > 0) {
-          console.log('Bullets fetched successfully:', {
-            count: data.length,
-            firstBullet: data[0]
-          });
-          
           // Convert flat structure to hierarchical
           const bulletMap = new Map<string, BulletPoint>();
           const rootBullets: BulletPoint[] = [];
@@ -92,36 +66,26 @@ export const useBulletState = () => {
               const parent = bulletMap.get(bullet.parent_id);
               if (parent) {
                 parent.children.push(bulletPoint);
-              } else {
-                console.warn('Parent bullet not found:', bullet.parent_id);
-                rootBullets.push(bulletPoint);
               }
             } else {
               rootBullets.push(bulletPoint);
             }
           });
           
-          console.log('Hierarchical bullets created:', {
-            rootCount: rootBullets.length,
-            totalCount: data.length
-          });
-          
           setBullets(rootBullets);
+          // Save to localStorage
           localStorage.setItem('bullets', JSON.stringify(rootBullets));
         } else {
-          console.log('No bullets found, creating initial bullet');
+          // Create initial bullet if none exist
           const initialBullet = createInitialBullet(userId);
           setBullets([initialBullet]);
           localStorage.setItem('bullets', JSON.stringify([initialBullet]));
         }
       } catch (error) {
         console.error('Error loading bullets:', error);
-        setError(error as Error);
-        
         // Try to load from localStorage as fallback
         const savedBullets = localStorage.getItem('bullets');
         if (savedBullets) {
-          console.log('Loading bullets from localStorage fallback');
           setBullets(JSON.parse(savedBullets));
           toast.info("Using locally saved bullets while offline");
         }
@@ -136,10 +100,6 @@ export const useBulletState = () => {
   // Save to localStorage whenever bullets change
   useEffect(() => {
     if (bullets.length > 0) {
-      console.log('Saving bullets to localStorage:', {
-        count: bullets.length,
-        firstBullet: bullets[0]
-      });
       localStorage.setItem('bullets', JSON.stringify(bullets));
     }
   }, [bullets]);
@@ -148,7 +108,6 @@ export const useBulletState = () => {
     bullets,
     setBullets,
     userId,
-    isLoading,
-    error
+    isLoading
   };
 };
