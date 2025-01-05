@@ -3,15 +3,16 @@ import { generateBulletId } from "@/utils/idGenerator";
 import { findBulletAndParent } from "@/utils/bulletOperations";
 import { addToQueue } from "@/utils/queueManager";
 import { usePositionCalculator } from "./usePositionCalculator";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useBulletCreation = (
   userId: string | null | undefined,
   bullets: BulletPoint[],
   setBullets: React.Dispatch<React.SetStateAction<BulletPoint[]>>
 ) => {
-  const { findNextPosition, findBulletLevel } = usePositionCalculator();
+  const { findNextPosition, findBulletLevel, updatePositionsAfterInsertion } = usePositionCalculator();
 
-  const createNewBullet = (id: string, forcedLevel?: number): string | null => {
+  const createNewBullet = async (id: string, forcedLevel?: number): Promise<string | null> => {
     if (!userId) return null;
 
     const [bullet, parent] = findBulletAndParent(id, bullets);
@@ -40,6 +41,20 @@ export const useBulletCreation = (
       level: newLevel,
       parent_id: parentId
     };
+
+    // Update positions of affected bullets in the database
+    const affectedBullets = await updatePositionsAfterInsertion(bullets, newPosition);
+    
+    // Queue position updates for affected bullets
+    affectedBullets.forEach(bullet => {
+      addToQueue({
+        id: bullet.id,
+        type: 'update',
+        data: {
+          position: bullet.position + 1
+        }
+      });
+    });
 
     parent.splice(parent.indexOf(bullet) + 1, 0, newBullet);
     setBullets([...bullets]);
