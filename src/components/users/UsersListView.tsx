@@ -1,12 +1,13 @@
 import React from 'react';
 import UsersList from "./UsersList";
 import { BulletPoint } from "@/types/bullet";
+import { User } from "@/types/user";
 
 interface UsersListViewProps {
-  users: any[];
+  users: User[];
   onUpdate: (id: string, content: string) => void;
   onDelete: (id: string) => void;
-  onNewBullet: (id: string) => string | null;
+  onNewBullet: (id: string) => Promise<string>;
   onCollapse: (id: string) => void;
   onNavigate: (direction: "up" | "down", id: string) => void;
   onIndent: (id: string) => void;
@@ -14,7 +15,7 @@ interface UsersListViewProps {
   onZoom: (id: string) => void;
   theirsBullets: {[key: string]: BulletPoint[]};
   onSetUserBullets: (userId: string, bullets: BulletPoint[]) => void;
-  handleNewBullet: () => void;
+  handleNewBullet: (id: string) => Promise<string>;
 }
 
 const UsersListView: React.FC<UsersListViewProps> = ({
@@ -29,6 +30,7 @@ const UsersListView: React.FC<UsersListViewProps> = ({
   onZoom,
   theirsBullets,
   onSetUserBullets,
+  handleNewBullet
 }) => {
   return (
     <UsersList
@@ -43,6 +45,7 @@ const UsersListView: React.FC<UsersListViewProps> = ({
       onZoom={onZoom}
       theirsBullets={theirsBullets}
       onSetUserBullets={onSetUserBullets}
+      handleNewBullet={handleNewBullet}
     />
   );
 };
