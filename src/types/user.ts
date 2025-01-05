@@ -7,5 +7,7 @@ export interface User {
 }
 
 export interface UserWithBullets extends User {
-  bullets: any[];
+  bullets: BulletPoint[];
 }
+
+import { BulletPoint } from "./bullet";
