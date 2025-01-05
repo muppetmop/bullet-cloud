@@ -2,7 +2,7 @@ import { BulletPoint } from "@/types/bullet";
 import { getAllVisibleBullets } from "@/utils/bulletOperations";
 
 export const usePositionCalculator = () => {
-  const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null = null): number => {
+  const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null = null): string => {
     console.log('Finding next position:', { 
       currentBulletId,
       allBullets: bullets.map(b => ({
@@ -15,13 +15,11 @@ export const usePositionCalculator = () => {
     const allBullets = getAllVisibleBullets(bullets);
     
     if (!currentBulletId) {
-      const maxPosition = allBullets.length > 0 ? Math.max(...allBullets.map(b => b.position)) : -1;
-      console.log('No current bullet, using max position:', {
-        maxPosition,
-        newPosition: maxPosition + 1,
-        bulletCount: allBullets.length
-      });
-      return maxPosition + 1;
+      if (allBullets.length === 0) {
+        return 'a0000';
+      }
+      const lastBullet = allBullets[allBullets.length - 1];
+      return generatePosition(lastBullet.position);
     }
 
     const currentIndex = allBullets.findIndex(b => b.id === currentBulletId);
@@ -30,24 +28,18 @@ export const usePositionCalculator = () => {
         currentBulletId,
         availableBullets: allBullets.map(b => b.id)
       });
-      return allBullets.length;
+      return generatePosition('a0000');
     }
 
-    const currentPosition = allBullets[currentIndex].position;
-    const affectedBullets = allBullets.filter(b => b.position > currentPosition);
+    const currentBullet = allBullets[currentIndex];
+    const nextBullet = allBullets[currentIndex + 1];
     
-    console.log('Position calculation:', {
-      currentPosition,
-      newPosition: currentPosition + 1,
-      affectedBullets: affectedBullets.map(b => ({
-        id: b.id,
-        oldPosition: b.position,
-        newPosition: b.position + 1,
-        content: b.content
-      }))
-    });
-    
-    return currentPosition + 1;
+    if (!nextBullet) {
+      return generatePosition(currentBullet.position);
+    }
+
+    // Insert between current and next bullet
+    return currentBullet.position + '_1';
   };
 
   const findBulletLevel = (bullets: BulletPoint[], currentBulletId: string | null = null): number => {
@@ -69,4 +61,11 @@ export const usePositionCalculator = () => {
     findNextPosition,
     findBulletLevel
   };
+};
+
+const generatePosition = (position: string): string => {
+  const segments = position.split('_');
+  const lastSegment = segments[segments.length - 1];
+  const newLastSegment = lastSegment + '1';
+  return [...segments.slice(0, -1), newLastSegment].join('_');
 };

@@ -63,7 +63,7 @@ export const createInitialBullet = (userId: string): BulletPoint => {
     content: "",
     children: [],
     isCollapsed: false,
-    position: 0,
+    position: 'a0000',
     level: 0,
     parent_id: null
   };
@@ -73,7 +73,15 @@ export const insertBullet = async (bullet: BulletPoint & { user_id: string }) =>
   try {
     const { data, error } = await supabase
       .from('bullets')
-      .insert([bullet])
+      .insert({
+        id: bullet.id,
+        content: bullet.content,
+        parent_id: bullet.parent_id,
+        is_collapsed: bullet.isCollapsed,
+        position: bullet.position,
+        level: bullet.level,
+        user_id: bullet.user_id
+      })
       .select()
       .single();
 

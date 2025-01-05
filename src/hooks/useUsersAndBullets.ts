@@ -43,6 +43,7 @@ export const useUsersAndBullets = () => {
           bullets.forEach(bullet => {
             bulletMap.set(bullet.id, {
               ...bullet,
+              position: bullet.position.toString(),
               children: [],
               isCollapsed: bullet.is_collapsed
             });

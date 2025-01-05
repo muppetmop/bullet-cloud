@@ -16,7 +16,7 @@ export const transformUserBullets = (
   return {
     ...bullet,
     isCollapsed: bullet.isCollapsed || false,
-    position: bullet.position || 0,
+    position: bullet.position?.toString() || 'a0000',
     level: (bullet.level || 0) + baseLevel,
     children: (bullet.children || []).map((child: any) => 
       transformUserBullets(child, baseLevel + 1)
@@ -38,7 +38,7 @@ export const transformUserToRootBullet = (user: any): BulletPoint => {
       transformUserBullets(bullet, 1) // Start user's bullets at level 1
     ),
     isCollapsed: false,
-    position: 0,
+    position: 'a0000',
     level: 0
   };
 };
