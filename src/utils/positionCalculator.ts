@@ -8,39 +8,28 @@ const INITIAL_SEGMENT_LENGTH = 4;
 const calculateMidpoint = (pos1: string, pos2: string): string => {
   console.log('Calculating midpoint between:', { pos1, pos2 });
   
-  // Extract numeric parts
-  const num1 = parseInt(pos1.slice(1));
-  const num2 = pos2 ? parseInt(pos2.slice(1)) : num1 + 1000;
+  // Extract numeric parts and convert to decimal numbers
+  const num1 = parseFloat(pos1.slice(1));
+  const num2 = pos2 ? parseFloat(pos2.slice(1)) : num1 + 1.0;
   
-  // If positions are sequential or reversed, add a digit
-  if (Math.abs(num2 - num1) === 1 || num2 < num1) {
-    // If the first position already has a 5, append another 5
-    if (pos1.endsWith('5')) {
-      return pos1 + '5';
-    }
-    return pos1 + '5';
-  }
+  // Calculate the midpoint using decimal arithmetic
+  const midpoint = (num1 + num2) / 2;
   
-  // Calculate numeric midpoint ensuring it's between the two numbers
-  let midpoint = Math.floor((num1 + num2) / 2);
-  if (midpoint <= num1) {
-    midpoint = num1 + Math.floor((num2 - num1) / 3);
-  }
-  
-  console.log('Calculated numeric midpoint:', {
+  console.log('Calculated decimal midpoint:', {
     pos1: num1,
     pos2: num2,
     midpoint,
-    resultingPosition: POSITION_BASE + midpoint.toString().padStart(INITIAL_SEGMENT_LENGTH, '0')
+    resultingPosition: POSITION_BASE + midpoint.toFixed(4)
   });
   
-  return POSITION_BASE + midpoint.toString().padStart(INITIAL_SEGMENT_LENGTH, '0');
+  // Format with 4 decimal places to maintain precision
+  return POSITION_BASE + midpoint.toFixed(4);
 };
 
 const generateSequentialPosition = (lastPosition: string): string => {
-  const currentNum = parseInt(lastPosition.slice(1));
-  const nextNum = currentNum + 1;
-  return POSITION_BASE + nextNum.toString().padStart(INITIAL_SEGMENT_LENGTH, '0');
+  const currentNum = parseFloat(lastPosition.slice(1));
+  const nextNum = currentNum + 1.0;
+  return POSITION_BASE + nextNum.toFixed(4);
 };
 
 const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null = null): string => {
@@ -58,7 +47,7 @@ const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null
   
   // If no bullets exist or no current bullet specified, start with a0000
   if (!currentBulletId || allBullets.length === 0) {
-    return POSITION_BASE + '0000';
+    return POSITION_BASE + '0.0000';
   }
 
   const currentIndex = allBullets.findIndex(b => b.id === currentBulletId);
@@ -67,7 +56,7 @@ const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null
       currentBulletId,
       availableBullets: allBullets.map(b => b.id)
     });
-    return POSITION_BASE + '0000';
+    return POSITION_BASE + '0.0000';
   }
 
   const currentBullet = allBullets[currentIndex];
