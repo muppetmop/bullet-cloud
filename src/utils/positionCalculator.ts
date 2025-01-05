@@ -35,7 +35,6 @@ export const findNextPosition = (bullets: BulletPoint[], currentBulletId: string
   const currentPosition = allBullets[currentIndex].position;
   const affectedBullets = allBullets.filter(b => b.position > currentPosition);
   
-  // Log affected bullets before updating positions
   console.log('Position calculation:', {
     currentPosition,
     newPosition: currentPosition + 1,
@@ -45,15 +44,6 @@ export const findNextPosition = (bullets: BulletPoint[], currentBulletId: string
       newPosition: b.position + 1,
       content: b.content
     }))
-  });
-
-  // Update positions for affected bullets in the database
-  affectedBullets.forEach(bullet => {
-    console.log('Updating position for bullet:', {
-      id: bullet.id,
-      oldPosition: bullet.position,
-      newPosition: bullet.position + 1
-    });
   });
   
   return currentPosition + 1;
@@ -72,21 +62,4 @@ export const findBulletLevel = (bullets: BulletPoint[], currentBulletId: string 
   });
   
   return currentBullet ? currentBullet.level : 0;
-};
-
-export const updatePositionsAfterInsertion = async (bullets: BulletPoint[], insertPosition: number) => {
-  const allBullets = getAllVisibleBullets(bullets);
-  const affectedBullets = allBullets.filter(b => b.position >= insertPosition);
-
-  console.log('Updating positions after insertion:', {
-    insertPosition,
-    affectedBullets: affectedBullets.map(b => ({
-      id: b.id,
-      oldPosition: b.position,
-      newPosition: b.position + 1,
-      content: b.content
-    }))
-  });
-
-  return affectedBullets;
 };

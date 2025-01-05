@@ -1,47 +1,43 @@
-import { useState, useCallback } from "react";
-import { BulletPoint } from "@/types/bullet";
-import { useBulletCreation } from "./bullet/useBulletCreation";
+import { useEffect } from "react";
+import { startSyncService } from "@/services/syncService";
+import { useBulletState } from "./bullet/useBulletState";
 import { useBulletOperations } from "./bullet/useBulletOperations";
 import { useBulletIndentation } from "./bullet/useBulletIndentation";
-import { useBulletState } from "./bullet/useBulletState";
-import { useUser } from "@supabase/auth-helpers-react";
+import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
 
 export const useBulletManager = () => {
-  const user = useUser();
-  const { bullets, setBullets } = useBulletState();
-  const { createNewBullet, createNewRootBullet, createNewZoomedBullet } = useBulletCreation(
-    user?.id,
-    bullets,
-    setBullets
-  );
+  // Always initialize all hooks at the top level
+  const { bullets, setBullets, userId } = useBulletState();
+  
   const {
+    createNewBullet,
+    createNewZoomedBullet,
+    createNewRootBullet,
     updateBullet,
     deleteBullet,
     toggleCollapse,
-    transferChildren
-  } = useBulletOperations(user?.id, bullets, setBullets);
-  const { indentBullet, outdentBullet } = useBulletIndentation(bullets, setBullets);
+    transferChildren,
+  } = useBulletOperations(userId, bullets, setBullets);
 
-  const getAllVisibleBullets = useCallback(() => {
-    const getVisibleBullets = (bullets: BulletPoint[]): BulletPoint[] => {
-      return bullets.reduce((acc: BulletPoint[], bullet) => {
-        return [
-          ...acc,
-          bullet,
-          ...(bullet.isCollapsed ? [] : getVisibleBullets(bullet.children)),
-        ];
-      }, []);
-    };
-    return getVisibleBullets(bullets);
-  }, [bullets]);
+  const {
+    indentBullet,
+    outdentBullet,
+  } = useBulletIndentation(bullets, setBullets);
+
+  // Move useEffect to the end, after all other hooks
+  useEffect(() => {
+    const cleanup = startSyncService();
+    return () => cleanup();
+  }, []); // Empty dependency array since startSyncService doesn't depend on any props or state
 
   return {
     bullets,
     setBullets,
+    findBulletAndParent,
     getAllVisibleBullets,
     createNewBullet,
-    createNewRootBullet,
     createNewZoomedBullet,
+    createNewRootBullet,
     updateBullet,
     deleteBullet,
     toggleCollapse,

@@ -52,18 +52,3 @@ export const updateBulletTreeRecursively = (
     return bullet;
   });
 };
-
-export const findBulletPath = (id: string, bullets: BulletPoint[]): BulletPoint[] => {
-  for (const bullet of bullets) {
-    if (bullet.id === id) {
-      return [bullet];
-    }
-    if (bullet.children.length > 0) {
-      const path = findBulletPath(id, bullet.children);
-      if (path.length > 0) {
-        return [bullet, ...path];
-      }
-    }
-  }
-  return [];
-};

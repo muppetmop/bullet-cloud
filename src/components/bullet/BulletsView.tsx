@@ -8,13 +8,13 @@ interface BulletsViewProps {
   bullets: BulletPoint[];
   onUpdate: (id: string, content: string) => void;
   onDelete: (id: string) => void;
-  onNewBullet: (id: string) => Promise<string>;
+  onNewBullet: (id: string) => string | null;
   onCollapse: (id: string) => void;
   onNavigate: (direction: "up" | "down", id: string) => void;
   onIndent: (id: string) => void;
   onOutdent: (id: string) => void;
   onZoom: (id: string) => void;
-  handleNewBullet: () => Promise<void>;
+  handleNewBullet: () => void;
   getAllVisibleBullets: (bullets: BulletPoint[]) => BulletPoint[];
   mode?: "yours" | "theirs";
   loading?: boolean;
@@ -73,9 +73,9 @@ const BulletsView: React.FC<BulletsViewProps> = ({
           onClick={handleNewBullet}
           className="new-bullet-button w-full flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 transition-colors"
           tabIndex={0}
-          onKeyDown={async (e) => {
+          onKeyDown={(e) => {
             if (e.key === "Enter") {
-              await handleNewBullet();
+              handleNewBullet();
             } else if (e.key === "ArrowUp" && bullets.length > 0) {
               const lastBullet = getAllVisibleBullets(bullets).pop();
               if (lastBullet) {
