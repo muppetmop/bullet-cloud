@@ -5,3 +5,7 @@ export interface User {
   updated_at: string;
   bullets?: any[];
 }
+
+export interface UserWithBullets extends User {
+  bullets: any[];
+}

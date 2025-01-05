@@ -3,6 +3,7 @@ import { BulletPoint } from "@/types/bullet";
 import { useBulletManager } from "@/hooks/useBulletManager";
 import { useBulletNavigation } from "@/hooks/useBulletNavigation";
 import { findBulletPath } from "@/utils/bulletOperations";
+import BulletItem from "../BulletItem";
 
 interface BulletStateManagerProps {
   currentBulletId: string | null;
