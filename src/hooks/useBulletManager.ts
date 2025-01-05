@@ -7,7 +7,7 @@ import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperati
 
 export const useBulletManager = () => {
   // Always initialize all hooks at the top level
-  const { bullets, setBullets, userId } = useBulletState();
+  const { bullets, setBullets, userId, isLoading } = useBulletState();
   
   const {
     createNewBullet,
@@ -26,9 +26,18 @@ export const useBulletManager = () => {
 
   // Move useEffect to the end, after all other hooks
   useEffect(() => {
-    const cleanup = startSyncService();
-    return () => cleanup();
-  }, []); // Empty dependency array since startSyncService doesn't depend on any props or state
+    if (!isLoading) {  // Only start sync service after initial loading
+      console.log('Starting sync service with state:', {
+        userId,
+        bulletsCount: bullets.length
+      });
+      const cleanup = startSyncService();
+      return () => {
+        console.log('Cleaning up sync service');
+        cleanup();
+      };
+    }
+  }, [isLoading]); // Add isLoading as dependency
 
   return {
     bullets,
