@@ -3,7 +3,8 @@ export interface BulletPoint {
   content: string;
   children: BulletPoint[];
   isCollapsed: boolean;
-  position: string;  // Changed from number to string
+  position: string;
   level: number;
   parent_id?: string | null;
+  user_id: string;
 }

@@ -16,6 +16,7 @@ import BulletsView from "./bullet/BulletsView";
 import UsersListView from "./users/UsersListView";
 import { DragProvider } from "@/contexts/DragContext";
 import { findBulletAndParent } from "@/utils/bulletOperations";
+import { testPositionCalculator } from "@/utils/tests/positionCalculatorTest";
 
 interface CollapsedState {
   [key: string]: boolean;
@@ -663,3 +664,4 @@ const TaskManager = () => {
 };
 
 export default TaskManager;
+
