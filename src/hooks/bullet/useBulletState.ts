@@ -5,13 +5,24 @@ import { fetchBulletsForUser, createInitialBullet } from "@/services/bulletServi
 import { toast } from "sonner";
 
 export const useBulletState = () => {
-  const [bullets, setBullets] = useState<BulletPoint[]>(() => {
-    const savedBullets = localStorage.getItem('bullets');
-    return savedBullets ? JSON.parse(savedBullets) : [];
-  });
+  // Initialize with empty array instead of accessing localStorage
+  const [bullets, setBullets] = useState<BulletPoint[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
+  // Load initial data from localStorage
+  useEffect(() => {
+    const savedBullets = localStorage.getItem('bullets');
+    if (savedBullets) {
+      try {
+        const parsedBullets = JSON.parse(savedBullets);
+        setBullets(parsedBullets);
+      } catch (e) {
+        console.error('Error parsing bullets from localStorage:', e);
+      }
+    }
+  }, []);
 
   // Get user ID on mount
   useEffect(() => {
