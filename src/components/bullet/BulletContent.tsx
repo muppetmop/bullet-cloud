@@ -61,26 +61,28 @@ const BulletContent: React.FC<BulletContentProps> = ({
         cursorPos: pos
       });
 
-      // Update local refs immediately to prevent flicker
+      // Synchronously update the DOM content first
       if (contentRef.current) {
         contentRef.current.textContent = beforeCursor;
         localContentRef.current = beforeCursor;
+        
+        // Force a repaint to ensure the content update is visible
+        contentRef.current.style.display = 'none';
+        contentRef.current.offsetHeight; // Force reflow
+        contentRef.current.style.display = '';
       }
 
-      // First update the current bullet with content before cursor
+      // Then handle the async operations
       await onUpdate(bullet.id, beforeCursor);
       
-      // Then create new bullet and update it with content after cursor
       const newBulletId = onNewBullet(bullet.id);
       if (newBulletId) {
         await onUpdate(newBulletId, afterCursor);
         
-        // Handle children transfer if needed
         if (bullet.children.length > 0 && onTransferChildren) {
           onTransferChildren(bullet.id, newBulletId);
         }
 
-        // Focus new bullet
         requestAnimationFrame(() => {
           const newElement = document.querySelector(
             `[data-id="${newBulletId}"] .bullet-content`
