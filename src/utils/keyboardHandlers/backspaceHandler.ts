@@ -23,7 +23,13 @@ export const handleBackspaceKey = (
       hasChildren: bullet.children.length > 0,
       parentId: bullet.parent_id,
       domContent: contentRef.current?.textContent,
-      localStorageContent: localStorage.getItem('bullets')
+      localStorageContent: localStorage.getItem('bullets'),
+      operationState: {
+        isDeleting: false,
+        isMerging: false,
+        isUpdatingDOM: false,
+        lastOperation: null
+      }
     });
 
     const visibleBullets = Array.from(
@@ -37,7 +43,8 @@ export const handleBackspaceKey = (
         content: el.textContent,
         position: el.closest('[data-id]')?.getAttribute('data-position'),
         domContent: el.textContent,
-        isContentEditable: el.isContentEditable
+        isContentEditable: el.isContentEditable,
+        hasSelection: window.getSelection()?.containsNode(el, true)
       }))
     });
     
@@ -50,7 +57,15 @@ export const handleBackspaceKey = (
       hasContentRef: !!contentRef.current,
       currentContent: contentRef.current?.textContent,
       isContentEditable: contentRef.current?.isContentEditable,
-      selection: window.getSelection()?.toString()
+      selection: window.getSelection()?.toString(),
+      domState: {
+        activeElement: document.activeElement === contentRef.current,
+        selectionState: {
+          anchorOffset: window.getSelection()?.anchorOffset,
+          focusOffset: window.getSelection()?.focusOffset,
+          isCollapsed: window.getSelection()?.isCollapsed
+        }
+      }
     });
     
     if (currentIndex > 0) {
@@ -65,7 +80,13 @@ export const handleBackspaceKey = (
         willDelete: content.length === 0,
         domState: {
           isContentEditable: previousElement.isContentEditable,
-          hasSelection: window.getSelection()?.containsNode(previousElement, true)
+          hasSelection: window.getSelection()?.containsNode(previousElement, true),
+          previousElementRect: previousElement.getBoundingClientRect()
+        },
+        operationState: {
+          isProcessing: false,
+          lastOperation: null,
+          timestamp: Date.now()
         }
       });
       
@@ -82,11 +103,30 @@ export const handleBackspaceKey = (
               state: {
                 domContent: contentRef.current?.textContent,
                 localContent: content,
-                previousDomContent: previousElement.textContent
+                previousDomContent: previousElement.textContent,
+                operationInProgress: false
+              },
+              timestamp: {
+                start: Date.now(),
+                lastUpdate: null
               }
             });
             
+            // Set operation flag
+            const operationState = {
+              isDeleting: true,
+              startTime: Date.now()
+            };
+            
+            console.log('Starting delete operation:', operationState);
+            
             onDelete(bullet.id);
+            
+            console.log('Delete operation completed:', {
+              ...operationState,
+              endTime: Date.now(),
+              duration: Date.now() - operationState.startTime
+            });
             
             requestAnimationFrame(() => {
               previousElement.focus();
@@ -110,7 +150,8 @@ export const handleBackspaceKey = (
                     range: {
                       startOffset: range.startOffset,
                       endOffset: range.endOffset
-                    }
+                    },
+                    timestamp: Date.now()
                   }
                 });
               } catch (err) {
@@ -122,7 +163,9 @@ export const handleBackspaceKey = (
         } else {
           e.preventDefault();
           
-          console.log('Merging bullets:', {
+          const mergeOperation = {
+            isProcessing: true,
+            startTime: Date.now(),
             from: {
               id: bullet.id,
               content,
@@ -134,15 +177,18 @@ export const handleBackspaceKey = (
               content: previousContent,
               position: previousElement.closest('[data-id]')?.getAttribute('data-position'),
               domContent: previousElement.textContent
-            },
-            mergedContent: previousContent + content,
-            state: {
-              selection: window.getSelection()?.toString(),
-              activeElement: document.activeElement === contentRef.current
             }
-          });
+          };
+          
+          console.log('Starting merge operation:', mergeOperation);
           
           onUpdate(previousBulletId, previousContent + content);
+          
+          console.log('Content merged:', {
+            ...mergeOperation,
+            mergedContent: previousContent + content,
+            timestamp: Date.now()
+          });
           
           setTimeout(() => {
             console.log('Deleting merged bullet:', {
@@ -151,7 +197,8 @@ export const handleBackspaceKey = (
               position: bullet.position,
               state: {
                 domExists: !!document.querySelector(`[data-id="${bullet.id}"]`),
-                localStorageContent: localStorage.getItem('bullets')
+                localStorageContent: localStorage.getItem('bullets'),
+                operationDuration: Date.now() - mergeOperation.startTime
               }
             });
             onDelete(bullet.id);
@@ -180,7 +227,9 @@ export const handleBackspaceKey = (
                     startOffset: range.startOffset,
                     endOffset: range.endOffset
                   },
-                  localStorageContent: localStorage.getItem('bullets')
+                  localStorageContent: localStorage.getItem('bullets'),
+                  operationComplete: true,
+                  duration: Date.now() - mergeOperation.startTime
                 }
               });
             } catch (err) {
