@@ -1,7 +1,18 @@
 import { BulletPoint } from "@/types/bullet";
 import { getAllVisibleBullets } from "./bulletOperations";
 
-export const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null = null): number => {
+const POSITION_BASE = 'a';
+const POSITION_SEPARATOR = '_';
+const INITIAL_SEGMENT_LENGTH = 4;
+
+const generatePosition = (position: string): string => {
+  const segments = position.split(POSITION_SEPARATOR);
+  const lastSegment = segments[segments.length - 1];
+  const newLastSegment = lastSegment + '1';
+  return [...segments.slice(0, -1), newLastSegment].join(POSITION_SEPARATOR);
+};
+
+const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null = null): string => {
   console.log('Finding next position:', { 
     currentBulletId,
     allBullets: bullets.map(b => ({
@@ -14,13 +25,11 @@ export const findNextPosition = (bullets: BulletPoint[], currentBulletId: string
   const allBullets = getAllVisibleBullets(bullets);
   
   if (!currentBulletId) {
-    const maxPosition = allBullets.length > 0 ? Math.max(...allBullets.map(b => b.position)) : -1;
-    console.log('No current bullet, using max position:', {
-      maxPosition,
-      newPosition: maxPosition + 1,
-      bulletCount: allBullets.length
-    });
-    return maxPosition + 1;
+    if (allBullets.length === 0) {
+      return POSITION_BASE.padEnd(INITIAL_SEGMENT_LENGTH, '0');
+    }
+    const lastBullet = allBullets[allBullets.length - 1];
+    return generatePosition(lastBullet.position);
   }
 
   const currentIndex = allBullets.findIndex(b => b.id === currentBulletId);
@@ -29,27 +38,21 @@ export const findNextPosition = (bullets: BulletPoint[], currentBulletId: string
       currentBulletId,
       availableBullets: allBullets.map(b => b.id)
     });
-    return allBullets.length;
+    return generatePosition(POSITION_BASE.padEnd(INITIAL_SEGMENT_LENGTH, '0'));
   }
 
-  const currentPosition = allBullets[currentIndex].position;
-  const affectedBullets = allBullets.filter(b => b.position > currentPosition);
+  const currentBullet = allBullets[currentIndex];
+  const nextBullet = allBullets[currentIndex + 1];
   
-  console.log('Position calculation:', {
-    currentPosition,
-    newPosition: currentPosition + 1,
-    affectedBullets: affectedBullets.map(b => ({
-      id: b.id,
-      oldPosition: b.position,
-      newPosition: b.position + 1,
-      content: b.content
-    }))
-  });
-  
-  return currentPosition + 1;
+  if (!nextBullet) {
+    return generatePosition(currentBullet.position);
+  }
+
+  // Insert between current and next bullet
+  return currentBullet.position + POSITION_SEPARATOR + '1';
 };
 
-export const findBulletLevel = (bullets: BulletPoint[], currentBulletId: string | null = null): number => {
+const findBulletLevel = (bullets: BulletPoint[], currentBulletId: string | null = null): number => {
   if (!currentBulletId) return 0;
   
   const allBullets = getAllVisibleBullets(bullets);
@@ -62,4 +65,9 @@ export const findBulletLevel = (bullets: BulletPoint[], currentBulletId: string 
   });
   
   return currentBullet ? currentBullet.level : 0;
+};
+
+export {
+  findNextPosition,
+  findBulletLevel
 };

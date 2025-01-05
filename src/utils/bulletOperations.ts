@@ -22,7 +22,8 @@ export const findBulletAndParent = (
 };
 
 export const getAllVisibleBullets = (bullets: BulletPoint[]): BulletPoint[] => {
-  return bullets.reduce((acc: BulletPoint[], bullet) => {
+  const sortedBullets = [...bullets].sort((a, b) => a.position.localeCompare(b.position));
+  return sortedBullets.reduce((acc: BulletPoint[], bullet) => {
     return [
       ...acc,
       bullet,
@@ -38,9 +39,11 @@ export const updateBulletTreeRecursively = (
 ): BulletPoint[] => {
   return bullets.map(bullet => {
     if (bullet.id === parentId) {
+      const sortedChildren = [...bullet.children, newBullet]
+        .sort((a, b) => a.position.localeCompare(b.position));
       return {
         ...bullet,
-        children: [...bullet.children, newBullet]
+        children: sortedChildren
       };
     }
     if (bullet.children.length > 0) {

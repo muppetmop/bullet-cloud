@@ -2,15 +2,13 @@ import { BulletPoint } from "@/types/bullet";
 import { generateBulletId } from "@/utils/idGenerator";
 import { findBulletAndParent } from "@/utils/bulletOperations";
 import { addToQueue } from "@/utils/queueManager";
-import { usePositionCalculator } from "./usePositionCalculator";
+import { findNextPosition, findBulletLevel } from "@/utils/positionCalculator";
 
 export const useBulletCreation = (
   userId: string | null | undefined,
   bullets: BulletPoint[],
   setBullets: React.Dispatch<React.SetStateAction<BulletPoint[]>>
 ) => {
-  const { findNextPosition, findBulletLevel } = usePositionCalculator();
-
   const createNewBullet = (id: string, forcedLevel?: number): string | null => {
     if (!userId) return null;
 
