@@ -52,80 +52,29 @@ export const handleBackspaceKey = (
       el => el === contentRef.current
     );
     
-    console.log('Current bullet index:', {
-      index: currentIndex,
-      hasContentRef: !!contentRef.current,
-      currentContent: contentRef.current?.textContent,
-      isContentEditable: contentRef.current?.isContentEditable,
-      selection: window.getSelection()?.toString(),
-      domState: {
-        activeElement: document.activeElement === contentRef.current,
-        selectionState: {
-          anchorOffset: window.getSelection()?.anchorOffset,
-          focusOffset: window.getSelection()?.focusOffset,
-          isCollapsed: window.getSelection()?.isCollapsed
-        }
-      }
-    });
-    
     if (currentIndex > 0) {
       const previousElement = visibleBullets[currentIndex - 1];
       const previousContent = previousElement.textContent || '';
       const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
       
-      console.log('Previous bullet found:', {
-        id: previousBulletId,
-        content: previousContent,
-        willMerge: content.length > 0,
-        willDelete: content.length === 0,
-        domState: {
-          isContentEditable: previousElement.isContentEditable,
-          hasSelection: window.getSelection()?.containsNode(previousElement, true),
-          previousElementRect: previousElement.getBoundingClientRect()
-        },
-        operationState: {
-          isProcessing: false,
-          lastOperation: null,
-          timestamp: Date.now()
-        }
-      });
-      
       if (previousBulletId) {
         if (content.length === 0) {
           if (visibleBullets.length > 1 && bullet.children.length === 0) {
-            console.log('Deleting empty bullet:', {
+            console.log('Before DOM Update (Delete):', {
               bulletId: bullet.id,
-              previousId: previousBulletId,
-              positions: {
-                current: bullet.position,
-                previous: previousElement.closest('[data-id]')?.getAttribute('data-position')
-              },
-              state: {
-                domContent: contentRef.current?.textContent,
-                localContent: content,
-                previousDomContent: previousElement.textContent,
-                operationInProgress: false
-              },
-              timestamp: {
-                start: Date.now(),
-                lastUpdate: null
-              }
+              currentDOMContent: contentRef.current?.textContent,
+              currentLocalContent: content,
+              operation: 'delete'
             });
-            
-            // Set operation flag
-            const operationState = {
-              isDeleting: true,
-              startTime: Date.now()
-            };
-            
-            console.log('Starting delete operation:', operationState);
             
             onDelete(bullet.id);
             
-            console.log('Delete operation completed:', {
-              ...operationState,
-              endTime: Date.now(),
-              duration: Date.now() - operationState.startTime
+            console.log('After DOM Update (Delete):', {
+              bulletId: bullet.id,
+              previousId: previousBulletId,
+              previousContent,
+              domExists: !!document.querySelector(`[data-id="${bullet.id}"]`),
+              previousElementContent: previousElement.textContent
             });
             
             requestAnimationFrame(() => {
@@ -150,8 +99,7 @@ export const handleBackspaceKey = (
                     range: {
                       startOffset: range.startOffset,
                       endOffset: range.endOffset
-                    },
-                    timestamp: Date.now()
+                    }
                   }
                 });
               } catch (err) {
@@ -163,44 +111,36 @@ export const handleBackspaceKey = (
         } else {
           e.preventDefault();
           
-          const mergeOperation = {
-            isProcessing: true,
-            startTime: Date.now(),
-            from: {
+          console.log('Before DOM Update (Merge):', {
+            fromBullet: {
               id: bullet.id,
               content,
-              position: bullet.position,
               domContent: contentRef.current?.textContent
             },
-            to: {
+            toBullet: {
               id: previousBulletId,
               content: previousContent,
-              position: previousElement.closest('[data-id]')?.getAttribute('data-position'),
               domContent: previousElement.textContent
-            }
-          };
-          
-          console.log('Starting merge operation:', mergeOperation);
+            },
+            operation: 'merge'
+          });
           
           onUpdate(previousBulletId, previousContent + content);
           
-          console.log('Content merged:', {
-            ...mergeOperation,
-            mergedContent: previousContent + content,
-            timestamp: Date.now()
+          console.log('After DOM Update (Merge):', {
+            fromBullet: {
+              id: bullet.id,
+              content,
+              domExists: !!document.querySelector(`[data-id="${bullet.id}"]`)
+            },
+            toBullet: {
+              id: previousBulletId,
+              newContent: previousContent + content,
+              domContent: previousElement.textContent
+            }
           });
           
           setTimeout(() => {
-            console.log('Deleting merged bullet:', {
-              id: bullet.id,
-              content,
-              position: bullet.position,
-              state: {
-                domExists: !!document.querySelector(`[data-id="${bullet.id}"]`),
-                localStorageContent: localStorage.getItem('bullets'),
-                operationDuration: Date.now() - mergeOperation.startTime
-              }
-            });
             onDelete(bullet.id);
           }, 100);
           
@@ -227,9 +167,7 @@ export const handleBackspaceKey = (
                     startOffset: range.startOffset,
                     endOffset: range.endOffset
                   },
-                  localStorageContent: localStorage.getItem('bullets'),
-                  operationComplete: true,
-                  duration: Date.now() - mergeOperation.startTime
+                  localStorageContent: localStorage.getItem('bullets')
                 }
               });
             } catch (err) {
