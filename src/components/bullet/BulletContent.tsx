@@ -1,4 +1,4 @@
-import React, { useRef, KeyboardEvent, useEffect } from "react";
+import React, { useRef, KeyboardEvent, useEffect, useLayoutEffect } from "react";
 import { BulletPoint } from "@/types/bullet";
 import { handleTabKey, handleArrowKeys } from "@/utils/keyboardHandlers";
 import { BulletIcon } from "./BulletIcon";
@@ -35,13 +35,18 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const { saveCaretPosition, restoreCaretPosition, currentPosition } = useCaretPosition(contentRef);
   const localContentRef = useRef<string>(bullet.content);
+  const isUpdatingRef = useRef<boolean>(false);
 
-  useEffect(() => {
+  // Use useLayoutEffect to ensure DOM updates happen synchronously
+  useLayoutEffect(() => {
+    if (isUpdatingRef.current) return;
+
     console.log('Effect: Updating content refs:', {
       bulletId: bullet.id,
       newContent: bullet.content,
       previousLocalContent: localContentRef.current,
-      domContent: contentRef.current?.textContent
+      domContent: contentRef.current?.textContent,
+      isUpdating: isUpdatingRef.current
     });
 
     if (!contentRef.current) return;
@@ -57,6 +62,8 @@ const BulletContent: React.FC<BulletContentProps> = ({
       });
       return;
     }
+    
+    isUpdatingRef.current = true;
     
     console.log('Before DOM Update:', {
       bulletId: bullet.id,
@@ -82,14 +89,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
       displayStyle: contentRef.current.style.display
     });
 
-    // Check if localStorage update is needed
-    const savedBullets = localStorage.getItem('bullets');
-    if (savedBullets) {
-      console.log('Current localStorage state:', {
-        bulletId: bullet.id,
-        savedContent: JSON.parse(savedBullets)
-      });
-    }
+    // Reset the updating flag after a short delay
+    setTimeout(() => {
+      isUpdatingRef.current = false;
+    }, 0);
   };
 
   const handleKeyDown = async (e: KeyboardEvent) => {
@@ -114,6 +117,9 @@ const BulletContent: React.FC<BulletContentProps> = ({
         localContent: localContentRef.current
       });
 
+      // Set updating flag before content update
+      isUpdatingRef.current = true;
+
       // Immediately update DOM with content before cursor
       updateDOMContent(beforeCursor);
 
@@ -134,6 +140,9 @@ const BulletContent: React.FC<BulletContentProps> = ({
         if (bullet.children.length > 0 && onTransferChildren) {
           onTransferChildren(bullet.id, newBulletId);
         }
+
+        // Reset updating flag before focusing new bullet
+        isUpdatingRef.current = false;
 
         requestAnimationFrame(() => {
           const newElement = document.querySelector(
