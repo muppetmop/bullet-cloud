@@ -4,31 +4,32 @@ import { getAllVisibleBullets } from "./bulletOperations";
 const POSITION_BASE = 'a';
 const POSITION_SEPARATOR = '_';
 const INITIAL_SEGMENT_LENGTH = 4;
-const POSITION_INCREMENT = 1;
 
 const calculateMidpoint = (pos1: string, pos2: string): string => {
-  // Remove the 'a' prefix for calculation
-  const num1 = parseInt(pos1.slice(1), 10);
-  const num2 = pos2 ? parseInt(pos2.slice(1), 10) : num1 + 1;
+  console.log('Calculating midpoint between:', { pos1, pos2 });
   
-  // Calculate midpoint
-  const mid = Math.floor((num1 + num2) / 2);
-  
-  // If the numbers are consecutive, append 5
-  if (num2 - num1 === 1) {
+  // If positions are sequential (like a0001 and a0002), add a digit
+  if (pos2 && Math.abs(parseInt(pos1.slice(1)) - parseInt(pos2.slice(1))) === 1) {
     return pos1 + '5';
   }
   
-  // Format the midpoint with leading zeros
-  return POSITION_BASE + mid.toString().padStart(INITIAL_SEGMENT_LENGTH, '0');
+  // Calculate numeric midpoint
+  const num1 = parseInt(pos1.slice(1));
+  const num2 = pos2 ? parseInt(pos2.slice(1)) : num1 + 1000; // Large gap if no next position
+  
+  const midpoint = Math.floor((num1 + num2) / 2);
+  console.log('Calculated numeric midpoint:', {
+    pos1: num1,
+    pos2: num2,
+    midpoint
+  });
+  
+  return POSITION_BASE + midpoint.toString().padStart(INITIAL_SEGMENT_LENGTH, '0');
 };
 
 const generateSequentialPosition = (lastPosition: string): string => {
-  // Remove the 'a' prefix and convert to number
-  const currentNum = parseInt(lastPosition.slice(1), 10);
-  const nextNum = currentNum + POSITION_INCREMENT;
-  
-  // Format with leading zeros
+  const currentNum = parseInt(lastPosition.slice(1));
+  const nextNum = currentNum + 1;
   return POSITION_BASE + nextNum.toString().padStart(INITIAL_SEGMENT_LENGTH, '0');
 };
 
@@ -37,12 +38,13 @@ const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null
     currentBulletId,
     allBullets: bullets.map(b => ({
       id: b.id,
-      position: b.position,
-      content: b.content
+      content: b.content,
+      position: b.position
     }))
   });
   
-  const allBullets = getAllVisibleBullets(bullets);
+  const allBullets = getAllVisibleBullets(bullets)
+    .sort((a, b) => a.position.localeCompare(b.position));
   
   // If no bullets exist or no current bullet specified, start with a0000
   if (!currentBulletId || allBullets.length === 0) {
