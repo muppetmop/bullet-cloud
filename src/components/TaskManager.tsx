@@ -584,7 +584,7 @@ const TaskManager = () => {
             bullets={visibleBullets}
             onUpdate={updateBullet}
             onDelete={deleteBullet}
-            onNewBullet={createNewBullet}
+            onNewBullet={handleNewBullet}
             onCollapse={handleCollapse}
             onNavigate={handleNavigate}
             onIndent={indentBullet}
@@ -602,7 +602,7 @@ const TaskManager = () => {
               bullets={visibleBullets}
               onUpdate={updateBullet}
               onDelete={deleteBullet}
-              onNewBullet={createNewBullet}
+              onNewBullet={handleNewBullet}
               onCollapse={handleCollapse}
               onNavigate={handleNavigate}
               onIndent={indentBullet}
@@ -618,7 +618,7 @@ const TaskManager = () => {
               users={users}
               onUpdate={updateBullet}
               onDelete={deleteBullet}
-              onNewBullet={createNewBullet}
+              onNewBullet={handleNewBullet}
               onCollapse={handleCollapse}
               onNavigate={handleNavigate}
               onIndent={indentBullet}
