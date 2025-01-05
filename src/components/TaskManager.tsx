@@ -562,6 +562,23 @@ const TaskManager = () => {
   return (
     <DragProvider>
       <div className="max-w-3xl mx-auto p-8 relative min-h-screen">
+        {process.env.NODE_ENV === 'development' && (
+          <Button 
+            variant="outline"
+            onClick={() => {
+              const { sequentialPositions, betweenPositions } = testPositionCalculator();
+              console.log('Test Results:', {
+                sequential: sequentialPositions,
+                between: betweenPositions
+              });
+              toast.success('Position calculation test complete. Check console.');
+            }}
+            className="absolute top-0 left-8"
+          >
+            Test Positions
+          </Button>
+        )}
+        
         <div className="absolute right-8 top-0">
           <ModeToggle mode={mode} onModeChange={setMode} />
         </div>
