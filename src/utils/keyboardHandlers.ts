@@ -72,15 +72,38 @@ export const handleBackspaceKey = (
 ) => {
   // Only handle backspace at the start of the line
   if (pos === 0) {
+    console.log('Backspace pressed at start of line:', {
+      bulletId: bullet.id,
+      content,
+      position: bullet.position,
+      level: bullet.level,
+      caretPosition: pos
+    });
+
     // Get all visible bullet contents
     const visibleBullets = Array.from(
       document.querySelectorAll('.bullet-content')
     ) as HTMLElement[];
     
+    console.log('Found visible bullets:', {
+      totalBullets: visibleBullets.length,
+      currentBulletContent: content,
+      visibleContents: visibleBullets.map(el => ({
+        content: el.textContent,
+        id: el.closest('[data-id]')?.getAttribute('data-id')
+      }))
+    });
+    
     // Find the current bullet's index
     const currentIndex = visibleBullets.findIndex(
       el => el === contentRef.current
     );
+    
+    console.log('Current bullet index:', {
+      currentIndex,
+      hasContentRef: !!contentRef.current,
+      contentRefText: contentRef.current?.textContent
+    });
     
     // Only proceed if we're not at the first bullet
     if (currentIndex > 0) {
@@ -88,10 +111,24 @@ export const handleBackspaceKey = (
       const previousContent = previousElement.textContent || '';
       const previousBulletId = previousElement.closest('[data-id]')?.getAttribute('data-id');
       
+      console.log('Previous bullet found:', {
+        previousBulletId,
+        previousContent,
+        currentContent: content,
+        willMerge: content.length > 0,
+        willDelete: content.length === 0
+      });
+      
       if (previousBulletId) {
         if (content.length === 0) {
           // If current bullet is empty, delete it and move cursor to end of previous bullet
           if (visibleBullets.length > 1 && bullet.children.length === 0) {
+            console.log('Deleting empty bullet:', {
+              bulletId: bullet.id,
+              previousBulletId,
+              previousContent
+            });
+            
             onDelete(bullet.id);
             
             requestAnimationFrame(() => {
@@ -101,6 +138,13 @@ export const handleBackspaceKey = (
                 const range = document.createRange();
                 const textNode = previousElement.firstChild || previousElement;
                 const position = previousContent.length;
+                
+                console.log('Setting cursor position:', {
+                  targetPosition: position,
+                  nodeContent: textNode.textContent,
+                  success: true
+                });
+                
                 range.setStart(textNode, position);
                 range.setEnd(textNode, position);
                 selection?.removeAllRanges();
@@ -113,9 +157,24 @@ export const handleBackspaceKey = (
         } else {
           // If current bullet has content, merge with previous bullet
           e.preventDefault();
+          
+          console.log('Merging bullets:', {
+            fromBulletId: bullet.id,
+            toBulletId: previousBulletId,
+            mergedContent: previousContent + content,
+            originalContents: {
+              previous: previousContent,
+              current: content
+            }
+          });
+          
           onUpdate(previousBulletId, previousContent + content);
           
           setTimeout(() => {
+            console.log('Deleting merged bullet:', {
+              bulletId: bullet.id,
+              content
+            });
             onDelete(bullet.id);
           }, 100);
           
@@ -126,6 +185,13 @@ export const handleBackspaceKey = (
               const range = document.createRange();
               const textNode = previousElement.firstChild || previousElement;
               const position = previousContent.length;
+              
+              console.log('Setting cursor after merge:', {
+                targetPosition: position,
+                nodeContent: textNode.textContent,
+                success: true
+              });
+              
               range.setStart(textNode, position);
               range.setEnd(textNode, position);
               selection?.removeAllRanges();
