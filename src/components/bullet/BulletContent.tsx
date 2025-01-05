@@ -40,7 +40,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
     contentRef.current.textContent = bullet.content;
   }, [bullet.content]);
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = async (e: KeyboardEvent) => {
     if (mode === "theirs") return;
     
     const content = contentRef.current?.textContent || "";
@@ -59,13 +59,17 @@ const BulletContent: React.FC<BulletContentProps> = ({
         cursorPos: pos
       });
 
-      // Update current bullet with content before cursor
-      onUpdate(bullet.id, beforeCursor);
+      // First update the current bullet with content before cursor
+      // Important: Update local content immediately to prevent flicker
+      if (contentRef.current) {
+        contentRef.current.textContent = beforeCursor;
+      }
+      await onUpdate(bullet.id, beforeCursor);
       
-      // Create new bullet and update it with content after cursor
+      // Then create new bullet and update it with content after cursor
       const newBulletId = onNewBullet(bullet.id);
       if (newBulletId) {
-        onUpdate(newBulletId, afterCursor);
+        await onUpdate(newBulletId, afterCursor);
         
         // Handle children transfer if needed
         if (bullet.children.length > 0 && onTransferChildren) {
