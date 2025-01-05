@@ -5,11 +5,7 @@ import { fetchBulletsForUser, createInitialBullet } from "@/services/bulletServi
 import { toast } from "sonner";
 
 export const useBulletState = () => {
-  const [bullets, setBullets] = useState<BulletPoint[]>(() => {
-    // Try to load from localStorage first
-    const savedBullets = localStorage.getItem('bullets');
-    return savedBullets ? JSON.parse(savedBullets) : [];
-  });
+  const [bullets, setBullets] = useState<BulletPoint[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -20,6 +16,7 @@ export const useBulletState = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user?.id) {
           setUserId(session.user.id);
+          console.info('User session found:', session.user.id);
         }
       } catch (error) {
         console.error('Error getting session:', error);
@@ -28,11 +25,19 @@ export const useBulletState = () => {
     };
     getUserId();
 
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user?.id || null);
+      const newUserId = session?.user?.id || null;
+      console.info('Auth state changed:', { newUserId });
+      setUserId(newUserId);
     });
 
-    return () => subscription.unsubscribe();
+    // Cleanup function that checks for subscription
+    return () => {
+      if (subscription && typeof subscription.unsubscribe === 'function') {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   // Load initial bullets from Supabase
@@ -43,11 +48,18 @@ export const useBulletState = () => {
         return;
       }
 
+      console.info('Fetching bullets for user:', userId);
       setIsLoading(true);
+      
       try {
         const data = await fetchBulletsForUser(userId);
         
         if (data && data.length > 0) {
+          console.info('Bullets fetched successfully:', {
+            count: data.length,
+            firstBullet: data[0]
+          });
+          
           // Convert flat structure to hierarchical
           const bulletMap = new Map<string, BulletPoint>();
           const rootBullets: BulletPoint[] = [];
@@ -72,9 +84,18 @@ export const useBulletState = () => {
             }
           });
           
+          console.info('Hierarchical bullets created:', {
+            rootCount: rootBullets.length,
+            totalCount: data.length
+          });
+          
           setBullets(rootBullets);
           // Save to localStorage
           localStorage.setItem('bullets', JSON.stringify(rootBullets));
+          console.info('Saving bullets to localStorage:', {
+            count: rootBullets.length,
+            firstBullet: rootBullets[0]
+          });
         } else {
           // Create initial bullet if none exist
           const initialBullet = createInitialBullet(userId);
@@ -96,13 +117,6 @@ export const useBulletState = () => {
     
     loadBullets();
   }, [userId]);
-
-  // Save to localStorage whenever bullets change
-  useEffect(() => {
-    if (bullets.length > 0) {
-      localStorage.setItem('bullets', JSON.stringify(bullets));
-    }
-  }, [bullets]);
 
   return {
     bullets,
