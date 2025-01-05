@@ -10,7 +10,6 @@ export const handleBackspaceKey = (
   onUpdate: (id: string, content: string) => void,
   onDelete: (id: string) => void
 ) => {
-  // Only handle backspace at start of line
   if (pos === 0) {
     const visibleBullets = Array.from(
       document.querySelectorAll('.bullet-content')
@@ -61,6 +60,12 @@ export const handleBackspaceKey = (
                 currentElementContent: contentRef.current?.textContent
               }
             });
+
+            // First update the DOM of the previous element
+            previousElement.textContent = previousContent;
+            
+            // Force a reflow to ensure DOM update
+            void previousElement.offsetHeight;
             
             onDelete(bullet.id);
             
@@ -76,13 +81,6 @@ export const handleBackspaceKey = (
               }
             });
             
-            console.log('State after visual update (Delete):', {
-              previousBulletId,
-              domContent: previousElement.textContent,
-              localContent: previousContent,
-              deletedBulletExists: !!document.querySelector(`[data-id="${bullet.id}"]`)
-            });
-            
             requestAnimationFrame(() => {
               previousElement.focus();
               try {
@@ -94,20 +92,6 @@ export const handleBackspaceKey = (
                 range.setEnd(textNode, position);
                 selection?.removeAllRanges();
                 selection?.addRange(range);
-                
-                console.log('Cursor position set after delete:', {
-                  element: previousBulletId,
-                  position,
-                  success: true,
-                  finalState: {
-                    domContent: previousElement.textContent,
-                    selection: selection?.toString(),
-                    range: {
-                      startOffset: range.startOffset,
-                      endOffset: range.endOffset
-                    }
-                  }
-                });
               } catch (err) {
                 console.error('Failed to set cursor:', err);
                 toast.error("Failed to set cursor position");
@@ -127,15 +111,19 @@ export const handleBackspaceKey = (
               id: previousBulletId,
               content: previousContent,
               domContent: previousElement.textContent
-            },
-            operation: 'merge',
-            domState: {
-              activeElement: document.activeElement,
-              selection: window.getSelection()?.toString()
             }
           });
           
-          onUpdate(previousBulletId, previousContent + content);
+          const mergedContent = previousContent + content;
+          
+          // First update the DOM
+          previousElement.textContent = mergedContent;
+          
+          // Force a reflow to ensure DOM update
+          void previousElement.offsetHeight;
+          
+          // Then update the state
+          onUpdate(previousBulletId, mergedContent);
           
           console.log('After DOM Update (Merge):', {
             fromBullet: {
@@ -145,27 +133,16 @@ export const handleBackspaceKey = (
             },
             toBullet: {
               id: previousBulletId,
-              newContent: previousContent + content,
+              newContent: mergedContent,
               domContent: previousElement.textContent
-            },
-            domState: {
-              activeElement: document.activeElement,
-              selection: window.getSelection()?.toString()
             }
           });
           
-          console.log('State after visual update (Merge):', {
-            previousBulletId,
-            domContent: previousElement.textContent,
-            localContent: previousContent + content,
-            mergedBulletExists: !!document.querySelector(`[data-id="${bullet.id}"]`)
-          });
-          
-          setTimeout(() => {
-            onDelete(bullet.id);
-          }, 100);
-          
+          // Wait for the state update to complete before deleting
           requestAnimationFrame(() => {
+            onDelete(bullet.id);
+            
+            // Focus and set cursor position after deletion
             previousElement.focus();
             try {
               const selection = window.getSelection();
@@ -177,7 +154,7 @@ export const handleBackspaceKey = (
               selection?.removeAllRanges();
               selection?.addRange(range);
               
-              console.log('Cursor position after merge:', {
+              console.log('Final state after merge:', {
                 element: previousBulletId,
                 position,
                 success: true,
@@ -187,13 +164,6 @@ export const handleBackspaceKey = (
                   range: {
                     startOffset: range.startOffset,
                     endOffset: range.endOffset
-                  },
-                  domState: {
-                    activeElement: document.activeElement,
-                    visibleBullets: Array.from(document.querySelectorAll('.bullet-content')).map(el => ({
-                      id: el.closest('[data-id]')?.getAttribute('data-id'),
-                      content: el.textContent
-                    }))
                   }
                 }
               });
