@@ -1,43 +1,44 @@
-import { useEffect } from "react";
-import { startSyncService } from "@/services/syncService";
-import { useBulletState } from "./bullet/useBulletState";
+import { useState, useCallback } from "react";
+import { BulletPoint } from "@/types/bullet";
+import { useBulletCreation } from "./bullet/useBulletCreation";
 import { useBulletOperations } from "./bullet/useBulletOperations";
 import { useBulletIndentation } from "./bullet/useBulletIndentation";
-import { findBulletAndParent, getAllVisibleBullets } from "@/utils/bulletOperations";
+import { useBulletState } from "./bullet/useBulletState";
+import { useAuth } from "@supabase/auth-helpers-react";
 
 export const useBulletManager = () => {
-  // Always initialize all hooks at the top level
-  const { bullets, setBullets, userId } = useBulletState();
-  
+  const user = useAuth();
+  const { bullets, setBullets } = useBulletState();
+  const { createNewBullet, createNewRootBullet, createNewZoomedBullet } = useBulletCreation(
+    user?.id,
+    bullets,
+    setBullets
+  );
   const {
-    createNewBullet,
-    createNewZoomedBullet,
-    createNewRootBullet,
     updateBullet,
     deleteBullet,
     toggleCollapse,
-    transferChildren,
-  } = useBulletOperations(userId, bullets, setBullets);
+    transferChildren
+  } = useBulletOperations(bullets, setBullets);
+  const { indentBullet, outdentBullet } = useBulletIndentation(bullets, setBullets);
 
-  const {
-    indentBullet,
-    outdentBullet,
-  } = useBulletIndentation(bullets, setBullets);
-
-  // Move useEffect to the end, after all other hooks
-  useEffect(() => {
-    const cleanup = startSyncService();
-    return () => cleanup();
-  }, []); // Empty dependency array since startSyncService doesn't depend on any props or state
+  const getAllVisibleBullets = useCallback(() => {
+    return bullets.reduce((acc: BulletPoint[], bullet) => {
+      return [
+        ...acc,
+        bullet,
+        ...(bullet.isCollapsed ? [] : getAllVisibleBullets(bullet.children)),
+      ];
+    }, []);
+  }, [bullets]);
 
   return {
     bullets,
     setBullets,
-    findBulletAndParent,
     getAllVisibleBullets,
     createNewBullet,
-    createNewZoomedBullet,
     createNewRootBullet,
+    createNewZoomedBullet,
     updateBullet,
     deleteBullet,
     toggleCollapse,
@@ -45,4 +46,15 @@ export const useBulletManager = () => {
     outdentBullet,
     transferChildren,
   };
+};
+
+// Helper function to get all visible bullets
+const getAllVisibleBullets = (bullets: BulletPoint[]): BulletPoint[] => {
+  return bullets.reduce((acc: BulletPoint[], bullet) => {
+    return [
+      ...acc,
+      bullet,
+      ...(bullet.isCollapsed ? [] : getAllVisibleBullets(bullet.children)),
+    ];
+  }, []);
 };

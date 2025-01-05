@@ -378,7 +378,7 @@ const TaskManager = () => {
     return null;
   };
 
-  const handleNewBullet = () => {
+  const handleNewBullet = async () => {
     console.log('Creating new bullet. Current state:', {
       currentBulletId,
       isEmptyZoomed: isEmptyZoomedState()
@@ -401,7 +401,7 @@ const TaskManager = () => {
         }))
       });
 
-      const newBulletId = createNewZoomedBullet(currentBulletId, newLevel);
+      const newBulletId = await createNewZoomedBullet(currentBulletId, newLevel);
       console.log('Created new bullet:', {
         newBulletId,
         parentId: currentBulletId,
@@ -420,7 +420,7 @@ const TaskManager = () => {
       }
     } else {
       console.log('Creating root bullet');
-      const newBulletId = createNewRootBullet();
+      const newBulletId = await createNewRootBullet();
       if (newBulletId) {
         requestAnimationFrame(() => {
           const newElement = document.querySelector(
@@ -434,7 +434,7 @@ const TaskManager = () => {
     }
   };
 
-  const handleTitleKeyDown = (event: React.KeyboardEvent<HTMLHeadingElement>) => {
+  const handleTitleKeyDown = async (event: React.KeyboardEvent<HTMLHeadingElement>) => {
     if (event.key === 'Enter') {
       event.preventDefault();
       if (currentBulletId) {
@@ -442,7 +442,7 @@ const TaskManager = () => {
         const parentBullet = path[path.length - 1];
         const newLevel = parentBullet.level + 1;
         
-        const newBulletId = createNewZoomedBullet(currentBulletId, newLevel);
+        const newBulletId = await createNewZoomedBullet(currentBulletId, newLevel);
         
         if (newBulletId) {
           requestAnimationFrame(() => {

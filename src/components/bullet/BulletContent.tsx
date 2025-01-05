@@ -9,7 +9,7 @@ interface BulletContentProps {
   bullet: BulletPoint;
   onUpdate: (id: string, content: string) => void;
   onDelete: (id: string) => void;
-  onNewBullet: (id: string) => string | null;
+  onNewBullet: (id: string) => Promise<string | null>;
   onCollapse: (id: string) => void;
   onNavigate: (direction: "up" | "down", id: string) => void;
   onIndent?: (id: string) => void;
@@ -133,7 +133,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
       // Handle async operations after visual update
       await onUpdate(bullet.id, beforeCursor);
       
-      const newBulletId = onNewBullet(bullet.id);
+      const newBulletId = await onNewBullet(bullet.id);
       if (newBulletId) {
         await onUpdate(newBulletId, afterCursor);
         

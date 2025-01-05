@@ -65,8 +65,26 @@ export const usePositionCalculator = () => {
     return currentBullet ? currentBullet.level : 0;
   };
 
+  const updatePositionsAfterInsertion = async (bullets: BulletPoint[], insertPosition: number) => {
+    const allBullets = getAllVisibleBullets(bullets);
+    const affectedBullets = allBullets.filter(b => b.position >= insertPosition);
+
+    console.log('Updating positions after insertion:', {
+      insertPosition,
+      affectedBullets: affectedBullets.map(b => ({
+        id: b.id,
+        oldPosition: b.position,
+        newPosition: b.position + 1,
+        content: b.content
+      }))
+    });
+
+    return affectedBullets;
+  };
+
   return {
     findNextPosition,
-    findBulletLevel
+    findBulletLevel,
+    updatePositionsAfterInsertion
   };
 };
