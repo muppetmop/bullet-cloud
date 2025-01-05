@@ -34,13 +34,17 @@ const BulletContent: React.FC<BulletContentProps> = ({
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const { saveCaretPosition, restoreCaretPosition, currentPosition } = useCaretPosition(contentRef);
+  const lastUpdateRef = useRef<string>(bullet.content);
 
   useEffect(() => {
     if (!contentRef.current) return;
-    contentRef.current.textContent = bullet.content;
+    if (bullet.content !== lastUpdateRef.current) {
+      contentRef.current.textContent = bullet.content;
+      lastUpdateRef.current = bullet.content;
+    }
   }, [bullet.content]);
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = async (e: KeyboardEvent) => {
     if (mode === "theirs") return;
     
     const content = contentRef.current?.textContent || "";
@@ -52,20 +56,28 @@ const BulletContent: React.FC<BulletContentProps> = ({
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
       
-      console.log('Handling Enter key:', {
-        bulletId: bullet.id,
+      console.log('Splitting bullet content:', {
+        original: content,
         beforeCursor,
         afterCursor,
-        cursorPos: pos
+        position: pos
       });
 
-      // Update current bullet with content before cursor
-      onUpdate(bullet.id, beforeCursor);
+      // First update the current bullet's content
+      await new Promise<void>(resolve => {
+        onUpdate(bullet.id, beforeCursor);
+        lastUpdateRef.current = beforeCursor;
+        resolve();
+      });
       
-      // Create new bullet and update it with content after cursor
+      // Then create the new bullet
       const newBulletId = onNewBullet(bullet.id);
       if (newBulletId) {
-        onUpdate(newBulletId, afterCursor);
+        // Update the new bullet with content after cursor
+        await new Promise<void>(resolve => {
+          onUpdate(newBulletId, afterCursor);
+          resolve();
+        });
         
         // Handle children transfer if needed
         if (bullet.children.length > 0 && onTransferChildren) {
@@ -138,7 +150,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
               });
             }
           } else {
-            onUpdate(previousBulletId, previousContent + content);
+            await new Promise<void>(resolve => {
+              onUpdate(previousBulletId, previousContent + content);
+              resolve();
+            });
             onDelete(bullet.id);
             
             requestAnimationFrame(() => {
@@ -168,7 +183,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
     if (mode === "theirs") return;
     saveCaretPosition();
     const content = contentRef.current?.textContent || "";
-    onUpdate(bullet.id, content);
+    if (content !== lastUpdateRef.current) {
+      onUpdate(bullet.id, content);
+      lastUpdateRef.current = content;
+    }
     requestAnimationFrame(() => {
       restoreCaretPosition();
     });
