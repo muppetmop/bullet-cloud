@@ -7,24 +7,16 @@ const INITIAL_SEGMENT_LENGTH = 4;
 const POSITION_INCREMENT = 1;
 
 const calculateMidpoint = (pos1: string, pos2: string): string => {
-  // If positions have different lengths or contain separators, 
-  // append to the first position
-  if (pos1.length !== pos2.length || 
-      pos1.includes(POSITION_SEPARATOR) || 
-      pos2.includes(POSITION_SEPARATOR)) {
-    return pos1 + POSITION_SEPARATOR + '1';
-  }
-
   // Remove the 'a' prefix for calculation
   const num1 = parseInt(pos1.slice(1), 10);
-  const num2 = parseInt(pos2.slice(1), 10);
+  const num2 = pos2 ? parseInt(pos2.slice(1), 10) : num1 + 1;
   
   // Calculate midpoint
   const mid = Math.floor((num1 + num2) / 2);
   
-  // If the midpoint is the same as the first number, we need to use separator
-  if (mid === num1) {
-    return pos1 + POSITION_SEPARATOR + '1';
+  // If the numbers are consecutive, append 5
+  if (num2 - num1 === 1) {
+    return pos1 + '5';
   }
   
   // Format the midpoint with leading zeros
@@ -32,11 +24,6 @@ const calculateMidpoint = (pos1: string, pos2: string): string => {
 };
 
 const generateSequentialPosition = (lastPosition: string): string => {
-  // If the position contains a separator, append to it
-  if (lastPosition.includes(POSITION_SEPARATOR)) {
-    return lastPosition + '1';
-  }
-
   // Remove the 'a' prefix and convert to number
   const currentNum = parseInt(lastPosition.slice(1), 10);
   const nextNum = currentNum + POSITION_INCREMENT;
@@ -59,7 +46,7 @@ const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null
   
   // If no bullets exist or no current bullet specified, start with a0000
   if (!currentBulletId || allBullets.length === 0) {
-    return POSITION_BASE.padEnd(INITIAL_SEGMENT_LENGTH + 1, '0');
+    return POSITION_BASE + '0000';
   }
 
   const currentIndex = allBullets.findIndex(b => b.id === currentBulletId);
@@ -68,7 +55,7 @@ const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null
       currentBulletId,
       availableBullets: allBullets.map(b => b.id)
     });
-    return POSITION_BASE.padEnd(INITIAL_SEGMENT_LENGTH + 1, '0');
+    return POSITION_BASE + '0000';
   }
 
   const currentBullet = allBullets[currentIndex];
