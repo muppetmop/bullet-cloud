@@ -4,12 +4,45 @@ import { getAllVisibleBullets } from "./bulletOperations";
 const POSITION_BASE = 'a';
 const POSITION_SEPARATOR = '_';
 const INITIAL_SEGMENT_LENGTH = 4;
+const POSITION_INCREMENT = 1;
 
-const generatePosition = (position: string): string => {
-  const segments = position.split(POSITION_SEPARATOR);
-  const lastSegment = segments[segments.length - 1];
-  const newLastSegment = lastSegment + '1';
-  return [...segments.slice(0, -1), newLastSegment].join(POSITION_SEPARATOR);
+const calculateMidpoint = (pos1: string, pos2: string): string => {
+  // If positions have different lengths or contain separators, 
+  // append to the first position
+  if (pos1.length !== pos2.length || 
+      pos1.includes(POSITION_SEPARATOR) || 
+      pos2.includes(POSITION_SEPARATOR)) {
+    return pos1 + POSITION_SEPARATOR + '1';
+  }
+
+  // Remove the 'a' prefix for calculation
+  const num1 = parseInt(pos1.slice(1), 10);
+  const num2 = parseInt(pos2.slice(1), 10);
+  
+  // Calculate midpoint
+  const mid = Math.floor((num1 + num2) / 2);
+  
+  // If the midpoint is the same as the first number, we need to use separator
+  if (mid === num1) {
+    return pos1 + POSITION_SEPARATOR + '1';
+  }
+  
+  // Format the midpoint with leading zeros
+  return POSITION_BASE + mid.toString().padStart(INITIAL_SEGMENT_LENGTH, '0');
+};
+
+const generateSequentialPosition = (lastPosition: string): string => {
+  // If the position contains a separator, append to it
+  if (lastPosition.includes(POSITION_SEPARATOR)) {
+    return lastPosition + '1';
+  }
+
+  // Remove the 'a' prefix and convert to number
+  const currentNum = parseInt(lastPosition.slice(1), 10);
+  const nextNum = currentNum + POSITION_INCREMENT;
+  
+  // Format with leading zeros
+  return POSITION_BASE + nextNum.toString().padStart(INITIAL_SEGMENT_LENGTH, '0');
 };
 
 const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null = null): string => {
@@ -24,12 +57,9 @@ const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null
   
   const allBullets = getAllVisibleBullets(bullets);
   
-  if (!currentBulletId) {
-    if (allBullets.length === 0) {
-      return POSITION_BASE.padEnd(INITIAL_SEGMENT_LENGTH, '0');
-    }
-    const lastBullet = allBullets[allBullets.length - 1];
-    return generatePosition(lastBullet.position);
+  // If no bullets exist or no current bullet specified, start with a0000
+  if (!currentBulletId || allBullets.length === 0) {
+    return POSITION_BASE.padEnd(INITIAL_SEGMENT_LENGTH + 1, '0');
   }
 
   const currentIndex = allBullets.findIndex(b => b.id === currentBulletId);
@@ -38,18 +68,19 @@ const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null
       currentBulletId,
       availableBullets: allBullets.map(b => b.id)
     });
-    return generatePosition(POSITION_BASE.padEnd(INITIAL_SEGMENT_LENGTH, '0'));
+    return POSITION_BASE.padEnd(INITIAL_SEGMENT_LENGTH + 1, '0');
   }
 
   const currentBullet = allBullets[currentIndex];
   const nextBullet = allBullets[currentIndex + 1];
   
+  // If there's no next bullet, generate sequential position
   if (!nextBullet) {
-    return generatePosition(currentBullet.position);
+    return generateSequentialPosition(currentBullet.position);
   }
 
-  // Insert between current and next bullet
-  return currentBullet.position + POSITION_SEPARATOR + '1';
+  // Calculate position between current and next bullet
+  return calculateMidpoint(currentBullet.position, nextBullet.position);
 };
 
 const findBulletLevel = (bullets: BulletPoint[], currentBulletId: string | null = null): number => {
