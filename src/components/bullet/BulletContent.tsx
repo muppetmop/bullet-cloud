@@ -34,10 +34,12 @@ const BulletContent: React.FC<BulletContentProps> = ({
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const { saveCaretPosition, restoreCaretPosition, currentPosition } = useCaretPosition(contentRef);
+  const localContentRef = useRef<string>(bullet.content);
 
   useEffect(() => {
     if (!contentRef.current) return;
     contentRef.current.textContent = bullet.content;
+    localContentRef.current = bullet.content;
   }, [bullet.content]);
 
   const handleKeyDown = async (e: KeyboardEvent) => {
@@ -59,11 +61,13 @@ const BulletContent: React.FC<BulletContentProps> = ({
         cursorPos: pos
       });
 
-      // First update the current bullet with content before cursor
-      // Important: Update local content immediately to prevent flicker
+      // Update local refs immediately to prevent flicker
       if (contentRef.current) {
         contentRef.current.textContent = beforeCursor;
+        localContentRef.current = beforeCursor;
       }
+
+      // First update the current bullet with content before cursor
       await onUpdate(bullet.id, beforeCursor);
       
       // Then create new bullet and update it with content after cursor
@@ -172,6 +176,7 @@ const BulletContent: React.FC<BulletContentProps> = ({
     if (mode === "theirs") return;
     saveCaretPosition();
     const content = contentRef.current?.textContent || "";
+    localContentRef.current = content;
     onUpdate(bullet.id, content);
     requestAnimationFrame(() => {
       restoreCaretPosition();
