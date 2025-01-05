@@ -37,13 +37,33 @@ const BulletContent: React.FC<BulletContentProps> = ({
   const localContentRef = useRef<string>(bullet.content);
 
   useEffect(() => {
+    console.log('Effect: Updating content refs:', {
+      bulletId: bullet.id,
+      newContent: bullet.content,
+      previousLocalContent: localContentRef.current,
+      domContent: contentRef.current?.textContent
+    });
+
     if (!contentRef.current) return;
     contentRef.current.textContent = bullet.content;
     localContentRef.current = bullet.content;
   }, [bullet.content]);
 
   const updateDOMContent = (newContent: string) => {
-    if (!contentRef.current) return;
+    if (!contentRef.current) {
+      console.warn('DOM Update Failed: contentRef is null', {
+        bulletId: bullet.id,
+        attemptedContent: newContent
+      });
+      return;
+    }
+    
+    console.log('Before DOM Update:', {
+      bulletId: bullet.id,
+      currentDOMContent: contentRef.current.textContent,
+      currentLocalContent: localContentRef.current,
+      newContent: newContent
+    });
     
     // Update both refs synchronously
     contentRef.current.textContent = newContent;
@@ -54,6 +74,22 @@ const BulletContent: React.FC<BulletContentProps> = ({
     contentRef.current.style.display = 'none';
     void contentRef.current.offsetHeight; // Force reflow
     contentRef.current.style.display = display;
+    
+    console.log('After DOM Update:', {
+      bulletId: bullet.id,
+      updatedDOMContent: contentRef.current.textContent,
+      updatedLocalContent: localContentRef.current,
+      displayStyle: contentRef.current.style.display
+    });
+
+    // Check if localStorage update is needed
+    const savedBullets = localStorage.getItem('bullets');
+    if (savedBullets) {
+      console.log('Current localStorage state:', {
+        bulletId: bullet.id,
+        savedContent: JSON.parse(savedBullets)
+      });
+    }
   };
 
   const handleKeyDown = async (e: KeyboardEvent) => {
@@ -68,15 +104,25 @@ const BulletContent: React.FC<BulletContentProps> = ({
       const beforeCursor = content.slice(0, pos);
       const afterCursor = content.slice(pos);
       
-      console.log('Handling Enter key:', {
+      console.log('Enter key pressed:', {
         bulletId: bullet.id,
+        fullContent: content,
         beforeCursor,
         afterCursor,
-        cursorPos: pos
+        cursorPos: pos,
+        domContent: contentRef.current?.textContent,
+        localContent: localContentRef.current
       });
 
       // Immediately update DOM with content before cursor
       updateDOMContent(beforeCursor);
+
+      // Log state right after visual update
+      console.log('State after visual update:', {
+        bulletId: bullet.id,
+        domContent: contentRef.current?.textContent,
+        localContent: localContentRef.current
+      });
 
       // Handle async operations after visual update
       await onUpdate(bullet.id, beforeCursor);
@@ -182,12 +228,25 @@ const BulletContent: React.FC<BulletContentProps> = ({
 
   const handleInput = () => {
     if (mode === "theirs") return;
+    
+    console.log('Input event:', {
+      bulletId: bullet.id,
+      domContent: contentRef.current?.textContent,
+      localContent: localContentRef.current
+    });
+    
     saveCaretPosition();
     const content = contentRef.current?.textContent || "";
     localContentRef.current = content;
     onUpdate(bullet.id, content);
+    
     requestAnimationFrame(() => {
       restoreCaretPosition();
+      console.log('After input update:', {
+        bulletId: bullet.id,
+        domContent: contentRef.current?.textContent,
+        localContent: localContentRef.current
+      });
     });
   };
 
