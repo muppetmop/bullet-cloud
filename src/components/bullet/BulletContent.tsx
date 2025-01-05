@@ -1,6 +1,5 @@
 import React, { useRef, KeyboardEvent, useEffect } from "react";
 import { BulletPoint } from "@/types/bullet";
-import { handleTabKey, handleArrowKeys } from "@/utils/keyboardHandlers";
 import { BulletIcon } from "./BulletIcon";
 import { CollapseButton } from "./CollapseButton";
 import { useCaretPosition } from "@/hooks/useCaretPosition";
@@ -106,7 +105,32 @@ const BulletContent: React.FC<BulletContentProps> = ({
         });
       }
     } else if (e.key === "Tab") {
-      handleTabKey(e, content, bullet, pos, onUpdate, onIndent, onOutdent);
+      e.preventDefault();
+      if (e.shiftKey && onOutdent) {
+        onOutdent(bullet.id);
+      } else if (!e.shiftKey && onIndent) {
+        onIndent(bullet.id);
+      }
+      
+      setTimeout(() => {
+        const element = document.querySelector(
+          `[data-id="${bullet.id}"] .bullet-content`
+        ) as HTMLElement;
+        if (element) {
+          element.focus();
+          try {
+            const range = document.createRange();
+            const selection = window.getSelection();
+            const textNode = element.firstChild || element;
+            range.setStart(textNode, pos);
+            range.setEnd(textNode, pos);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          } catch (err) {
+            console.error('Failed to restore cursor position:', err);
+          }
+        }
+      }, 0);
     } else if (e.key === "Backspace" && pos === 0) {
       const selection = window.getSelection();
       
@@ -175,7 +199,9 @@ const BulletContent: React.FC<BulletContentProps> = ({
         }
       }
     } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      handleArrowKeys(e, content, bullet, onUpdate, onNavigate);
+      e.preventDefault();
+      onUpdate(bullet.id, content);
+      onNavigate(e.key === "ArrowUp" ? "up" : "down", bullet.id);
     }
   };
 
