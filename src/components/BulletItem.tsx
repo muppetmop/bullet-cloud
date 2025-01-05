@@ -61,6 +61,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
     <div 
       className="bullet-item" 
       data-id={bullet.id}
+      data-position={bullet.position}
     >
       <div
         draggable={mode === "yours"}

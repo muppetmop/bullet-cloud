@@ -77,7 +77,9 @@ export const handleBackspaceKey = (
       content,
       position: bullet.position,
       level: bullet.level,
-      caretPosition: pos
+      caretPosition: pos,
+      hasChildren: bullet.children.length > 0,
+      parentId: bullet.parent_id
     });
 
     // Get all visible bullet contents
@@ -90,7 +92,8 @@ export const handleBackspaceKey = (
       currentBulletContent: content,
       visibleContents: visibleBullets.map(el => ({
         content: el.textContent,
-        id: el.closest('[data-id]')?.getAttribute('data-id')
+        id: el.closest('[data-id]')?.getAttribute('data-id'),
+        position: el.closest('[data-id]')?.getAttribute('data-position')
       }))
     });
     
@@ -102,7 +105,8 @@ export const handleBackspaceKey = (
     console.log('Current bullet index:', {
       currentIndex,
       hasContentRef: !!contentRef.current,
-      contentRefText: contentRef.current?.textContent
+      contentRefText: contentRef.current?.textContent,
+      contentRefId: contentRef.current?.closest('[data-id]')?.getAttribute('data-id')
     });
     
     // Only proceed if we're not at the first bullet
@@ -116,7 +120,8 @@ export const handleBackspaceKey = (
         previousContent,
         currentContent: content,
         willMerge: content.length > 0,
-        willDelete: content.length === 0
+        willDelete: content.length === 0,
+        previousPosition: previousElement.closest('[data-id]')?.getAttribute('data-position')
       });
       
       if (previousBulletId) {
@@ -126,7 +131,9 @@ export const handleBackspaceKey = (
             console.log('Deleting empty bullet:', {
               bulletId: bullet.id,
               previousBulletId,
-              previousContent
+              previousContent,
+              currentPosition: bullet.position,
+              previousElementPosition: previousElement.closest('[data-id]')?.getAttribute('data-position')
             });
             
             onDelete(bullet.id);
@@ -142,7 +149,8 @@ export const handleBackspaceKey = (
                 console.log('Setting cursor position:', {
                   targetPosition: position,
                   nodeContent: textNode.textContent,
-                  success: true
+                  success: true,
+                  elementId: previousElement.closest('[data-id]')?.getAttribute('data-id')
                 });
                 
                 range.setStart(textNode, position);
@@ -165,6 +173,10 @@ export const handleBackspaceKey = (
             originalContents: {
               previous: previousContent,
               current: content
+            },
+            positions: {
+              current: bullet.position,
+              previous: previousElement.closest('[data-id]')?.getAttribute('data-position')
             }
           });
           
@@ -173,7 +185,8 @@ export const handleBackspaceKey = (
           setTimeout(() => {
             console.log('Deleting merged bullet:', {
               bulletId: bullet.id,
-              content
+              content,
+              position: bullet.position
             });
             onDelete(bullet.id);
           }, 100);
@@ -189,7 +202,9 @@ export const handleBackspaceKey = (
               console.log('Setting cursor after merge:', {
                 targetPosition: position,
                 nodeContent: textNode.textContent,
-                success: true
+                success: true,
+                elementId: previousElement.closest('[data-id]')?.getAttribute('data-id'),
+                finalContent: previousElement.textContent
               });
               
               range.setStart(textNode, position);
