@@ -42,6 +42,20 @@ const BulletContent: React.FC<BulletContentProps> = ({
     localContentRef.current = bullet.content;
   }, [bullet.content]);
 
+  const updateDOMContent = (newContent: string) => {
+    if (!contentRef.current) return;
+    
+    // Update both refs synchronously
+    contentRef.current.textContent = newContent;
+    localContentRef.current = newContent;
+    
+    // Force immediate DOM update
+    const display = contentRef.current.style.display;
+    contentRef.current.style.display = 'none';
+    void contentRef.current.offsetHeight; // Force reflow
+    contentRef.current.style.display = display;
+  };
+
   const handleKeyDown = async (e: KeyboardEvent) => {
     if (mode === "theirs") return;
     
@@ -61,18 +75,10 @@ const BulletContent: React.FC<BulletContentProps> = ({
         cursorPos: pos
       });
 
-      // Synchronously update the DOM content first
-      if (contentRef.current) {
-        contentRef.current.textContent = beforeCursor;
-        localContentRef.current = beforeCursor;
-        
-        // Force a repaint to ensure the content update is visible
-        contentRef.current.style.display = 'none';
-        contentRef.current.offsetHeight; // Force reflow
-        contentRef.current.style.display = '';
-      }
+      // Immediately update DOM with content before cursor
+      updateDOMContent(beforeCursor);
 
-      // Then handle the async operations
+      // Handle async operations after visual update
       await onUpdate(bullet.id, beforeCursor);
       
       const newBulletId = onNewBullet(bullet.id);
