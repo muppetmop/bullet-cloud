@@ -30,7 +30,7 @@ export const useBulletIndentation = (
     parent.splice(index, 1);
     const newLevel = bullet.level + 1;
     
-    // Calculate new position as string
+    // Calculate new position using findNextPosition
     const newPosition = findNextPosition(previousBullet.children);
 
     console.log('Indenting bullet:', {
@@ -40,6 +40,7 @@ export const useBulletIndentation = (
       newLevel,
       oldParentId: bullet.parent_id,
       newParentId: previousBullet.id,
+      oldPosition: bullet.position,
       newPosition
     });
 
@@ -53,7 +54,7 @@ export const useBulletIndentation = (
     previousBullet.children.push(updatedBullet);
     setBullets([...bullets]);
 
-    // Queue update with new parent_id, level and position as strings
+    // Queue update with new parent_id, level and position
     addToQueue({
       id: bullet.id,
       type: 'update',
@@ -97,11 +98,11 @@ export const useBulletIndentation = (
     parent.splice(bulletIndex, 1);
     const newLevel = Math.max(0, bullet.level - 1);
 
-    // Find the new parent_id by looking at the grandParent's parent_id
+    // Find the new parent_id
     const newParentId = grandParent === bullets ? null : 
       grandParent.find(b => b.children.includes(parent[0]))?.parent_id || null;
 
-    // Calculate new position as string
+    // Calculate new position using findNextPosition
     const newPosition = findNextPosition(grandParent);
 
     console.log('Outdenting bullet:', {
@@ -110,8 +111,9 @@ export const useBulletIndentation = (
       newLevel,
       oldParentId: bullet.parent_id,
       newParentId,
-      grandParentLength: grandParent.length,
-      newPosition
+      oldPosition: bullet.position,
+      newPosition,
+      grandParentLength: grandParent.length
     });
 
     const updatedBullet = {
@@ -124,7 +126,7 @@ export const useBulletIndentation = (
     grandParent.splice(parentIndex + 1, 0, updatedBullet);
     setBullets([...bullets]);
 
-    // Queue update with new parent_id, level and position as strings
+    // Queue update with new parent_id, level and position
     addToQueue({
       id: bullet.id,
       type: 'update',
