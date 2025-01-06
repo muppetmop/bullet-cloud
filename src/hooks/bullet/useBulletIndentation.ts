@@ -1,21 +1,35 @@
 import { BulletPoint } from "@/types/bullet";
-import { findBulletAndParent } from "@/utils/bulletOperations";
 import { addToQueue } from "@/utils/queueManager";
+import { findNextPosition } from "@/utils/positionCalculator";
 
 export const useBulletIndentation = (
   bullets: BulletPoint[],
   setBullets: React.Dispatch<React.SetStateAction<BulletPoint[]>>
 ) => {
   const indentBullet = (id: string) => {
-    const [bullet, parent] = findBulletAndParent(id, bullets);
-    if (!bullet || !parent) return;
+    const findBulletAndParent = (
+      searchId: string,
+      items: BulletPoint[]
+    ): [BulletPoint | null, BulletPoint[], number] => {
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].id === searchId) {
+          return [items[i], items, i];
+        }
+        const [found, parent, index] = findBulletAndParent(searchId, items[i].children);
+        if (found) {
+          return [found, parent, index];
+        }
+      }
+      return [null, [], -1];
+    };
 
-    const index = parent.indexOf(bullet);
-    if (index === 0) return;
+    const [bullet, parent, index] = findBulletAndParent(id, bullets);
+    if (!bullet || index === 0) return;
 
     const previousBullet = parent[index - 1];
     parent.splice(index, 1);
     const newLevel = bullet.level + 1;
+    const newPosition = findNextPosition(previousBullet.children);
 
     console.log('Indenting bullet:', {
       bulletId: id,
@@ -23,59 +37,61 @@ export const useBulletIndentation = (
       oldLevel: bullet.level,
       newLevel,
       oldParentId: bullet.parent_id,
-      newParentId: previousBullet.id
+      newParentId: previousBullet.id,
+      newPosition
     });
 
     const updatedBullet = {
       ...bullet,
       level: newLevel,
-      parent_id: previousBullet.id
+      parent_id: previousBullet.id,
+      position: newPosition
     };
+
     previousBullet.children.push(updatedBullet);
     setBullets([...bullets]);
 
-    // Queue update with new parent_id and level
+    // Queue update with new parent_id, level and position
     addToQueue({
       id: bullet.id,
       type: 'update',
       data: {
         parent_id: previousBullet.id,
-        level: newLevel
+        level: newLevel,
+        position: newPosition
       }
     });
   };
 
   const outdentBullet = (id: string) => {
-    const findBulletAndGrandParent = (
-      id: string,
-      bullets: BulletPoint[],
-      parent: BulletPoint[] | null = null,
-      grandParent: BulletPoint[] | null = null
-    ): [BulletPoint | null, BulletPoint[] | null, BulletPoint[] | null] => {
-      for (let i = 0; i < bullets.length; i++) {
-        if (bullets[i].id === id) {
-          return [bullets[i], parent, grandParent];
+    const findBulletAndParents = (
+      searchId: string,
+      items: BulletPoint[],
+      path: BulletPoint[][] = []
+    ): [BulletPoint | null, BulletPoint[], number, BulletPoint[][]] => {
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].id === searchId) {
+          return [items[i], items, i, path];
         }
-        const [found, foundParent, foundGrandParent] = findBulletAndGrandParent(
-          id,
-          bullets[i].children,
-          bullets[i].children,
-          parent || bullets
+        const [found, parent, index, newPath] = findBulletAndParents(
+          searchId,
+          items[i].children,
+          [...path, items]
         );
-        if (found) return [found, foundParent, foundGrandParent];
+        if (found) {
+          return [found, parent, index, newPath];
+        }
       }
-      return [null, null, null];
+      return [null, [], -1, path];
     };
 
-    const [bullet, parent, grandParent] = findBulletAndGrandParent(id, bullets);
-    if (!bullet || !parent || !grandParent) return;
+    const [bullet, parent, bulletIndex, path] = findBulletAndParents(id, bullets);
+    if (!bullet || path.length === 0) return;
 
-    const parentIndex = grandParent.findIndex((b) => 
-      b.children.includes(bullet)
-    );
+    const grandParent = path[path.length - 1];
+    const parentIndex = grandParent.findIndex((b) => b.children.includes(parent[0]));
     if (parentIndex === -1) return;
 
-    const bulletIndex = parent.indexOf(bullet);
     parent.splice(bulletIndex, 1);
     const newLevel = Math.max(0, bullet.level - 1);
 
@@ -83,30 +99,36 @@ export const useBulletIndentation = (
     const newParentId = grandParent === bullets ? null : 
       grandParent.find(b => b.children.includes(parent[0]))?.parent_id || null;
 
+    // Calculate new position for the outdented bullet
+    const newPosition = findNextPosition(grandParent);
+
     console.log('Outdenting bullet:', {
       bulletId: id,
       oldLevel: bullet.level,
       newLevel,
       oldParentId: bullet.parent_id,
       newParentId,
-      grandParentLength: grandParent.length
+      grandParentLength: grandParent.length,
+      newPosition
     });
 
     const updatedBullet = {
       ...bullet,
       level: newLevel,
-      parent_id: newParentId
+      parent_id: newParentId,
+      position: newPosition
     };
     grandParent.splice(parentIndex + 1, 0, updatedBullet);
     setBullets([...bullets]);
 
-    // Queue update with new parent_id and level
+    // Queue update with new parent_id, level and position
     addToQueue({
       id: bullet.id,
       type: 'update',
       data: {
         parent_id: newParentId,
-        level: newLevel
+        level: newLevel,
+        position: newPosition
       }
     });
   };
