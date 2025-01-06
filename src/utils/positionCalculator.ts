@@ -9,8 +9,8 @@ const calculateMidpoint = (pos1: string, pos2: string): string => {
   console.log('Calculating midpoint between:', { pos1, pos2 });
   
   // Extract numeric parts and convert to decimal numbers
-  const num1 = parseFloat(pos1.slice(1));
-  const num2 = pos2 ? parseFloat(pos2.slice(1)) : num1 + 1.0;
+  const num1 = parseFloat(pos1.replace(POSITION_BASE, ''));
+  const num2 = pos2 ? parseFloat(pos2.replace(POSITION_BASE, '')) : num1 + 1.0;
   
   // Calculate the midpoint using decimal arithmetic
   const midpoint = (num1 + num2) / 2;
@@ -27,7 +27,7 @@ const calculateMidpoint = (pos1: string, pos2: string): string => {
 };
 
 const generateSequentialPosition = (lastPosition: string): string => {
-  const currentNum = parseFloat(lastPosition.slice(1));
+  const currentNum = parseFloat(lastPosition.replace(POSITION_BASE, ''));
   const nextNum = currentNum + 1.0;
   return POSITION_BASE + nextNum.toFixed(4);
 };
@@ -88,5 +88,6 @@ const findBulletLevel = (bullets: BulletPoint[], currentBulletId: string | null 
 
 export {
   findNextPosition,
-  findBulletLevel
+  findBulletLevel,
+  calculateMidpoint
 };

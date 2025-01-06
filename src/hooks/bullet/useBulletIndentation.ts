@@ -29,6 +29,8 @@ export const useBulletIndentation = (
     const previousBullet = parent[index - 1];
     parent.splice(index, 1);
     const newLevel = bullet.level + 1;
+    
+    // Calculate new position as string
     const newPosition = findNextPosition(previousBullet.children);
 
     console.log('Indenting bullet:', {
@@ -51,7 +53,7 @@ export const useBulletIndentation = (
     previousBullet.children.push(updatedBullet);
     setBullets([...bullets]);
 
-    // Queue update with new parent_id, level and position
+    // Queue update with new parent_id, level and position as strings
     addToQueue({
       id: bullet.id,
       type: 'update',
@@ -99,7 +101,7 @@ export const useBulletIndentation = (
     const newParentId = grandParent === bullets ? null : 
       grandParent.find(b => b.children.includes(parent[0]))?.parent_id || null;
 
-    // Calculate new position for the outdented bullet
+    // Calculate new position as string
     const newPosition = findNextPosition(grandParent);
 
     console.log('Outdenting bullet:', {
@@ -118,10 +120,11 @@ export const useBulletIndentation = (
       parent_id: newParentId,
       position: newPosition
     };
+    
     grandParent.splice(parentIndex + 1, 0, updatedBullet);
     setBullets([...bullets]);
 
-    // Queue update with new parent_id, level and position
+    // Queue update with new parent_id, level and position as strings
     addToQueue({
       id: bullet.id,
       type: 'update',
