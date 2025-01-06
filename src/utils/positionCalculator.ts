@@ -22,14 +22,18 @@ const calculateMidpoint = (pos1: string, pos2: string): string => {
     resultingPosition: POSITION_BASE + midpoint.toFixed(4)
   });
   
-  // Format with 4 decimal places to maintain precision
   return POSITION_BASE + midpoint.toFixed(4);
 };
 
+const extractPositionNumber = (position: string): number => {
+  const match = position.match(/a(\d+)/);
+  return match ? parseInt(match[1], 10) : 0;
+};
+
 const generateSequentialPosition = (lastPosition: string): string => {
-  const currentNum = parseFloat(lastPosition.replace(POSITION_BASE, ''));
-  const nextNum = Math.floor(currentNum) + 1;
-  return POSITION_BASE + nextNum.toFixed(4);
+  const currentNum = extractPositionNumber(lastPosition);
+  const nextNum = currentNum + 1;
+  return POSITION_BASE + nextNum.toString() + '.0000';
 };
 
 const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null = null): string => {
@@ -39,58 +43,58 @@ const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null
       id: b.id,
       content: b.content,
       position: b.position,
-      level: b.level
+      level: b.level,
+      parent_id: b.parent_id
     }))
   });
   
-  // Get all visible bullets at the same level
-  const allBullets = getAllVisibleBullets(bullets)
-    .sort((a, b) => a.position.localeCompare(b.position));
-
   // If no current bullet specified, start with a1.0000
   if (!currentBulletId) {
     return POSITION_BASE + '1.0000';
   }
 
-  const currentBullet = allBullets.find(b => b.id === currentBulletId);
+  const currentBullet = bullets.find(b => b.id === currentBulletId);
   if (!currentBullet) {
     console.error('Current bullet not found:', {
       currentBulletId,
-      availableBullets: allBullets.map(b => b.id)
+      availableBullets: bullets.map(b => b.id)
     });
     return POSITION_BASE + '1.0000';
   }
 
   // Get siblings (bullets at the same level with the same parent)
-  const siblings = allBullets.filter(b => 
+  const siblings = bullets.filter(b => 
     b.level === currentBullet.level && 
     b.parent_id === currentBullet.parent_id
-  );
+  ).sort((a, b) => a.position.localeCompare(b.position));
+
+  console.log('Found siblings:', {
+    bulletId: currentBulletId,
+    level: currentBullet.level,
+    parentId: currentBullet.parent_id,
+    siblings: siblings.map(s => ({
+      id: s.id,
+      position: s.position,
+      content: s.content
+    }))
+  });
 
   const currentIndex = siblings.findIndex(b => b.id === currentBulletId);
   const nextSibling = siblings[currentIndex + 1];
   
-  console.log('Position calculation context:', {
-    currentBullet: {
-      id: currentBullet.id,
-      position: currentBullet.position,
-      level: currentBullet.level
-    },
-    nextSibling: nextSibling ? {
-      id: nextSibling.id,
-      position: nextSibling.position,
-      level: nextSibling.level
-    } : null,
-    siblingsCount: siblings.length
-  });
-  
-  // If there's no next sibling, generate sequential position
+  // If there's no next sibling, generate sequential position based on last sibling
   if (!nextSibling) {
-    const newPosition = generateSequentialPosition(currentBullet.position);
+    const lastSibling = siblings[siblings.length - 1];
+    const newPosition = lastSibling ? 
+      generateSequentialPosition(lastSibling.position) : 
+      POSITION_BASE + '1.0000';
+    
     console.log('Generated sequential position:', {
-      currentPosition: currentBullet.position,
-      newPosition
+      lastSiblingPosition: lastSibling?.position,
+      newPosition,
+      reason: 'No next sibling'
     });
+    
     return newPosition;
   }
 
