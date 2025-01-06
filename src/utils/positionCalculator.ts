@@ -28,7 +28,7 @@ const calculateMidpoint = (pos1: string, pos2: string): string => {
 
 const generateSequentialPosition = (lastPosition: string): string => {
   const currentNum = parseFloat(lastPosition.replace(POSITION_BASE, ''));
-  const nextNum = currentNum + 1.0;
+  const nextNum = Math.floor(currentNum) + 1; // Use floor to get the next whole number
   return POSITION_BASE + nextNum.toFixed(4);
 };
 
@@ -45,9 +45,9 @@ const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null
   const allBullets = getAllVisibleBullets(bullets)
     .sort((a, b) => a.position.localeCompare(b.position));
   
-  // If no bullets exist or no current bullet specified, start with a0000
+  // If no bullets exist or no current bullet specified, start with a1.0000
   if (!currentBulletId || allBullets.length === 0) {
-    return POSITION_BASE + '0.0000';
+    return POSITION_BASE + '1.0000';
   }
 
   const currentIndex = allBullets.findIndex(b => b.id === currentBulletId);
@@ -56,7 +56,7 @@ const findNextPosition = (bullets: BulletPoint[], currentBulletId: string | null
       currentBulletId,
       availableBullets: allBullets.map(b => b.id)
     });
-    return POSITION_BASE + '0.0000';
+    return POSITION_BASE + '1.0000';
   }
 
   const currentBullet = allBullets[currentIndex];
