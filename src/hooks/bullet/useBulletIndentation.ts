@@ -17,6 +17,15 @@ export const useBulletIndentation = (
     parent.splice(index, 1);
     const newLevel = bullet.level + 1;
 
+    console.log('Indenting bullet:', {
+      bulletId: id,
+      previousBulletId: previousBullet.id,
+      oldLevel: bullet.level,
+      newLevel,
+      oldParentId: bullet.parent_id,
+      newParentId: previousBullet.id
+    });
+
     const updatedBullet = {
       ...bullet,
       level: newLevel,
@@ -25,15 +34,13 @@ export const useBulletIndentation = (
     previousBullet.children.push(updatedBullet);
     setBullets([...bullets]);
 
+    // Queue update with new parent_id and level
     addToQueue({
       id: bullet.id,
       type: 'update',
       data: {
         parent_id: previousBullet.id,
-        level: newLevel,
-        content: bullet.content,
-        is_collapsed: bullet.isCollapsed,
-        position: bullet.position
+        level: newLevel
       }
     });
   };
@@ -72,23 +79,34 @@ export const useBulletIndentation = (
     parent.splice(bulletIndex, 1);
     const newLevel = Math.max(0, bullet.level - 1);
 
+    // Find the new parent_id by looking at the grandParent's parent_id
+    const newParentId = grandParent === bullets ? null : 
+      grandParent.find(b => b.children.includes(parent[0]))?.parent_id || null;
+
+    console.log('Outdenting bullet:', {
+      bulletId: id,
+      oldLevel: bullet.level,
+      newLevel,
+      oldParentId: bullet.parent_id,
+      newParentId,
+      grandParentLength: grandParent.length
+    });
+
     const updatedBullet = {
       ...bullet,
       level: newLevel,
-      parent_id: null
+      parent_id: newParentId
     };
     grandParent.splice(parentIndex + 1, 0, updatedBullet);
     setBullets([...bullets]);
 
+    // Queue update with new parent_id and level
     addToQueue({
       id: bullet.id,
       type: 'update',
       data: {
-        parent_id: null,
-        level: newLevel,
-        content: bullet.content,
-        is_collapsed: bullet.isCollapsed,
-        position: bullet.position
+        parent_id: newParentId,
+        level: newLevel
       }
     });
   };
